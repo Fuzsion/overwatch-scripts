@@ -1,0 +1,65 @@
+import "macros.del";
+playervar define primaryStartPos;
+playervar define effect;
+playervar define playerRaycast;
+playervar define wall;
+playervar define wallToPlayer;
+playervar define playerRaycastToPlayer;
+playervar define eventDamage;
+playervar define wallbang;
+playervar define isFiring;
+playervar define playerbang;
+playervar define wallbangBeamEffect;
+globalvar define wallbangEnabled = true;
+
+rule: "Wallbang"
+    Event.OngoingPlayer
+    if (wallbangEnabled && IsFiringPrimary())
+    {
+        PlayEffect(AllPlayers(), PlayEffect.GoodExplosion, Color.Aqua, RayCastHitPosition(Vector(0, -1000, 0), Vector(0, -1000, 0), AllPlayers(), player, true));
+        playerRaycast = RayCastHitPosition(EyePosition(), EyePosition() + FacingDirectionOf() * 100, AllPlayers(), player, true);
+        wall = playerRaycast + FacingDirectionOf();
+        wallToPlayer = RayCastHitPlayer(wall, wall + FacingDirectionOf() * 100, AllPlayers(), player, true);
+        wallbang = RayCastHitPosition(wall, wall + FacingDirectionOf() * 100, AllPlayers(), player, true);
+        PlayEffect(AllPlayers(), PlayEffect.GoodExplosion, Color.Aqua, playerRaycast, 0.2);
+        PlayEffect(AllPlayers(), PlayEffect.GoodExplosion, Color.Aqua, wallbang, 0.2);
+
+        isFiring = true;
+    }
+
+rule: "Playerbang"
+    Event.OnDamageDealt
+    if (IsFiringPrimary()) 
+    if (DistanceBetween(wallbang, EyePosition(playerRaycastToPlayer)) < 0.1)
+    {
+        playerRaycastToPlayer = RayCastHitPlayer(EyePosition(Victim()), EyePosition(Victim()) + FacingDirectionOf(Attacker() * 100), AllPlayers(), Victim(), true);
+        playerbang = RayCastHitPosition(EyePosition(Victim()), EyePosition(Victim()) + FacingDirectionOf(Attacker() * 100), AllPlayers(), player, true);
+        Damage(playerRaycastToPlayer, Attacker(), EventDamage());
+    }
+
+rule: "Primary effect wallbang"
+    Event.OngoingPlayer
+    if (wallbangEnabled && IsFiringPrimary())
+    {
+        primaryStartPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
+        CreateBeamEffect(AllPlayers(), BeamType.BadBeam, EyePosition() + Facing() + primaryStartPos, wallbang, Color.Aqua, EffectRev.None);
+        effect = LastCreatedEntity();
+        PlayEffect(AllPlayers(), PlayEffect.GoodExplosion, Color.Aqua, EyePosition() + Facing() + primaryStartPos, 0.2);
+
+        Wait(0.25);
+        DestroyEffect(effect);
+    }
+
+rule: "Set isFiring to false"
+    Event.OngoingPlayer
+    if (!IsFiringPrimary())
+    {
+        isFiring = false;
+    }
+
+rule: "Apply Damage"
+    Event.OngoingPlayer
+    if (isFiring && DistanceBetween(wallbang, EyePosition(wallToPlayer)) >= 0.1)
+    {
+        Damage(wallToPlayer, player, 10000);
+    }

@@ -1,0 +1,99 @@
+// import "macros.del";
+define player:                    EventPlayer();
+define all:                       AllPlayers();
+define allLiving:                 AllLivingPlayers();
+define host:                      HostPlayer();
+define Facing():                  FacingDirectionOf();
+define IsPrimaryHeld():           IsButtonHeld(player, Button.PrimaryFire);
+define IsSecondaryHeld():         IsButtonHeld(player, Button.SecondaryFire);
+define IsAbility1Held():          IsButtonHeld(player, Button.Ability1);
+define IsAbility2Held():          IsButtonHeld(player, Button.Ability2);
+define IsInteractHeld():          IsButtonHeld(player, Button.Interact);
+define IsUltHeld():               IsButtonHeld(player, Button.Ultimate);
+define IsJumpHeld():              IsButtonHeld(player, Button.Jump);
+define IsCrouchHeld():             IsButtonHeld(player, Button.Crouch);
+define IsReloadHeld():            IsButtonHeld(player, Button.Reload);
+define IsMeleeHeld():             IsButtonHeld(player, Button.Melee);
+define Time():                    TotalTimeElapsed();
+define WaitIfTrue(define time):   Wait(time, WaitBehavior.AbortWhenFalse); // Aborts the rule if the condition goes false while waiting
+define EnemyPlayers():            AllPlayers(OppositeTeamOf(TeamOf()));
+define ServerLoadText():          CreateHudText(host, null, <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest), RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, null, Location.Right, -1);
+define ThrottleText():            CreateHudText(player, null, <"Throttle: <0>", ThrottleOf()>, null, Location.Right, -1);
+define SpeedText():               CreateHudText(player, null, <"Speed: <0>", HorizontalSpeedOf()>, null, Location.Right, -1);
+define PositionText():            CreateHudText(player, null, <"Position: <0>", PositionOf()>, null, Location.Right, -1);
+define FacingText():              CreateHudText(player, null, <"Facing Direction: <0>", FacingDirectionOf()>, null, Location.Right, -1);
+define HorizontalFacingText():    CreateHudText(player, null, <"Horizontal Facing Direction: <0>", HorizontalFacingAngleOf()>, null, Location.Right, -1);
+define VerticalFacingText():      CreateHudText(player, null, <"Vertical Facing Direction: <0>", VerticalFacingAngleOf()>, null, Location.Right, -1);
+
+
+
+
+
+
+
+globalvar define PROJECTILE_SPEED = 110;
+//globalvar define GRAVITY = 6.67 * 10^-11;
+globalvar define GRAVITY = 100;
+
+playervar define isFiring;
+playervar define raycastHit;
+playervar define eyePos;
+playervar define orbEffect;
+playervar define startPos;
+playervar define livingEnemies;
+
+
+
+class Projectile
+{
+    public define position;
+    public define destination;
+    public define angle;
+    public define effectEntity;
+
+    public Projectile(define a)
+    {
+        angle = a;
+    }
+}
+
+
+rule: "init"
+    {
+        ServerLoadText();
+    }
+
+rule: "proj raycast"
+    Event.OngoingPlayer
+    if (IsInteractHeld() && IsAlive())
+    {
+        isFiring = true;
+
+        livingEnemies = RemoveFromArray(EnemyPlayers(), AllDeadPlayers());
+        raycastHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
+        eyePos = EyePosition();
+        DestroyEffect(orbEffect);
+
+
+        CreateEffect(all, Effect.Orb, Color.Red, eyePos, 0.1);
+        orbEffect = LastCreatedEntity();
+        ChaseVariableAtRate(eyePos, raycastHit, PROJECTILE_SPEED, RateChaseReevaluation.DestinationAndRate);
+
+        Wait(0.5);
+    }
+
+rule: "destroy proj"
+    Event.OngoingPlayer
+    if (DistanceBetween(eyePos, raycastHit) < 0.1)
+    {
+        StopChasingVariable(eyePos);
+
+        PlayEffect(all, PlayEffect.GoodExplosion, Color.Red, raycastHit, 1.5);
+        DestroyEffect(orbEffect);
+    }
+
+rule: "phys"
+    Event.OngoingPlayer
+    {
+
+    }

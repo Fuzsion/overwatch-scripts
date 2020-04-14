@@ -1,0 +1,242 @@
+// // Original: https://workshop.elohell.gg/WVxqjssN7/Advanced+Bhop+Script/
+
+import "macros.del";
+
+// playervar define B;
+
+// rule: "HUD"
+//     Event.OngoingPlayer
+//     {
+//         CreateHudText(player, null, <"<0> M/S", HorizontalSpeedOf()>, null, Location.Left, -1);
+//         CreateHudText(player, null, <"<0>%", B[0]>, B[5], Location.Left, -1, Color.White, Color.Yellow, Color.White);
+//         CreateHudText(player, null, B[1], null, Location.Left, -1, Color.White, Color.Blue, Color.White);
+//     }
+
+// rule: "0 | Set UP | Base Face Angle for Calc | Falling speed | apply speed After Calc"
+//     Event.OngoingPlayer
+//     if (IsInAir())
+//     {
+//         B[2] = HorizontalAngleFromDirection(FacingDirectionOf());
+//         B[6] = AbsoluteValue(VerticalSpeedOf() / 10);
+//         SetMoveSpeed(player, Min(1000, B[0]));
+//         Wait(0.210);
+//         LoopIfConditionIsTrue();
+//     }
+
+// rule: "1 | Acceleration Direction Calc While AD Strafe"
+//     Event.OngoingPlayer
+//     if ((ThrottleOf().X == 1 || ThrottleOf().X == -1) && 
+//        (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) > 4.5 || SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) < -4.5) && 
+//        !((IsOnWall() || !IsInAir()) || (HeroOf() == Hero.WreckingBall && IsButtonHeld(player, Button.SecondaryFire)) || ((HeroOf() == Hero.Dva || HeroOf() == Hero.Ashe || HeroOf() == Hero.Widowmaker) && IsUsingAbility1()))) 
+//     {
+//         MinWait();
+//         B[3] = DirectionFromAngles(HorizontalFacingAngleOf(), 0);
+//         SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) < 0, 2);
+//         ForceThrottle(player, 1, 1, 0, 1, 0, 1);
+//         StartAccelerating(player, Forward(), 1000, 60, Relative.ToPlayer, AccelerateRev.DirectionRateAndMaxSpeed);
+//         SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) >= 0, 3);
+//         ForceThrottle(player, 0, 1, 1, 1, 0, 1);
+//         StartAccelerating(player, Backward(), 1000, 60, Relative.ToPlayer, AccelerateRev.DirectionRateAndMaxSpeed);
+//         B[3] = B[3] * -1;
+//         LoopIfConditionIsTrue();
+//         StopAccelerating();
+//         StopForcingThrottle();
+//         StartAccelerating(player, B[3], 1000, 60, Relative.ToWorld, AccelerateRev.DirectionRateAndMaxSpeed);
+//     }
+
+// rule: "2 | Calc Straved angle and Increase Speed | Forward&Backward Strafing"
+//     Event.OngoingPlayer
+//     if (IsInAir())
+//     if (!IsOnWall())
+//     if (HorizontalSpeedOf() > 4) 
+//     {
+//         Wait(0.33, WaitBehavior.AbortWhenFalse);
+//         B[1] = AngleDifference(B[2], HorizontalAngleFromDirection(FacingDirectionOf()));
+//         B[1] = AbsoluteValue(B[1]);
+//         B[4] = AngleDifference(B[2], HorizontalAngleFromDirection(FacingDirectionOf()));
+//         SkipIf (B[4] == 0, 3);
+//         B[4] = Normalize(B[4]);
+//         SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) > 4 && B[4] != ThrottleOf().X, 3);
+//         SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) < 4 && B[4] == ThrottleOf().X, 2);
+//         SkipIf (B[1] > 95, 1);
+//         B[0] = B[0] + SquareRoot(B[1] / 100) * B[0] * B[1] / HorizontalSpeedOf() * B[1];
+//         SkipIf (B[4] == 0, 3);
+//         B[4] = Normalize(B[4]);
+//         SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) > 4 && B[4] != ThrottleOf().X, 3);
+//         SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) < 4 && B[4] == ThrottleOf().X, 2);
+//         SkipIf (B[1] <= 95, 2);
+//         B[1] = B[1] - 95;
+//         B[0] = B[0] - SquareRoot(B[1] / 100) + B[1] * HorizontalSpeedOf() / B[0];
+//         LoopIfConditionIsTrue();
+//     }
+
+// rule: "3 | Detect ground shape | apply impules for bonus speed Of falling speed + Angle of Ground"
+//     Event.OngoingPlayer
+//     if (IsOnGround() && IsButtonHeld(player, Button.Jump))
+//     {
+//         B[5] = AbsoluteValue(AngleDifference(RayCastHitNormal(EyePosition(), EyePosition() + Down() * 25, null, player, false).X, 
+//         RayCastHitNormal(EyePosition(), EyePosition() + Down() * 25, null, player, false).Z));
+
+//         B[5] = Min(0.450, B[5]);
+//         SkipIf (B[5] < 0.05, 1);
+//         B[5] = B[5] + B[6];
+//         ApplyImpulse(player, Vector(0, -1, SpeedOfInDirection(player, FacingDirectionOf())), B[5], Relative.ToPlayer, ContraryMotion.Incorporate);
+//     }
+
+// rule: "stop speed if for 5+ Server ticks on ground (0.016 = 1tick) Higher Wait = Easier!!"
+//     Event.OngoingPlayer
+//     if (IsOnGround())
+//     {
+//         Wait(0.08, WaitBehavior.AbortWhenFalse);
+//         StopForcingThrottle();
+//         B[0] = 100;
+//         SetMoveSpeed(player, B[0]);
+//         StopAccelerating();
+//         Loop();
+//     }
+
+// rule: "stop Speed If too slow"
+//     Event.OngoingPlayer
+//     if (HorizontalSpeedOf() < 4.5)
+//     {
+//         B[0] = 100;
+//         StopForcingThrottle();
+//         SetMoveSpeed(player, B[0]);
+//         StopAccelerating();
+//     }
+
+// rule: "Stop Acceleration for Hero Abilitys with Acceleration (Fix)"
+//     Event.OngoingPlayer
+//     if (IsOnWall() || HeroOf() == Hero.WreckingBall && IsButtonHeld(player, Button.SecondaryFire) || HeroOf() == Hero.Dva || HeroOf() == Hero.Ashe || HeroOf() == Hero.Widowmaker && IsUsingAbility1())
+//     {
+//         StopAccelerating();
+//     }
+
+// rule: "Auto Hop"
+//     Event.OngoingPlayer
+//     if (IsOnGround() && IsButtonHeld(player, Button.Jump))
+//     {
+//         DisallowButton(player, Button.Jump);
+//         MinWait();
+//         AllowButton(player, Button.Jump);
+//     }
+// Original: https://workshop.elohell.gg/WVxqjssN7/Advanced+Bhop+Script/
+
+playervar define B;
+
+rule: "HUD"
+    Event.OngoingPlayer
+    {
+        CreateHudText(player, null, <"<0> M/S", HorizontalSpeedOf()>, null, Location.Left, -1);
+        CreateHudText(player, null, <"<0>%", B[0]>, B[5], Location.Left, -1, Color.White, Color.Yellow, Color.White);
+        CreateHudText(player, null, B[1], null, Location.Left, -1, Color.White, Color.Blue, Color.White);
+    }
+
+rule: "0 | Set UP | Base Face Angle for Calc | Falling speed | apply speed After Calc"
+    Event.OngoingPlayer
+    if (IsInAir())
+    {
+        B[2] = HorizontalAngleFromDirection(FacingDirectionOf());
+        B[6] = AbsoluteValue(VerticalSpeedOf() / 10);
+        SetMoveSpeed(player, Min(1000, B[0]));
+        Wait(0.210);
+        LoopIfConditionIsTrue();
+    }
+
+rule: "1 | Acceleration Direction Calc While AD Strafe"
+    Event.OngoingPlayer
+    if ((ThrottleOf().X == 1 || ThrottleOf().X == -1) && 
+       (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) > 4.5 || SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) < -4.5) && 
+       !((IsOnWall() || !IsInAir()) || (HeroOf() == Hero.WreckingBall && IsButtonHeld(player, Button.SecondaryFire)) || ((HeroOf() == Hero.Dva || HeroOf() == Hero.Ashe || HeroOf() == Hero.Widowmaker) && IsUsingAbility1()))) 
+    {
+        MinWait();
+        B[3] = DirectionFromAngles(HorizontalFacingAngleOf(), 0);
+        SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) < 0, 2);
+        ForceThrottle(player, 1, 1, 0, 1, 0, 1);
+        StartAccelerating(player, Forward(), 1000, 60, Relative.ToPlayer, AccelerateRev.DirectionRateAndMaxSpeed);
+        SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) >= 0, 3);
+        ForceThrottle(player, 0, 1, 1, 1, 0, 1);
+        StartAccelerating(player, Backward(), 1000, 60, Relative.ToPlayer, AccelerateRev.DirectionRateAndMaxSpeed);
+        B[3] = B[3] * -1;
+        LoopIfConditionIsTrue();
+        StopAccelerating();
+        StopForcingThrottle();
+        StartAccelerating(player, B[3], 1000, 60, Relative.ToWorld, AccelerateRev.DirectionRateAndMaxSpeed);
+    }
+
+rule: "2 | Calc Straved angle and Increase Speed | Forward&Backward Strafing"
+    Event.OngoingPlayer
+    if (IsInAir())
+    if (!IsOnWall())
+    if (HorizontalSpeedOf() > 4) 
+    {
+        Wait(0.33, WaitBehavior.AbortWhenFalse);
+        B[1] = AngleDifference(B[2], HorizontalAngleFromDirection(FacingDirectionOf()));
+        B[1] = AbsoluteValue(B[1]);
+        B[4] = AngleDifference(B[2], HorizontalAngleFromDirection(FacingDirectionOf()));
+        SkipIf (B[4] == 0, 3);
+        B[4] = Normalize(B[4]);
+        SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) > 4 && B[4] != ThrottleOf().X, 3);
+        SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) < 4 && B[4] == ThrottleOf().X, 2);
+        SkipIf (B[1] > 95, 1);
+        B[0] = B[0] + SquareRoot(B[1] / 100) * B[0] * B[1] / HorizontalSpeedOf() * B[1];
+        SkipIf (B[4] == 0, 3);
+        B[4] = Normalize(B[4]);
+        SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) > 4 && B[4] != ThrottleOf().X, 3);
+        SkipIf (SpeedOfInDirection(player, DirectionFromAngles(HorizontalFacingAngleOf(), 0)) < 4 && B[4] == ThrottleOf().X, 2);
+        SkipIf (B[1] <= 95, 2);
+        B[1] = B[1] - 95;
+        B[0] = B[0] - SquareRoot(B[1] / 100) + B[1] * HorizontalSpeedOf() / B[0];
+        LoopIfConditionIsTrue();
+    }
+
+rule: "3 | Detect ground shape | apply impules for bonus speed Of falling speed + Angle of Ground"
+    Event.OngoingPlayer
+    if (IsOnGround() && IsButtonHeld(player, Button.Jump))
+    {
+        B[5] = AbsoluteValue(AngleDifference(RayCastHitNormal(EyePosition(), EyePosition() + Down() * 25, null, player, false).X, 
+        RayCastHitNormal(EyePosition(), EyePosition() + Down() * 25, null, player, false).Z));
+
+        B[5] = Min(0.450, B[5]);
+        SkipIf (B[5] < 0.05, 1);
+        B[5] = B[5] + B[6];
+        ApplyImpulse(player, Vector(0, -1, SpeedOfInDirection(player, FacingDirectionOf())), B[5], Relative.ToPlayer, ContraryMotion.Incorporate);
+    }
+
+rule: "stop speed if for 5+ Server ticks on ground (0.016 = 1tick) Higher Wait = Easier!!"
+    Event.OngoingPlayer
+    if (IsOnGround())
+    {
+        Wait(0.08, WaitBehavior.AbortWhenFalse);
+        StopForcingThrottle();
+        B[0] = 100;
+        SetMoveSpeed(player, B[0]);
+        StopAccelerating();
+        Loop();
+    }
+
+rule: "stop Speed If too slow"
+    Event.OngoingPlayer
+    if (HorizontalSpeedOf() < 4.5)
+    {
+        B[0] = 100;
+        StopForcingThrottle();
+        SetMoveSpeed(player, B[0]);
+        StopAccelerating();
+    }
+
+rule: "Stop Acceleration for Hero Abilitys with Acceleration (Fix)"
+    Event.OngoingPlayer
+    if (IsOnWall() || HeroOf() == Hero.WreckingBall && IsButtonHeld(player, Button.SecondaryFire) || HeroOf() == Hero.Dva || HeroOf() == Hero.Ashe || HeroOf() == Hero.Widowmaker && IsUsingAbility1())
+    {
+        StopAccelerating();
+    }
+
+rule: "Auto Hop"
+    Event.OngoingPlayer
+    if (IsOnGround() && IsButtonHeld(player, Button.Jump))
+    {
+        DisallowButton(player, Button.Jump);
+        MinWait();
+        AllowButton(player, Button.Jump);
+    }

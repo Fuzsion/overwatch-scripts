@@ -1,0 +1,364 @@
+/* Global Variables */
+globalvar define init;
+globalvar define BASE_HEIGHT;
+globalvar define TELEPORT_POS;
+globalvar define TELEPORT_END;
+globalvar define heavyScorty;
+globalvar define effect;
+
+/* Player Variables */
+playervar define playerX;
+playervar define playerY;
+playervar define playerZ;
+playervar define startPos;
+
+playervar define targetX;
+playervar define targetY;
+playervar define targetZ;
+//playervar define targetPos;
+
+playervar define startAngle;
+playervar define targetDistance;
+playervar define playerInit;
+playervar define target;
+playervar define maxHeight;
+playervar define currentAttempt;
+playervar define lastAttempt;
+playervar define playereffect;
+playervar define attemptReady;
+playervar define attemptActive;
+playervar define mode;
+playervar define textInit;
+
+rule: "Global Setup"
+    if (!init)
+    {
+        TELEPORT_POS = Vector(188, 27.5, -25);
+        TELEPORT_END = Vector(192, 45.35, -18);
+        PauseMatchTime();
+        BASE_HEIGHT = 27.5;
+        CreateEffect(AllPlayers(), Effect.LightShaft, Color.Blue, TELEPORT_POS, 1, EffectRev.VisibleToPositionAndRadius);
+        heavyScorty = false;
+        init = true;
+    }
+
+rule: "Teleporter"
+    Event.OngoingPlayer
+    if (DistanceBetween(EventPlayer(), TELEPORT_POS) < 1)
+    {
+        CreateEffect(EventPlayer(), Effect.EnergySound, Color.Blue, PositionOf(), 1, EffectRev.VisibleToPositionAndRadius);
+        Teleport(EventPlayer(), TELEPORT_END);
+    }
+
+rule: "[MERCY] Team 1, Slot 0 - Setup"
+    Event.OngoingPlayer
+    Team.Team1
+    Player.Slot0
+    if (!playerInit)
+    {
+        ForcePlayerHero(EventPlayer(), Hero.Mercy);
+
+        targetDistance = -15;
+
+        playerX = 211.666;
+        playerY = BASE_HEIGHT;
+        playerZ = -17.5;
+
+        targetX = 211.666;
+        targetY = BASE_HEIGHT;
+        targetZ = 17.5;
+
+        startAngle = Vector(0, 0, -1);
+        startPos = Vector(playerX, playerY, playerZ);
+        target = PlayersInSlot(SlotOf() + 1, TeamOf());
+        maxHeight = BASE_HEIGHT;
+        currentAttempt = BASE_HEIGHT;
+        lastAttempt = BASE_HEIGHT;
+        attemptActive = false;
+
+        textInit = false;
+        playerInit = true;
+    }
+
+rule: "[MERCY] Team 1, Slot 2 - Setup"
+    Event.OngoingPlayer
+    Team.Team1
+    Player.Slot2
+    if (!playerInit)
+    {
+        ForcePlayerHero(EventPlayer(), Hero.Mercy);
+
+        targetDistance = -15;
+
+        playerX = 225;
+        playerY = BASE_HEIGHT;
+        playerZ = -17.5;
+
+        targetX = 225;
+        targetY = BASE_HEIGHT;
+        targetZ = 17.5;
+
+        startAngle = Vector(0, 0, -1);
+        startPos = Vector(playerX, playerY, playerZ);
+        target = PlayersInSlot(SlotOf() + 1, TeamOf());
+        maxHeight = BASE_HEIGHT;
+        currentAttempt = BASE_HEIGHT;
+        lastAttempt = BASE_HEIGHT;
+        attemptActive = false;
+
+        textInit = false;
+        playerInit = true;
+    }
+
+rule: "[MERCY] Team 2, Slot 0 - Setup"
+    Event.OngoingPlayer
+    Team.Team2
+    Player.Slot0
+    if (!playerInit)
+    {
+        ForcePlayerHero(EventPlayer(), Hero.Mercy);
+
+        targetDistance = 15;
+
+        playerX = 218.333;
+        playerY = BASE_HEIGHT;
+        playerZ = -63;
+
+        targetX = 218.333;
+        targetY = BASE_HEIGHT;
+        targetZ = 63;
+
+        startAngle = Vector(0, 0, 1);
+        startPos = Vector(playerX, playerY, playerZ);
+        target = PlayersInSlot(SlotOf() + 1, TeamOf());
+        maxHeight = BASE_HEIGHT;
+        currentAttempt = BASE_HEIGHT;
+        lastAttempt = BASE_HEIGHT;
+        attemptActive = false;
+
+        textInit = false;
+        playerInit = true;
+    }
+
+rule: "[MERCY] Team 2, Slot 2 - Setup"
+    Event.OngoingPlayer
+    Team.Team2
+    Player.Slot2
+    if (!playerInit)
+    {
+        ForcePlayerHero(EventPlayer(), Hero.Mercy);
+
+        targetDistance = 15;
+
+        playerX = 205;
+        playerY = BASE_HEIGHT;
+        playerZ = -63;
+
+        targetX = 205;
+        targetY = BASE_HEIGHT;
+        targetZ = 63;
+
+        startAngle = Vector(0, 0, 1);
+        startPos = Vector(playerX, playerY, playerZ);
+        target = PlayersInSlot(SlotOf() + 1, TeamOf());
+        maxHeight = BASE_HEIGHT;
+        currentAttempt = BASE_HEIGHT;
+        lastAttempt = BASE_HEIGHT;
+        attemptActive = false;
+
+        textInit = false;
+        playerInit = true;
+    }
+
+// rule: "Mode 1 Positions"
+//     Event.OngoingPlayer
+//     Player.Mercy
+//     if (mode == 1)
+//     {
+//         playerY = 27.5;
+//         playerZ = -17.5;
+//         startPos = Vector(playerX, playerY, playerZ);
+
+//     }
+
+// rule: "Mode 2 Positions"
+//     Event.OngoingPlayer
+//     Player.Mercy
+//     if (mode == 2)
+//     {
+//         playerY = 45.35;
+//         playerZ = -17.5;
+//         startPos = Vector(playerX, playerY, playerZ);
+//     }
+
+rule: "[MERCY] Spawn"
+    Event.OngoingPlayer
+    Player.Mercy
+    if (IsInSpawnRoom())
+    {
+        //mode = 1;
+        SetDamageReceived(EventPlayer(), 0);
+        SetDamageDealt(EventPlayer(), 0);
+        Teleport(EventPlayer(), startPos);
+        SetFacing(EventPlayer(), startAngle, Relative.ToWorld);
+        Teleport(target, Vector(targetX, targetY, targetDistance - targetZ));
+        attemptReady = true;
+    }
+
+// Resets on interact
+rule: "[MERCY] Reset positions"
+    Event.OngoingPlayer
+    Player.Mercy
+    if (IsAlive() && IsButtonHeld(EventPlayer(), Button.Interact))
+    {
+        if (IsMoving())
+        {
+            SetStatus(EventPlayer(), null, Status.Frozen, 0.05);
+            ApplyImpulse(EventPlayer(), Vector(0, 0, -1), 1, Relative.ToPlayer, ContraryMotion.Cancel);
+            ApplyImpulse(EventPlayer(), Vector(0, -1, 0), 100, Relative.ToWorld, ContraryMotion.Cancel);
+        }
+
+        Teleport(EventPlayer(), startPos);
+        SetFacing(EventPlayer(), startAngle, Relative.ToWorld);
+        Teleport(target, Vector(targetX, targetY, targetDistance - targetZ));
+        // your gay okaygay i hate your stupid fucking guts i cant believe how fucking stupid you are :)
+    }
+
+
+// Change distance to target on ult
+rule: "[MERCY] Change distance/mode"
+    Event.OngoingPlayer
+    Player.Mercy
+    if (IsAlive() && IsButtonHeld(EventPlayer(), Button.Ultimate))
+    {
+        // if (!IsButtonHeld(EventPlayer(), Button.Crouch))
+        // {
+            if (TeamOf() == Team.Team1)
+            {
+                targetDistance -= 2.5;
+
+                if (targetDistance < -30)
+                {
+                    targetDistance = -5;
+                }
+            }
+            else
+            {
+                targetDistance += 2.5;
+
+                if (targetDistance > 30)
+                {
+                    targetDistance = 5;
+                }
+            }
+
+            Teleport(target, Vector(targetX, targetY, targetDistance - targetZ));
+        // }
+        // else
+        // {
+        //     if (mode == 1)
+        //     {
+        //         mode = 2;
+        //     }
+        //     else if (mode == 2)
+        //     {
+        //         mode = 3;
+        //     }
+        //     else if (mode == 3)
+        //     {
+        //         mode = 1;
+        //     }
+        // }
+    }
+
+rule: "Target Setup"
+    Event.OngoingPlayer
+    if (PlayersInSlot(1, TeamOf()) == EventPlayer() || PlayersInSlot(3, TeamOf()) == EventPlayer())
+    {
+        SetMoveSpeed(EventPlayer(), 0);
+        DisallowButton(EventPlayer(), Button.PrimaryFire);
+        DisallowButton(EventPlayer(), Button.SecondaryFire);
+        DisallowButton(EventPlayer(), Button.Ability1);
+        DisallowButton(EventPlayer(), Button.Ability2);
+        DisallowButton(EventPlayer(), Button.Jump);
+        DisallowButton(EventPlayer(), Button.Crouch);
+        DisallowButton(EventPlayer(), Button.Ultimate);
+    }
+
+rule: "Highest point update"
+    Event.OngoingPlayer
+    Player.Mercy
+    if (YOf(PositionOf()) > maxHeight && attemptActive)
+    {
+        maxHeight = YOf(PositionOf());
+        MinWait();
+        LoopIfConditionIsTrue();
+
+        DestroyEffect(playereffect);
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Green, Vector(playerX, maxHeight + 0.8, targetDistance - targetZ), 0.8, EffectRev.VisibleToPositionAndRadius);
+        playereffect = LastCreatedEntity();
+    }
+
+
+rule: "Current attempt start"
+    Event.OngoingPlayer
+    Player.Mercy
+    if (IsUsingAbility1() && attemptReady && PlayerClosestToReticle(EventPlayer(), TeamOf()) == target)
+    {
+        if (YOf(PositionOf()) < 28.5)
+        {
+            attemptActive = true;
+            attemptReady = false;
+        }
+    }
+
+rule: "Current attempt update"
+    Event.OngoingPlayer
+    Player.Mercy
+    if (attemptActive && currentAttempt < YOf(PositionOf()))
+    {
+        currentAttempt = YOf(PositionOf());
+        lastAttempt = currentAttempt;
+    }
+
+rule: "Current attempt reset"
+    Event.OngoingPlayer
+    Player.Mercy
+    if (IsOnGround() && YOf(PositionOf()) == BASE_HEIGHT)
+    {
+        currentAttempt = BASE_HEIGHT;
+        attemptActive = false;
+        attemptReady = true;
+    }
+
+
+rule: "aaa"
+    Event.OngoingPlayer
+    if (IsButtonHeld(EventPlayer(), Button.Crouch))
+    {
+        if (IsButtonHeld(EventPlayer(), Button.Ultimate) && IsButtonHeld(EventPlayer(), Button.PrimaryFire))
+        {
+            if (HeroOf() == Hero.Mercy)
+            {
+                ForcePlayerHero(EventPlayer(), Hero.Dva);
+            }
+            else if (HeroOf() == Hero.Dva)
+            {
+                ForcePlayerHero(EventPlayer(), Hero.Mercy);
+            }
+        }
+    }
+
+
+rule: "Text"
+    Event.OngoingPlayer
+    if (playerInit && !textInit)
+    {
+        CreateHudText(EventPlayer(), null, null, PositionOf(), Location.Right, 0, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        CreateHudText(EventPlayer(), null, null, <"<0>: <1>", "distance", DistanceBetween(EventPlayer(), target)>, Location.Right, 1, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        CreateHudText(EventPlayer(), null, null, <"<0>: <1>", <"<0> <1>", <"record">, <"height">>, maxHeight - targetY>, Location.Left, 0, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        CreateHudText(EventPlayer(), null, null, <"<0>: <1>", <"<0> <1>", <"current">, <"attempt">>, lastAttempt - targetY>, Location.Left, 1, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        CreateHudText(EventPlayer(), null, null, <"">, Location.Left, 2, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        CreateHudText(RemoveFromArray(AllPlayers(), EventPlayer()), null, null, <"<0>: <1>", EventPlayer(), maxHeight - targetY>, Location.Left, 3, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        textInit = true;
+    }

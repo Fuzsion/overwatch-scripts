@@ -1,0 +1,54 @@
+define player:                    EventPlayer();
+define all:                       AllPlayers();
+define allLiving:                 AllLivingPlayers();
+define host:                      HostPlayer();
+define Facing():                  FacingDirectionOf();
+define IsPrimaryHeld():           IsButtonHeld(player, Button.PrimaryFire);
+define IsSecondaryHeld():         IsButtonHeld(player, Button.SecondaryFire);
+define IsAbility1Held():          IsButtonHeld(player, Button.Ability1);
+define IsAbility2Held():          IsButtonHeld(player, Button.Ability2);
+define IsInteractHeld():          IsButtonHeld(player, Button.Interact);
+define IsUltHeld():               IsButtonHeld(player, Button.Ultimate);
+define IsJumpHeld():              IsButtonHeld(player, Button.Jump);
+define IsCrouchHeld():             IsButtonHeld(player, Button.Crouch);
+define IsReloadHeld():            IsButtonHeld(player, Button.Reload);
+define IsMeleeHeld():             IsButtonHeld(player, Button.Melee);
+define Time():                    TotalTimeElapsed();
+
+// Abilities
+define AllowPrimary():            AllowButton(player, Button.PrimaryFire);
+define AllowSecondary():          AllowButton(player, Button.SecondaryFire);
+define AllowAbility1():           AllowButton(player, Button.Ability1);
+define AllowAbility2():           AllowButton(player, Button.Ability2);
+define AllowUlt():                AllowButton(player, Button.Ultimate);
+define AllowReload():             AllowButton(player, Button.Reload);
+define AllowMelee():              AllowButton(player, Button.Melee);
+
+define DisablePrimary():          DisallowButton(player, Button.PrimaryFire);
+define DisableSecondary():        DisallowButton(player, Button.SecondaryFire);
+define DisableAbility1():         DisallowButton(player, Button.Ability1);
+define DisableAbility2():         DisallowButton(player, Button.Ability2);
+define DisableUlt():              DisallowButton(player, Button.Ultimate);
+define DisableReload():           DisallowButton(player, Button.Reload);
+define DisableMelee():            DisallowButton(player, Button.Melee);
+
+define WaitIfTrue(define time):   Wait(time, WaitBehavior.AbortWhenFalse); // Aborts the rule if the condition goes false while waiting
+
+define EnemyPlayers():            AllPlayers(OppositeTeamOf(TeamOf()));
+define IsHero(ref define hero):   HeroOf() == hero;
+
+// HUD Text
+define CreditText():              CreateHudText(all, null, "Created by Fuzsion#11545", null, Location.Left, -1);
+define ServerLoadText():          CreateHudText(host, null, <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", 
+                                                            RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, 
+                                                            null, Location.Right, -1);
+
+// Debug Text
+define ThrottleText():            CreateHudText(player, null, <"Throttle: <0>", ThrottleOf()>, null, Location.Right, -1);
+define SpeedText():               CreateHudText(player, null, <"Speed: <0> M/S", HorizontalSpeedOf()>, null, Location.Right, -1);
+define PositionText():            CreateHudText(player, null, <"Position: <0>", PositionOf()>, null, Location.Right, -1);
+define FacingText():              CreateHudText(player, null, <"Facing Direction: <0>", FacingDirectionOf()>, null, Location.Right, -1);
+define HorizontalFacingText():    CreateHudText(player, null, <"Horizontal Facing Direction: <0>", HorizontalFacingAngleOf()>, null, Location.Right, -1);
+define VerticalFacingText():      CreateHudText(player, null, <"Vertical Facing Direction: <0>", VerticalFacingAngleOf()>, null, Location.Right, -1);

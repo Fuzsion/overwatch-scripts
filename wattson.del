@@ -1,0 +1,97 @@
+playervar define nodes;         // (array)  wattson fence nodes array
+playervar define nodePositions; // (array)  vector array of all node positions
+playervar define placementMode; // (bool)   if player is in node placement mode
+playervar define nodeIndex;     // (int)    the current node position in the nodes array
+playervar define nodePosition;  // (vector) position of the last placed node
+playervar define nodePreview;   // (effect) effect id of the preview node
+playervar define nodePrevPos;   // (vector) node preview position
+playervar define nodeHitNormal; // (vector) raycast hit normal of the node to be placed
+playervar define hudText;       // (string) debug hud text
+playervar define validPos;      // (bool)   check if the position is valid for the node
+ 
+rule: "Placement Mode :: Toggle"
+    Event.OngoingPlayer
+    if (IsButtonHeld(EventPlayer(), Button.Ultimate) && IsAlive())
+    {
+        if (placementMode)
+        {
+            // toggle off actions
+            placementMode = false;
+            validPos = false;
+            AllowButton(EventPlayer(), Button.PrimaryFire);
+            DestroyEffect(nodePreview);
+            DestroyHudText(hudText);
+        }
+        else
+        {
+            // toggle on actions
+            placementMode = true;
+            DisallowButton(EventPlayer(), Button.PrimaryFire);
+ 
+            // debug text of the node normal position
+            CreateHudText(EventPlayer(), null, null, nodeHitNormal, Location.Right, 0, Color.White, Color.White, Color.White, StringRev.VisibleToAndString);
+            hudText = LastTextID();
+        }
+    }
+ 
+rule: "Placement Mode :: Position Loop"
+    Event.OngoingPlayer
+    if (placementMode)
+    {
+        define tmp = EyePosition() + (FacingDirectionOf() * 6); // temp variable to reduce calculations
+        define pos1 = RayCastHitPosition(EyePosition(), tmp, AllPlayers(), EventPlayer(), true);
+        nodeHitNormal = RayCastHitNormal(EyePosition(), tmp, AllPlayers(), EventPlayer(), true); // check for a stable surface
+ 
+        if (DistanceBetween(EyePosition(), pos1) > 5.95)
+        {
+            // raycast down from the original raycast position, since it wasnt on the ground already
+            nodePosition = RayCastHitPosition(pos1, pos1 - Vector(0, 100, 0), EventPlayer(), AllPlayers(), true) + Vector(0, 0.08, 0);
+        }
+        else
+        {
+            nodePosition = pos1 + Vector(0, 0.08, 0);
+        }
+ 
+        Wait(0.05, WaitBehavior.IgnoreCondition);
+        LoopIfConditionIsTrue();
+    }
+ 
+rule: "Placement Mode :: Placing"
+    Event.OngoingPlayer
+    if (placementMode && IsButtonHeld(EventPlayer(), Button.PrimaryFire) && IsInLineOfSight(EyePosition(), nodePosition, BarrierLOS.EnemyBarriersBlock) && validPos)
+    {
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Blue, nodePosition, 0.080, EffectRev.None); // create the node
+        DestroyEffect(nodes[nodeIndex]); // destroy the node at the current node index (if one exists)
+        nodes[nodeIndex] = LastCreatedEntity(); // set the node at the current node index to the one we just created
+        nodePositions[nodeIndex] = nodePosition; // save the node's position
+        nodeIndex++; // increment the node index
+ 
+        // max node count is 12, so reset the index to 0 for the next node
+        if (nodeIndex == 12)
+        {
+            nodeIndex = 0;
+        }
+    }
+ 
+ 
+rule: "Placement Mode :: Preview & Valid Position"
+    Event.OngoingPlayer
+    if (placementMode && YOf(nodeHitNormal) >= 0.85)
+    {
+        // node position is valid
+        DestroyEffect(nodePreview); // destroy old node preview effect (if one exists, would be red)
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Green, nodePosition, 0.080, EffectRev.VisibleToPositionAndRadius);
+        nodePreview = LastCreatedEntity();
+        validPos = true;
+    }
+ 
+rule: "Placement Mode :: Preview & Invalid Position"
+    Event.OngoingPlayer
+    if (placementMode && YOf(nodeHitNormal) < 0.85)
+    {
+        // node position is invalid or placement mode is disabled
+        DestroyEffect(nodePreview); // destroy old node preview effect (if one exists, would be green)
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Red, nodePosition, 0.080, EffectRev.VisibleToPositionAndRadius);
+        nodePreview = LastCreatedEntity();
+        validPos = false;
+    }

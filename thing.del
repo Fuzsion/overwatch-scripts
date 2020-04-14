@@ -1,0 +1,55 @@
+import "macros.del";
+
+
+// Method is void, it cannot return a value.
+void VoidMethodTest(ref define fart)
+{
+    if (fart == 6)
+        SmallMessage(EventPlayer(), "fart is 6");
+    else
+        SmallMessage(EventPlayer(), "fart is not 6");
+}
+
+// Method is define, it must return a value.
+define DefineMethodTest(ref define fart)
+{
+    if (fart == 6)
+        return true;
+    else
+        return false;
+}
+
+rule: "method test rule"
+    Event.OngoingPlayer
+    if (IsButtonHeld(EventPlayer(), Button.Interact))
+    {
+        if (DefineMethodTest(6))
+            SmallMessage(EventPlayer(), "fart is 6");
+        else
+            SmallMessage(EventPlayer(), "fart is not 6");
+    }
+
+
+globalvar define thing;
+
+rule: "thing"
+    Event.OngoingPlayer
+    {
+        thing = 5676;
+
+        switch (thing)
+        {
+            // if (thing == 1)
+            case 1:
+                MinWait();
+                break; // break required to prevent fall-through
+                      
+            // else if (thing == 2)
+            case 2: MinWait();
+                    break;
+
+            case 3:   MinWait(); break; // else if (thing == 3)
+            case 565: MinWait(); break; // else if (thing == 565)
+            default:  MinWait(); // else (not required)
+        }
+    }

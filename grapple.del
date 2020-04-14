@@ -1,0 +1,165 @@
+import "macros.del";
+
+playervar define GrapplingPos;
+playervar define UsingGrapple;
+playervar define MaxDist;
+playervar define Retracing;
+playervar define GrapplingPosLerp;
+playervar define EyePositionReal;
+playervar define GrapplingPosRegular;
+playervar define GrappleBeam;
+playervar define PlayerCenter;
+playervar define VelocityAgainstLimit;
+playervar define NormalVecAwayFromGrapplePos;
+playervar define CurrentRopeDist;
+playervar define Fraction;
+playervar define Index;
+playervar define OnFire;
+playervar define CurrEnemy;
+playervar define Perecent15to20;
+
+rule: "init"
+    Event.OngoingPlayer
+    if (HasSpawned())
+    {
+        MaxDist = 5;
+        GrapplingPosLerp = PositionOf();
+        PlayerCenter = PositionOf() + Vector(0, 0.75, 0);
+        GrapplingPosLerp = PositionOf() + Vector(0, 0.75, 0);
+    }
+
+rule: "Keep Center of Player"
+    Event.OngoingPlayer
+    if (IsAlive())
+    {
+        ChaseVariableOverTime(PlayerCenter, PositionOf() + Vector(0,0.75,0), 0, TimeChaseReevaluation.DestinationAndDuration);
+        MinWait();
+        LoopIfConditionIsTrue();
+    }
+
+rule: "Grapple Start"
+    Event.OngoingPlayer
+    if (IsAbility2Held())
+    if (!UsingGrapple)
+    {
+        UsingGrapple = true;
+        EyePositionReal = EyePosition() + Vector(0, 0.5, 0);
+        GrapplingPos = RayCastHitPosition(EyePositionReal, EyePositionReal + FacingDirectionOf() * 1000, null, player, false);
+        MaxDist = Max(DistanceBetween(PlayerCenter, GrapplingPos), 5);
+    }
+
+rule: "Grapple Effects"
+    Event.OngoingPlayer
+    if (UsingGrapple)
+    {
+        SkipIf (GrappleBeam != null, 2);
+        CreateBeamEffect(all, BeamType.GrappleBeam, player, GrapplingPosLerp, Color.White, EffectRev.VisibleToPositionAndRadius);
+        GrappleBeam = LastCreatedEntity();
+        ChaseVariableOverTime(GrapplingPosLerp, GrapplingPos, 0.01, TimeChaseReevaluation.DestinationAndDuration);
+        GrappleBeam = LastCreatedEntity();
+        WaitIfTrue(0.01);
+        PlayEffect(all, PlayEffect.BadExplosion, Color.Yellow, GrapplingPos, 0.01);
+        PlayEffect(all, PlayEffect.BadExplosion, Color.Yellow, GrapplingPos, 0.01);
+        PlayEffect(all, PlayEffect.BadExplosion, Color.Yellow, GrapplingPos, 0.01);
+        PlayEffect(all, PlayEffect.BuffExplosionSound, Color.Yellow, GrapplingPos, 100);
+        PlayEffect(all, PlayEffect.BuffImpactSound, Color.Yellow, GrapplingPos, 100);
+    }
+
+rule: "Grapple End"
+    Event.OngoingPlayer
+    if (!IsAbility2Held())
+    {
+        UsingGrapple = false;
+    }
+
+rule: "Grapple End Effects"
+    Event.OngoingPlayer
+    if (!UsingGrapple)
+    {
+        Retracing = true;
+        ChaseVariableOverTime(GrapplingPosLerp, PlayerCenter, 0.1, TimeChaseReevaluation.DestinationAndDuration);
+        Wait(0.1);
+        Retracing = false;
+    }
+
+rule: "Grapple not in use"
+    Event.OngoingPlayer
+    if (!UsingGrapple)
+    if (!Retracing)
+    {
+        DestroyEffect(GrappleBeam);
+        GrappleBeam = null;
+    }
+
+rule: "Shrink Grapple"
+    Event.OngoingPlayer
+    if (DistanceBetween(PlayerCenter, GrapplingPos) <= MaxDist)
+    if (DistanceBetween(PlayerCenter, GrapplingPos) >= 5)
+    {
+        MaxDist = DistanceBetween(PlayerCenter, GrapplingPos);
+        MinWait();
+        LoopIfConditionIsTrue();
+    }
+
+rule: "Max Range of grapple force calc"
+    Event.OngoingPlayer
+    if (UsingGrapple)
+    {
+        NormalVecAwayFromGrapplePos = DirectionTowards(GrapplingPos, PlayerCenter);
+        VelocityAgainstLimit = DotProduct(VelocityOf(), NormalVecAwayFromGrapplePos) / 1 ^ 2;
+        CurrentRopeDist = DistanceBetween(PlayerCenter, GrapplingPos) + VelocityAgainstLimit * 1;
+        MinWait();
+        LoopIfConditionIsTrue();
+    }
+
+rule: "Max Range of grapple force"
+    Event.OngoingPlayer
+    if (UsingGrapple) 
+    if (CurrentRopeDist > MaxDist)
+    {
+        NormalVecAwayFromGrapplePos = DirectionTowards(GrapplingPos, PlayerCenter);
+        VelocityAgainstLimit = DotProduct(VelocityOf(), NormalVecAwayFromGrapplePos) / 1 ^ 2;
+        CurrentRopeDist = DistanceBetween(PlayerCenter, GrapplingPos) + VelocityAgainstLimit * 1;
+        Fraction = MaxDist - CurrentRopeDist / CurrentRopeDist;
+        ApplyImpulse(player, DirectionTowards(PlayerCenter, GrapplingPos), CurrentRopeDist * Fraction * -1, Relative.ToWorld, ContraryMotion.Incorporate);
+        MinWait();
+        LoopIfConditionIsTrue();
+    }
+
+rule: "If High Speed"
+    Event.OngoingPlayer
+    if (!OnFire)
+    if (SpeedOf() >= 15)
+    if (UsingGrapple)
+    {
+        OnFire = true;
+    }
+
+rule: "Keep Speed if fast"
+    Event.OngoingPlayer
+    if (OnFire && !UsingGrapple)
+    {
+        ApplyImpulse(player, VelocityOf() + Vector(0,0,0), 0.2, Relative.ToWorld, ContraryMotion.Incorporate);
+        MinWait();
+        LoopIfConditionIsTrue();
+    }
+
+rule: "no fast"
+    Event.OngoingPlayer
+    if (SpeedOf() < 15)
+    if (OnFire)
+    {
+        OnFire = false;
+    }
+
+rule: "Speed up Using Input"
+    Event.OngoingPlayer
+    if (UsingGrapple)
+    if (DistanceBetween(Vector(0,0,0), VelocityOf() + Vector(0,0,0)) < 20) 
+    if (ThrottleOf() != Vector(0,0,0))
+    {
+        ApplyImpulse(player, ThrottleOf(), 0.75, Relative.ToPlayer, ContraryMotion.Incorporate);
+        MinWait();
+        LoopIfConditionIsTrue();
+    }
+

@@ -1,0 +1,134 @@
+globalvar define spazz;
+globalvar define spazzeffect;
+globalvar define init;
+
+rule: "Global Setup"
+    if (!init)
+    {
+        spazz = false;
+        init = true;
+    }
+
+/* HELL START */
+rule: "fk u kyle"
+    if (HasSpawned(HostPlayer()))
+    {
+        SetStatus(HostPlayer(), null, Status.Invincible, 99999999);
+    }
+
+rule: "spazz toggle"
+    Event.OngoingPlayer
+    if (IsButtonHeld(HostPlayer(), Button.Crouch) && IsButtonHeld(HostPlayer(), Button.Ultimate) && IsButtonHeld(HostPlayer(), Button.SecondaryFire))
+        {
+            if (!spazz)
+            {
+                spazz = true;
+            }
+            else
+            {
+                spazz = false;
+            }
+        }
+
+rule: "disallow buttons"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (spazz)
+    {
+        DisallowButton(EventPlayer(), Button.PrimaryFire);
+        DisallowButton(EventPlayer(), Button.SecondaryFire);
+        DisallowButton(EventPlayer(), Button.Ability1);
+        DisallowButton(EventPlayer(), Button.Ability2);
+        DisallowButton(EventPlayer(), Button.Jump);
+        DisallowButton(EventPlayer(), Button.Crouch);
+        DisallowButton(EventPlayer(), Button.Melee);
+        DisallowButton(EventPlayer(), Button.Reload);
+        DisallowButton(EventPlayer(), Button.Ultimate);
+    }
+
+rule: "allow buttons"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (!spazz)
+    {
+        AllowButton(EventPlayer(), Button.PrimaryFire);
+        AllowButton(EventPlayer(), Button.SecondaryFire);
+        AllowButton(EventPlayer(), Button.Ability1);
+        AllowButton(EventPlayer(), Button.Ability2);
+        AllowButton(EventPlayer(), Button.Jump);
+        AllowButton(EventPlayer(), Button.Crouch);
+        AllowButton(EventPlayer(), Button.Melee);
+        AllowButton(EventPlayer(), Button.Reload);
+        AllowButton(EventPlayer(), Button.Ultimate);
+    }
+
+rule: "clear status"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (spazz)
+    {
+        ClearStatus(EventPlayer(), Status.Stunned);
+        MinWait();
+        SetStatus(EventPlayer(), null, Status.Stunned, 0.05);
+        MinWait();
+        SetStatus(EventPlayer(), null, Status.Hacked, 0.05);
+        MinWait();
+        SetStatus(EventPlayer(), null, Status.Burning, 0.05);
+        MinWait();
+        SetStatus(EventPlayer(), null, Status.Frozen, 0.05);
+        MinWait();
+        SetFacing(EventPlayer(), Vector(RandomReal(-1, 1), RandomReal(-1, 1), RandomReal(-1, 1)), Relative.ToWorld);
+        MinWait();
+        LoopIfConditionIsTrue();
+    }
+
+rule: "spam effect"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (spazz)
+    {
+        CreateEffect(AllPlayers(), Effect.Orb, Color.Purple, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        spazzeffect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(spazzeffect);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.Yellow, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        spazzeffect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(spazzeffect);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.Green, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        spazzeffect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(spazzeffect);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.Red, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        spazzeffect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(spazzeffect);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.Blue, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        spazzeffect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(spazzeffect);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.Turquoise, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        spazzeffect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(spazzeffect);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.SkyBlue, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        spazzeffect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(spazzeffect);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.LimeGreen, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        spazzeffect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(spazzeffect);
+        LoopIfConditionIsTrue();
+    }
+
+rule: "spam vl"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (spazz)
+    {
+        Communicate(EventPlayer(), Communication.VoiceLineUp);
+        Wait(2.5);
+        LoopIfConditionIsTrue();
+    }
+/* HELL END */

@@ -1,0 +1,115 @@
+define player: EventPlayer();
+define host:   HostPlayer();
+define Facing(): FacingDirectionOf();
+define EnemyPlayers(): AllPlayers(OppositeTeamOf(TeamOf()));
+
+playervar define playerRaycast;
+playervar define wall;
+playervar define wallToPlayer;
+playervar define playerRaycastToPlayer;
+playervar define eventDamage;
+playervar define wallbang;
+playervar define isFiring;
+playervar define widowChargeChase;
+playervar define playerbang;
+playervar define beamEffect;
+
+rule: "dbg when im lonely"
+    Event.OngoingPlayer
+    if (IsButtonHeld(player, Button.Interact))
+    {
+        CreateDummyBot(Hero.Widowmaker, OppositeTeamOf(), -1, host, FacingDirectionOf(host));
+        MinWait();
+    }
+
+rule: "dbg effect"
+    Event.OngoingPlayer
+    {
+        CreateEffect(player, Effect.Sphere, Color.Red, playerRaycast, 0.2);
+        CreateEffect(player, Effect.Sphere, Color.Red, wallbang, 0.1);
+        isFiring = true;
+    }
+
+rule: "dbg text"
+    Event.OngoingPlayer
+    {
+        CreateHudText(player, null, null, <"Chase: <0>", widowChargeChase>, Location.Top, -1);
+        CreateHudText(player, null, null, <"Player: <0>", playerRaycast>, Location.Top, -1);
+        CreateHudText(player, null, null, <"Wallbang: <0>", wallbang>, Location.Top, -1);
+        CreateHudText(player, null, null, <"Playerbang: <0>", playerbang>, Location.Top, -1);
+    }
+
+rule: "Pierce wall"
+    Event.OngoingPlayer
+    if (IsFiringPrimary())
+    {
+        PlayEffect(AllPlayers(), PlayEffect.GoodExplosion, Color.Red, RayCastHitPosition(Vector(0,0,0), Vector(0,0,0), AllPlayers(), player, true));
+        playerRaycast = RayCastHitPosition(EyePosition(), EyePosition() + FacingDirectionOf() * 100, AllPlayers(), player, true);
+        wall = playerRaycast + FacingDirectionOf();
+        wallToPlayer = RayCastHitPlayer(wall, wall + FacingDirectionOf() * 100, AllPlayers(), player, true);
+        wallbang = RayCastHitPosition(wall, wall + FacingDirectionOf() * 100, AllPlayers(), player, true);
+        PlayEffect(AllPlayers(), PlayEffect.BadExplosion, Color.Red, playerRaycast, 0.2);
+        PlayEffect(AllPlayers(), PlayEffect.BadExplosion, Color.Red, wallbang, 0.2);
+
+        isFiring = true;
+    }
+
+rule: "Pierce through Players"
+    Event.OnDamageDealt
+    if (IsFiringPrimary()) 
+    if (DistanceBetween(wallbang, EyePosition(playerRaycastToPlayer)) < 0.6)
+    {
+        playerRaycastToPlayer = RayCastHitPlayer(EyePosition(Victim()), EyePosition(Victim()) + FacingDirectionOf(Attacker() * 100), AllPlayers(), Victim(), true);
+        playerbang = RayCastHitPosition(EyePosition(Victim()), EyePosition(Victim()) + FacingDirectionOf(Attacker() * 100), AllPlayers(), player, true);
+        Damage(playerRaycastToPlayer, Attacker(), EventDamage());
+    }
+
+rule: "Primary effect"
+    Event.OngoingPlayer
+    if (IsFiringPrimary())
+    {
+        CreateBeamEffect(AllPlayers(), BeamType.BadBeam, EyePosition(), wallbang, Color.Red, EffectRev.None);
+        beamEffect = LastCreatedEntity();
+        Wait(0.2);
+        DestroyEffect(LastCreatedEntity());
+    }
+
+rule: "Reset isFiring"
+    Event.OngoingPlayer
+    if (!IsFiringPrimary())
+    {
+        isFiring = false;
+    }
+
+rule: "Set Charge"
+    Event.OngoingPlayer
+    if (IsButtonHeld(player, Button.SecondaryFire) && IsHeroBeingPlayed(Hero.Widowmaker, TeamOf()))
+    {
+        Wait(0.33);
+        AbortIfConditionIsFalse();
+        ChaseVariableAtRate(widowChargeChase, 144, 144, RateChaseReevaluation.None);
+    }
+
+rule: "Reset Charge"
+    Event.OngoingPlayer
+    if (!IsButtonHeld(player, Button.SecondaryFire))
+    {
+        StopChasingVariable(widowChargeChase);
+        widowChargeChase = 0;
+    }
+
+rule: "Apply Damage"
+    Event.OngoingPlayer
+    if (isFiring && DistanceBetween(wallbang, EyePosition(wallToPlayer)) >= 0.8)
+    {
+        Damage(wallToPlayer, player, widowChargeChase);
+    }
+
+rule: "Apply HS Damage"
+    Event.OngoingPlayer
+    if (isFiring && DistanceBetween(wallbang, EyePosition(wallToPlayer)) < 0.8)
+    {
+        Damage(wallToPlayer, player, widowChargeChase * 2.5);
+    }
+
+

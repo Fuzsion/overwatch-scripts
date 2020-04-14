@@ -1,0 +1,31 @@
+import "macros.del";
+playervar define buttonToggle = false;
+playervar define team = TeamOf();
+playervar define botTarget;
+
+
+
+rule: "toggle"
+    Event.OngoingPlayer
+    if (IsInteractHeld() && !IsDummyBot())
+    {
+        Wait(0.3);
+        botTarget = PlayerClosestToReticle(player, OppositeTeamOf(team));
+        buttonToggle = !buttonToggle;
+        if (buttonToggle)
+        {
+            SmallMessage(all, "Bot right Click");
+            StartHoldingButton(EnemyPlayers(), Button.SecondaryFire);
+        }
+        else
+        {
+            SmallMessage(all, "No Bot right Click");
+            StopHoldingButton(EnemyPlayers(), Button.SecondaryFire);
+        }
+    }
+
+rule: "red dot dbg"
+   Event.OngoingPlayer
+   {
+      CreateEffect(all, Effect.Sphere, Color.Red, RayCastHitPosition(EyePosition(), EyePosition() + FacingDirectionOf() * 100, all, player), 0.1);
+   }

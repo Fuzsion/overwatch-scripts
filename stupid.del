@@ -1,0 +1,17 @@
+
+
+rule: "a"
+{
+    PauseMatchTime();
+    CreateHudText(HostPlayer(), null, null, <"Server Load : (<0>% Cur | <1>% Avg | <2>% Peak)", ServerLoad(), ServerLoadAverage(), ServerLoadPeak()>, Location.Top, -100);
+}
+
+rule: "death"
+Event.OngoingPlayer
+if (HasSpawned())
+{
+    Kill();
+    Resurrect();
+    Wait(0);
+    Loop();
+}

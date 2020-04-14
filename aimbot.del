@@ -1,0 +1,557 @@
+/* Global Variables */
+globalvar define isInitialized; // (bool)   has the game been initialized
+globalvar define HEALTH_TEXT_SCALE;
+globalvar define heavyScorty;
+globalvar define effect;
+globalvar define init;
+
+/* Player Variables */
+playervar define playerInit;    // (bool)
+playervar define healthText;    // (string) health text
+playervar define ultText;       // (string) ultimate text
+playervar define canAim;        // (bool)   can the player aimbot
+playervar define aimCancel;     // (bool)   interact override for canAim
+playervar define aimbotTarget;  // (player) the target player of the player's aimbot
+playervar define isDead;        // (bool)   is the player dead (is 0 on join)
+playervar define deathCount;    // (number) number of deaths
+playervar define isInStealth;   // (bool)   sombra stealth
+playervar define isUlting;      // (bool)   is the player ulting
+playervar define team;          // (team)   team id of the player
+playervar define initialized;   // (bool)   has the player been initialized after joining (should only change once)
+playervar define hero;          // (hero)   the hero of the player, set each spawn
+playervar define hasTarget;     // (bool)   does the player have a target
+playervar define hasTargetText; // (string) has target text
+playervar define hasTargetText2;
+playervar define targetedText;  // (string) targeted text
+playervar define aimOverride;   // (bool)   primary/secondary fire hero specific override
+playervar define spawnComplete; // (bool)   SPAWN DONE NOW
+playervar define headOffset;    // (vector) head offset for targeting
+playervar define speedDivisor;
+playervar define aimToggle;
+playervar define toggleText;
+//playervar define bot;
+playervar define enemyPlayers; // (array) all enemy players
+
+/* Debug Variables */
+playervar define dbgTxt;
+playervar define dbgTxt2;
+//playervar define dbgEffect;
+
+// --------------------------- //
+// ---------- RULES ---------- //
+// --------------------------- //
+
+/* scort is fucking STUPID I HATE HIS STUPID GUTS FUCK THAT STUPID IDIOT FUCKING GUY UDIOT */
+
+rule: "Global Setup for Spam"
+    if (!init)
+    {
+        heavyScorty = false;
+        init = true;
+    }
+
+rule: "Initialization"
+    if (!isInitialized)
+    {
+        isInitialized = true;
+        HEALTH_TEXT_SCALE = 1.15;
+    }
+
+rule: "Player Initialization"
+    Event.OngoingPlayer
+    if (HasSpawned() && !playerInit)
+    {
+        team = TeamOf();
+        playerInit = true;
+    }
+
+rule: "Spawn Event"
+    Event.OngoingPlayer
+    if ((IsAlive() && Health() > 0) && (deathCount <= 0 || isDead))
+    {
+        enemyPlayers = RemoveFromArray(AllPlayers(OppositeTeamOf(team)), EventPlayer());
+
+        CreateInWorldText(enemyPlayers, <"<0> <1>", <"<0> <1>", HeroIconString(HeroOf()), EventPlayer()>, <"(<0>)", RoundToInteger(Health())>>,
+                          EventPlayer(), HEALTH_TEXT_SCALE, Clipping.DoNotClip, InworldTextRev.VisibleToPositionAndString);
+        healthText = LastTextID();
+        isInStealth = false;
+        isUlting = false;
+        hero = HeroOf();
+        isDead = false;
+        headOffset = Vector(0, 0.05, 0);
+        speedDivisor = 32;
+        //bot = AllPlayers()[1];
+        aimToggle = false;
+        spawnComplete = true;
+    }
+
+rule: "Death Event"
+    Event.OnDeath
+    {
+        DestroyInWorldText(healthText);
+        DestroyInWorldText(ultText);
+        isDead = true;
+        isInStealth = false;
+        isUlting = false;
+        canAim = false;
+        hasTarget = false;
+        aimOverride = false;
+        spawnComplete = false;
+        aimToggle = false;
+        deathCount++;
+
+        // debug text
+        DestroyHudText(dbgTxt);
+        DestroyHudText(toggleText);
+        //DestroyEffect(AllPlayers()[0].dbgEffect);
+    }
+
+
+// --------------------------- //
+// -------- AIM LOGIC -------- //
+// --------------------------- //
+
+rule: "Aim Logic :: welcome to hell"
+    Event.OngoingPlayer
+    if (canAim && !aimCancel && !aimOverride)
+    {
+        if (IsInLineOfSight(EventPlayer(), PlayerClosestToReticle(EventPlayer(), OppositeTeamOf(team)), BarrierLOS.AllBarriersBlock))
+        {
+            aimbotTarget = PlayerClosestToReticle(EventPlayer(), OppositeTeamOf(team));
+        }
+
+        if (aimbotTarget == 0 || aimbotTarget == EventPlayer())
+        {
+            aimbotTarget = FirstOf(SortedArray(FilteredArray(enemyPlayers, IsInLineOfSight(EventPlayer(), ArrayElement(), BarrierLOS.AllBarriersBlock)), DistanceBetween(ArrayElement(), EventPlayer())));
+        }
+
+        //Check again..
+        if (aimbotTarget == 0)
+        {
+            Wait(0.2, WaitBehavior.IgnoreCondition);
+            LoopIfConditionIsTrue();
+        }
+
+        if (!aimbotTarget.isDead || !aimbotTarget.isInStealth)
+        {
+            hasTarget = true;
+
+            // alternate y: Max((YOf(EyePosition(aimbotTarget)) - YOf(EyePosition())) / (15 + DistanceBetween(EyePosition(), EyePosition(aimbotTarget))), 0)
+            StartFacing(EventPlayer(),
+                        VectorTowards(EyePosition(EventPlayer()),
+                                      EyePosition(aimbotTarget) + (aimbotTarget.headOffset +
+                                      WorldVectorOf(Vector(/* X */ (SpeedOfInDirection(aimbotTarget, WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation)) / aimbotTarget.speedDivisor) - (SpeedOfInDirection(EventPlayer(), WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation)) / speedDivisor),
+                                                           /* Y */ Max((VerticalAngleTowards(EventPlayer(), EyePosition(aimbotTarget)) * -1) / (120 - DistanceBetween(EyePosition(), EyePosition(aimbotTarget))), 0),
+                                                           /* Z */ (SpeedOfInDirection(aimbotTarget, WorldVectorOf(Forward(), EventPlayer(), LocalVector.Rotation)) / aimbotTarget.speedDivisor)), EventPlayer(), LocalVector.Rotation))),
+                        AbsoluteValue(9999999), Relative.ToWorld, FacingRev.DirectionAndTurnRate);
+        }
+
+        if (aimbotTarget == 0 || aimbotTarget.isDead || aimCancel || aimOverride || isInStealth || aimbotTarget.isInStealth)
+        {
+            hasTarget = false;
+            StopFacing();
+        }
+
+        Wait(0.25, WaitBehavior.IgnoreCondition);
+        LoopIfConditionIsTrue();
+    }
+
+rule: "Aim Logic :: Stop facing events (loop independent)"
+    Event.OngoingPlayer
+    if (aimbotTarget == 0 || isInStealth || aimCancel || aimOverride || aimbotTarget.isDead || aimbotTarget.isInStealth)
+    {
+        hasTarget = false;
+        StopFacing();
+    }
+
+
+rule: "Aiming (start)"
+    Event.OngoingPlayer
+    if (IsButtonHeld(EventPlayer(), Button.PrimaryFire) || IsButtonHeld(EventPlayer(), Button.SecondaryFire) && !aimCancel)
+    {
+        canAim = true;
+    }
+
+rule: "Aiming (stop)"
+    Event.OngoingPlayer
+    if (!IsButtonHeld(EventPlayer(), Button.PrimaryFire) && !IsButtonHeld(EventPlayer(), Button.SecondaryFire) && !aimToggle)
+    {
+        canAim = false;
+        hasTarget = false;
+        aimbotTarget = 0;
+        StopFacing();
+    }
+
+rule: "Aim Toggle"
+    Event.OngoingPlayer
+    if (IsButtonHeld(EventPlayer(), Button.Interact) && IsAlive())
+    {
+        if (aimToggle)
+        {
+            aimToggle = false;
+            DestroyHudText(toggleText);
+        }
+        else
+        {
+            CreateHudText(EventPlayer(), null, null,<"locking">, Location.Left, 1, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+            toggleText = LastTextID();
+
+            aimToggle = true;
+            canAim = true;
+        }
+    }
+
+
+rule: "In air"
+    Event.OngoingPlayer
+    if (IsInAir())
+    {
+        headOffset = Vector(0, 0.3, 0);
+    }
+
+rule: "On ground"
+    Event.OngoingPlayer
+    if (IsOnGround())
+    {
+        headOffset = Vector(0, 0.05, 0);
+    }
+
+// --------------------------- //
+// ------ HERO SPECIFIC ------ //
+// --------------------------- //
+
+/* Soldier */
+rule: "Soldier :: Start sprinting"
+    Event.OngoingPlayer
+    Player.Soldier76
+    if (IsUsingAbility1())
+    {
+        aimCancel = true;
+        speedDivisor = 16;
+        //headOffset = Vector(SpeedOfInDirection(EventPlayer(), WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation)) / 16, -0.15, 0);
+        headOffset = Vector(0, -0.15, 0);
+    }
+
+rule: "Soldier :: Stop sprinting"
+    Event.OngoingPlayer
+    Player.Soldier76
+    if (!IsUsingAbility1())
+    {
+        aimCancel = false;
+        speedDivisor = 32;
+        headOffset = Vector(0, 0.05, 0);
+    }
+
+/* Sombra */
+rule: "Sombra :: Stealth"
+    Event.OngoingPlayer
+    Player.Sombra
+    if (IsUsingAbility1())
+    {
+        DestroyInWorldText(healthText);
+        DestroyInWorldText(ultText);
+        aimCancel = true;
+        isInStealth = true;
+    }
+
+rule: "Sombra :: Unstealth"
+    Event.OngoingPlayer
+    Player.Sombra
+    if (!IsUsingAbility1() && isInStealth)
+    {
+        CreateInWorldText(enemyPlayers, <"<0> <1>", <"<0> <1>", HeroIconString(HeroOf()), EventPlayer()>, <"(<0>)", RoundToInteger(Health())>>,
+                          EventPlayer(), HEALTH_TEXT_SCALE, Clipping.DoNotClip, InworldTextRev.VisibleToPositionAndString);
+
+        healthText = LastTextID();
+        aimCancel = false;
+        isInStealth = false;
+    }
+
+/* Windowlicker */
+rule: "Widowmaker :: In air"
+    Event.OngoingPlayer
+    Player.Widowmaker
+    if (IsInAir())
+    {
+        headOffset = Vector(0, 0.2, 0);
+    }
+
+rule: "Widowmaker :: On ground"
+    Event.OngoingPlayer
+    Player.Widowmaker
+    if (IsOnGround())
+    {
+        headOffset = Vector(0, 0.05, 0);
+    }
+
+/* Pharah */
+rule: "Pharah"
+    Event.OngoingPlayer
+    Player.Pharah
+    if (IsInAir())
+    {
+        headOffset = Vector(0, 0.45, 0);
+    }
+
+rule: "Pharah"
+    Event.OngoingPlayer
+    Player.Pharah
+    if (IsOnGround())
+    {
+        headOffset = Vector(0, 0.05, 0);
+    }
+
+/* Wrecking Ball */
+rule: "Wrecking Ball"
+    Event.OngoingPlayer
+    Player.WreckingBall
+    if (IsUsingAbility1() && spawnComplete)
+    {
+        headOffset = Vector(0, -1, 0);
+    }
+
+rule: "Wrecking Ball"
+    Event.OngoingPlayer
+    Player.WreckingBall
+    if (!IsUsingAbility1())
+    {
+        headOffset = Vector(0, 0.05, 0);
+    }
+
+/* Primary Override */
+rule: "Primary Override (start) :: Winston/Rein/Moira"
+    Event.OngoingPlayer
+    if (IsAlive() && IsButtonHeld(EventPlayer(), Button.PrimaryFire) && !aimOverride)
+    {
+        if (hero == Hero.Winston || hero == Hero.Reinhardt || hero == Hero.Moira)
+        {
+            aimCancel = true;
+            aimOverride = true;
+            StopFacing();
+        }
+    }
+
+rule: "Primary Override (end) :: Winston/Rein/Moira"
+    Event.OngoingPlayer
+    if (!IsButtonHeld(EventPlayer(), Button.PrimaryFire) && aimOverride)
+    {
+        if (hero == Hero.Winston || hero == Hero.Reinhardt || hero == Hero.Moira)
+        {
+            aimCancel = false;
+            aimOverride = false;
+        }
+    }
+
+
+/* Secondary Override */
+rule: "Secondary Override (start) :: Dva/Hanzo/Lucio/Bastion/Mercy/Orisa/Baptiste/Reaper/Pharah/Winston/Junk/Tracer/Ball/Rein"
+    Event.OngoingPlayer
+    if (IsButtonHeld(EventPlayer(), Button.SecondaryFire) && !aimOverride)
+    {
+        if (hero == Hero.Dva || hero == Hero.Hanzo || hero == Hero.Lucio || hero == Hero.Bastion || hero == Hero.Mercy ||
+            hero == Hero.Orisa || hero == Hero.Baptiste || hero == Hero.Reaper || hero == Hero.Pharah || hero == Hero.Winston ||
+            hero == Hero.Junkrat || hero == Hero.Tracer || hero == Hero.WreckingBall || hero == Hero.Reinhardt)
+        {
+            aimCancel = true;
+            aimOverride = true;
+            StopFacing();
+        }
+    }
+
+
+rule: "Secondary Override (end) :: Dva/Hanzo/Lucio/Bastion/Mercy/Orisa/Baptiste/Reaper/Pharah/Junk/Tracer/Ball"
+    Event.OngoingPlayer
+    if (!IsButtonHeld(EventPlayer(), Button.SecondaryFire) && aimOverride)
+    {
+        if (hero == Hero.Dva || hero == Hero.Hanzo || hero == Hero.Lucio || hero == Hero.Bastion || hero == Hero.Mercy || hero == Hero.Orisa ||
+            hero == Hero.Baptiste || hero == Hero.Reaper || hero == Hero.Pharah || hero == Hero.Junkrat || hero == Hero.Tracer || hero == Hero.WreckingBall)
+        {
+            aimCancel = false;
+            aimOverride = false;
+        }
+    }
+
+
+// --------------------------- //
+// ------ MISCELLANEOUS ------ //
+// --------------------------- //
+
+rule: "Target Found"
+    Event.OngoingPlayer
+    if (hasTarget)
+    {
+        CreateHudText(EventPlayer(), null, null, <"<0>: <1> <2>", <"current_target">, HeroIconString(HeroOf(aimbotTarget)), aimbotTarget>, Location.Right, 0,
+                      Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        hasTargetText = LastTextID();
+
+        CreateHudText(EventPlayer(), null, null, <"<0>: <1>", <"distance">, DistanceBetween(EyePosition(), EyePosition(aimbotTarget))>, Location.Right, 1,
+                      Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        hasTargetText2 = LastTextID();
+
+        CreateHudText(EventPlayer(), null, null, Max((VerticalAngleTowards(EventPlayer(), EyePosition(aimbotTarget)) * -1) / (120 - DistanceBetween(EyePosition(), EyePosition(aimbotTarget))), 0), Location.Left, 0,
+                      Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        dbgTxt2 = LastTextID();
+    }
+
+rule: "Target Lost"
+    Event.OngoingPlayer
+    if (!hasTarget)
+    {
+        DestroyHudText(hasTargetText);
+        DestroyHudText(hasTargetText2);
+        DestroyHudText(dbgTxt2);
+    }
+
+rule: "Kill"
+    Event.OngoingPlayer
+    if (IsButtonHeld(EventPlayer(), Button.Crouch))
+    {
+        if (IsButtonHeld(EventPlayer(), Button.Ultimate))
+        {
+            Kill();
+        }
+    }
+
+
+rule: "Debug text"
+    Event.OngoingPlayer
+    if (IsAlive())
+    {
+        CreateHudText(EventPlayer(), null, null, <"<0>%", ServerLoad()>, Location.Left, 0,
+                      Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+        dbgTxt = LastTextID();
+    }
+
+/* HELL START */
+rule: "aaa"
+    Event.OngoingPlayer
+    Player.Slot0
+    if (IsButtonHeld(EventPlayer(), Button.Crouch))
+    {
+        if (IsButtonHeld(EventPlayer(), Button.Ultimate) && IsButtonHeld(EventPlayer(), Button.SecondaryFire))
+        {
+            if (!heavyScorty)
+            {
+                heavyScorty = true;
+            }
+            else
+            {
+                heavyScorty = false;
+            }
+        }
+    }
+
+rule: "aaaa"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (heavyScorty)
+    {
+        DisallowButton(EventPlayer(), Button.PrimaryFire);
+        DisallowButton(EventPlayer(), Button.SecondaryFire);
+        DisallowButton(EventPlayer(), Button.Ability1);
+        DisallowButton(EventPlayer(), Button.Ability2);
+        DisallowButton(EventPlayer(), Button.Jump);
+        DisallowButton(EventPlayer(), Button.Crouch);
+    }
+
+rule: "aaaa"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (!heavyScorty)
+    {
+        AllowButton(EventPlayer(), Button.PrimaryFire);
+        AllowButton(EventPlayer(), Button.SecondaryFire);
+        AllowButton(EventPlayer(), Button.Ability1);
+        AllowButton(EventPlayer(), Button.Ability2);
+        AllowButton(EventPlayer(), Button.Jump);
+        AllowButton(EventPlayer(), Button.Crouch);
+    }
+
+rule: "aaaa"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (heavyScorty)
+    {
+        ClearStatus(EventPlayer(), Status.Stunned);
+        MinWait();
+        SetStatus(EventPlayer(), null, Status.Stunned, 0.05);
+        MinWait();
+        SetStatus(EventPlayer(), null, Status.Hacked, 0.05);
+        MinWait();
+        SetStatus(EventPlayer(), null, Status.Burning, 0.05);
+        MinWait();
+        SetFacing(EventPlayer(), Vector(RandomReal(-1, 1), RandomReal(-1, 1), RandomReal(-1, 1)), Relative.ToWorld);
+        MinWait();
+        LoopIfConditionIsTrue();
+    }
+
+rule: "aaaa"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (heavyScorty)
+    {
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Purple, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        effect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(effect);
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Yellow, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        effect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(effect);
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Green, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        effect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(effect);
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Red, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        effect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(effect);
+        CreateEffect(AllPlayers(), Effect.Sphere, Color.Blue, EyePosition(), 1, EffectRev.VisibleToPositionAndRadius);
+        effect = LastCreatedEntity();
+        Wait(0.1);
+        DestroyEffect(effect);
+        LoopIfConditionIsTrue();
+    }
+
+rule: "aaaa"
+    Event.OngoingPlayer
+    Player.Slot1
+    if (heavyScorty)
+    {
+        Communicate(EventPlayer(), Communication.VoiceLineUp);
+        Wait(2.5);
+        LoopIfConditionIsTrue();
+    }
+/* HELL END */
+
+
+// rule: "bot tests"
+//     Event.OngoingPlayer
+//     Player.Slot0
+//     if (IsAlive(AllPlayers()[1]))
+//     {
+//         CreateEffect(AllPlayers(), Effect.Sphere, Color.Red, EyePosition(bot) + (bot.headOffset + WorldVectorOf(Vector(/* X */ (SpeedOfInDirection(bot, WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation)) / bot.speedDivisor)
+//                                                              - (SpeedOfInDirection(EventPlayer(), WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation)) / speedDivisor),
+//                                                              /* Y */ 0, /* Z */ (SpeedOfInDirection(bot, WorldVectorOf(Forward(), EventPlayer(), LocalVector.Rotation)) / bot.speedDivisor)),
+//                                                              EventPlayer(), LocalVector.Rotation)),
+//                      0.06, EffectRev.VisibleToPositionAndRadius);
+//         dbgEffect = LastCreatedEntity();
+
+//         // CreateHudText(EventPlayer(), null, null, (SpeedOfInDirection(bot, WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation)) / bot.speedDivisor), Location.Left, 2,
+//         //               Color.White, Color.White, Color.White, StringRev.VisibleToAndString);
+
+//         // CreateHudText(EventPlayer(), null, null, (SpeedOfInDirection(EventPlayer(), WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation)) / speedDivisor), Location.Left, 3,
+//         //               Color.White, Color.White, Color.White, StringRev.VisibleToAndString);
+
+//         // CreateHudText(EventPlayer(), null, null, (SpeedOfInDirection(bot, WorldVectorOf(Forward(), EventPlayer(), LocalVector.Rotation)) / bot.speedDivisor), Location.Left, 4,
+//         //               Color.White, Color.White, Color.White, StringRev.VisibleToAndString);
+//     }
+
+// rule: "Bot test"
+//     Event.OngoingPlayer
+//     Team.Team2
+//     if (IsAlive())
+//     {
+//         DisallowButton(EventPlayer(), Button.PrimaryFire);
+//         DisallowButton(EventPlayer(), Button.SecondaryFire);
+//     }

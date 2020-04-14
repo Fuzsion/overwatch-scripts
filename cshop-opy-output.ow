@@ -1,0 +1,258 @@
+rule("HUD")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	actions
+	{
+		Create HUD Text(Event Player, Custom String("{0} m/s", Horizontal Speed Of(Event Player), Null, Null), Null, Null, Left, 1, Green,
+			White, White, Visible To and String, Default Visibility);
+		Create HUD Text(Event Player, Null, Null, Value In Array(Player Variable(Event Player, B), 5), Left, 0, White, White, White,
+			Visible To and String, Default Visibility);
+		Create HUD Text(Event Player, Value In Array(Player Variable(Event Player, B), 1), Null, Null, Left, 1, Blue, White, White,
+			Visible To and String, Default Visibility);
+	}
+}
+
+rule("0 | Set UP | Base Face Angle for Calc | Falling speed | apply speed After Calc")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is In Air(Event Player) == True;
+	}
+
+	actions
+	{
+		Set Player Variable At Index(Event Player, B, 2, Horizontal Angle From Direction(Facing Direction Of(Event Player)));
+		Set Player Variable At Index(Event Player, B, 6, Absolute Value(Divide(Vertical Speed Of(Event Player), 10)));
+		Set Move Speed(Event Player, Min(1000, First Of(Player Variable(Event Player, B))));
+		Wait(0.210, Ignore Condition);
+		Loop If Condition Is True;
+	}
+}
+
+rule("1 | Acceleration Direction Calc While AD Strafe")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Or(Compare(1, ==, X Component Of(Throttle Of(Event Player))), Compare(-1.000, ==, X Component Of(Throttle Of(Event Player))))
+			== True;
+		Or(Compare(Speed Of In Direction(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0)), >, 4.500),
+			Compare(Speed Of In Direction(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0)), <, -4.500))
+			== True;
+		Not(Or(Or(Or(Is On Wall(Event Player), Not(Is In Air(Event Player))), And(Compare(Hero Of(Event Player), ==, Hero(Wrecking Ball)),
+			Is Button Held(Event Player, Secondary Fire))), And(Or(Or(Compare(Hero Of(Event Player), ==, Hero(D.Va)), Compare(Hero Of(
+			Event Player), ==, Hero(Ashe))), Compare(Hero Of(Event Player), ==, Hero(Widowmaker))), Is Using Ability 1(Event Player))))
+			== True;
+	}
+
+	actions
+	{
+		Wait(0.016, Ignore Condition);
+		Set Player Variable At Index(Event Player, B, 3, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0));
+		Skip If(Compare(Speed Of In Direction(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0)), <, 0), 2);
+		Start Forcing Throttle(Event Player, 1, 1, 0, 1, 0, 1);
+		Start Accelerating(Event Player, Forward, 1000, 60, To Player, Direction Rate and Max Speed);
+		Skip If(Compare(Speed Of In Direction(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0)), >=, 0),
+			3);
+		Start Forcing Throttle(Event Player, 0, 1, 1, 1, 0, 1);
+		Start Accelerating(Event Player, Backward, 1000, 60, To Player, Direction Rate and Max Speed);
+		Set Player Variable At Index(Event Player, B, 3, Multiply(Value In Array(Player Variable(Event Player, B), 3), -1.000));
+		Loop If Condition Is True;
+		Stop Accelerating(Event Player);
+		Stop Forcing Throttle(Event Player);
+		Start Accelerating(Event Player, Value In Array(Player Variable(Event Player, B), 3), 1000, 60, To World,
+			Direction Rate and Max Speed);
+	}
+}
+
+rule("2 | Calc Straved angle and Increase Speed | Forward&Backward Strafing")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is In Air(Event Player) == True;
+		Is On Wall(Event Player) != True;
+		Horizontal Speed Of(Event Player) > 4;
+	}
+
+	actions
+	{
+		Wait(0.330, Abort When False);
+		Set Player Variable At Index(Event Player, B, 1, Angle Difference(Value In Array(Player Variable(Event Player, B), 2),
+			Horizontal Angle From Direction(Facing Direction Of(Event Player))));
+		Set Player Variable At Index(Event Player, B, 1, Absolute Value(Value In Array(Player Variable(Event Player, B), 1)));
+		Set Player Variable At Index(Event Player, B, 4, Angle Difference(Value In Array(Player Variable(Event Player, B), 2),
+			Horizontal Angle From Direction(Facing Direction Of(Event Player))));
+		Skip If(Compare(Value In Array(Player Variable(Event Player, B), 4), ==, 0), 3);
+		Set Player Variable At Index(Event Player, B, 4, Normalize(Value In Array(Player Variable(Event Player, B), 4)));
+		Skip If(And(Compare(Speed Of In Direction(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0)), >, 4),
+			Compare(Value In Array(Player Variable(Event Player, B), 4), !=, X Component Of(Throttle Of(Event Player)))), 3);
+		Skip If(And(Compare(Speed Of In Direction(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0)), <, 4),
+			Compare(Value In Array(Player Variable(Event Player, B), 4), ==, X Component Of(Throttle Of(Event Player)))), 2);
+		Skip If(Compare(Value In Array(Player Variable(Event Player, B), 1), >, 95), 1);
+		Set Player Variable At Index(Event Player, B, 0, Add(First Of(Player Variable(Event Player, B)), Multiply(Multiply(Square Root(
+			Divide(Value In Array(Player Variable(Event Player, B), 1), 100)), First Of(Player Variable(Event Player, B))), Divide(
+			Value In Array(Player Variable(Event Player, B), 1), Multiply(Horizontal Speed Of(Event Player), Value In Array(
+			Player Variable(Event Player, B), 1))))));
+		Skip If(Compare(Value In Array(Player Variable(Event Player, B), 4), ==, 0), 3);
+		Set Player Variable At Index(Event Player, B, 4, Normalize(Value In Array(Player Variable(Event Player, B), 4)));
+		Skip If(And(Compare(Speed Of In Direction(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0)), >, 4),
+			Compare(Value In Array(Player Variable(Event Player, B), 4), !=, X Component Of(Throttle Of(Event Player)))), 3);
+		Skip If(And(Compare(Speed Of In Direction(Event Player, Direction From Angles(Horizontal Facing Angle Of(Event Player), 0)), <, 4),
+			Compare(Value In Array(Player Variable(Event Player, B), 4), ==, X Component Of(Throttle Of(Event Player)))), 2);
+		Skip If(Compare(Value In Array(Player Variable(Event Player, B), 1), <=, 95), 2);
+		Set Player Variable At Index(Event Player, B, 1, Subtract(Value In Array(Player Variable(Event Player, B), 1), 95));
+		Set Player Variable At Index(Event Player, B, 0, Subtract(First Of(Player Variable(Event Player, B)), Add(Square Root(Divide(
+			Value In Array(Player Variable(Event Player, B), 1), 100)), Multiply(Value In Array(Player Variable(Event Player, B), 1),
+			Divide(Horizontal Speed Of(Event Player), First Of(Player Variable(Event Player, B)))))));
+		Loop If Condition Is True;
+	}
+}
+
+rule("3 | Detect ground shape | apply impules for bonus speed Of falling speed + Angle of Ground")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is On Ground(Event Player) == True;
+		Is Button Held(Event Player, Jump) == True;
+	}
+
+	actions
+	{
+		Set Player Variable At Index(Event Player, B, 5, Absolute Value(Angle Difference(X Component Of(Ray Cast Hit Normal(Eye Position(
+			Event Player), Add(Eye Position(Event Player), Multiply(Down, 25)), Null, Event Player, False)), Z Component Of(
+			Ray Cast Hit Normal(Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(Down, 25)), Null, Event Player,
+			False)))));
+		Set Player Variable At Index(Event Player, B, 5, Min(0.450, Value In Array(Player Variable(Event Player, B), 5)));
+		Skip If(Compare(Value In Array(Player Variable(Event Player, B), 5), <, 0.050), 1);
+		Set Player Variable At Index(Event Player, B, 5, Add(Value In Array(Player Variable(Event Player, B), 5), Value In Array(
+			Player Variable(Event Player, B), 6)));
+		Apply Impulse(Event Player, Vector(0, -1.000, Speed Of In Direction(Event Player, Facing Direction Of(Event Player))),
+			Value In Array(Player Variable(Event Player, B), 5), To Player, Incorporate Contrary Motion);
+	}
+}
+
+rule("stop speed if for 5+ Server ticks on ground (0.016 = 1tick) Higher Wait = Easier!!")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is On Ground(Event Player) == True;
+	}
+
+	actions
+	{
+		Wait(0.080, Abort When False);
+		Stop Forcing Throttle(Event Player);
+		Set Player Variable At Index(Event Player, B, 0, 100);
+		Set Move Speed(Event Player, First Of(Player Variable(Event Player, B)));
+		Stop Accelerating(Event Player);
+		Loop;
+	}
+}
+
+rule("stop Speed If to slow")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Horizontal Speed Of(Event Player) < 4.500;
+	}
+
+	actions
+	{
+		Set Player Variable At Index(Event Player, B, 0, 100);
+		Stop Forcing Throttle(Event Player);
+		Set Move Speed(Event Player, First Of(Player Variable(Event Player, B)));
+		Stop Accelerating(Event Player);
+	}
+}
+
+rule("Stop Acceleration for Hero Abilitys with Acceleration (Fix)")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Or(Or(Is On Wall(Event Player), And(Compare(Hero Of(Event Player), ==, Hero(Wrecking Ball)), Is Button Held(Event Player,
+			Secondary Fire))), And(Or(Or(Compare(Hero Of(Event Player), ==, Hero(D.Va)), Compare(Hero Of(Event Player), ==, Hero(Ashe))),
+			Compare(Hero Of(Event Player), ==, Hero(Widowmaker))), Is Using Ability 1(Event Player))) == True;
+	}
+
+	actions
+	{
+		Stop Accelerating(Event Player);
+	}
+}
+
+rule("Auto Hop")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	conditions
+	{
+		Is On Ground(Event Player) == True;
+		Is Button Held(Event Player, Jump) == True;
+	}
+
+	actions
+	{
+		Disallow Button(Event Player, Jump);
+		Wait(0.016, Ignore Condition);
+		Allow Button(Event Player, Jump);
+	}
+}
