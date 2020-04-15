@@ -40,7 +40,6 @@ playervar define effect;
 playervar define damageText;
 playervar define textChase;
 playervar define livingEnemies;
-playervar define test;
 
 // constants :: bhop
 globalvar define DEFAULT_START_SPEED = 100;
