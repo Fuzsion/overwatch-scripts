@@ -48,15 +48,12 @@ globalvar define BHOP_SPEED_RATE = 12.5; // 12.5
 
 // constants :: wallbang
 globalvar define NUM_WALLBANGS = 4;
-globalvar define MAX_WALLBANG_DISTANCE = 100;
 
 // constants :: grapple
 globalvar define GRAPPLE_PULL_SPEED = 3.5;
-globalvar define GRAPPLE_MAX_RANGE = 200;
 
 // constants :: secondary
 globalvar define SECONDARY_PROJECTILE_SPEED = 110;
-globalvar define SECONDARY_MAXRANGE = 100;
 
 // constants: misc
 globalvar define PRE_GAME_TIME = 10;
@@ -66,10 +63,11 @@ globalvar define MATCH_TIME_LIMIT = 1200;
 globalvar define wallbangEnabled = false;
 globalvar define matchStarted = false;
 
+
 rule: "Init"
     if (!matchStarted && CountOf(AllLivingPlayers()) > 0)
     {
-        // DisableInspectorRecording();
+        DisableInspectorRecording();
         DisableCompletion();
         DisableAnnouncer();
 
@@ -88,7 +86,6 @@ rule: "Player Join Init"
     Event.OnPlayerJoin
     {
         CreateHudText(player, null, null, <"Speed: <0> M/S", (HorizontalSpeedOf())>, Location.Top, 1);
-        CreateEffect(all, Effect.Sphere, Color.Red, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), 0.1);
     }
 
 rule: "End Game"
@@ -106,7 +103,7 @@ rule: "DBG Bots"
         CreateDummyBot(HeroOf(host), OppositeTeamOf(), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100));
     }
 
-rule: "DBG Text"
+rule: "DBG Stuff"
     Event.OngoingPlayer
     {
         CreateHudText(player, null, null, <"isChasing: <0>", isChasing>, Location.Left, 15);
@@ -132,7 +129,6 @@ rule: "Hit Text"
     Event.OnDamageDealt
     {
         textChase = Vector(0,1,0);
-        
         if (EventWasCriticalHit())
         {
             CreateInWorldText(player, "Critical", PositionOf(Victim()) + textChase, 1.2, Clipping.DoNotClip, InworldTextRev.VisibleToPositionAndString, Color.Red);
@@ -171,7 +167,6 @@ rule: "---------------- Bhop Rules Start ----------------"{}
 rule: "Bhop :: Auto Hop"
     Event.OngoingPlayer
     if (IsOnGround() && IsJumpHeld())
-
     {
         DisallowButton(player, Button.Jump);
         MinWait();
@@ -186,7 +181,7 @@ rule: "Bhop :: Starting Speed"
 
 rule: "Bhop :: If Airborne"
     Event.OngoingPlayer
-    if ((!usingGrapple && IsInAir() && HorizontalSpeedOf() > DEFAULT_START_SPEED / 33.33) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) <= GRAPPLE_MAX_RANGE))
+    if ((!usingGrapple && IsInAir() && HorizontalSpeedOf() > DEFAULT_START_SPEED / 33.33) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) <= 100))
     {
         speedAccumInAir = HorizontalSpeedOf();
         Wait(0.05);
@@ -228,7 +223,7 @@ rule: "Bhop :: Reset speed if turning too fast"
         SetMoveSpeed(player, bhopSpeed);
     }
 
-rule: "Bhop :: Stop chasing if hit too slow"
+rule: "Bhop :: Stop chasing if too slow"
     Event.OngoingPlayer
     if (!usingGrapple && isChasing && HorizontalSpeedOf() <= DEFAULT_START_SPEED / 66.66)
     {
@@ -280,12 +275,12 @@ rule: "Wallbang :: Logic"
         define wallbangLivingEnemies;
         define wallbangHitPlayer;
         define wallbangCount = 0;
-        while (DistanceBetween(gunPos, wallbangHitPos) < MAX_WALLBANG_DISTANCE && wallbangCount < NUM_WALLBANGS)
+        while (DistanceBetween(gunPos, wallbangHitPos) < 100 && wallbangCount < NUM_WALLBANGS)
         {
             wallbangLivingEnemies = FilteredArray(EnemyPlayers(), IsAlive(ArrayElement()));
-            wallbangHitPos = RayCastHitPosition(wallbangHitPos + Facing(), wallbangHitPos + Facing() * (MAX_WALLBANG_DISTANCE - DistanceBetween(gunPos, wallbangHitPos)), wallbangLivingEnemies, player, true);
+            wallbangHitPos = RayCastHitPosition(wallbangHitPos + Facing(), wallbangHitPos + Facing() * (100 - DistanceBetween(gunPos, wallbangHitPos)), wallbangLivingEnemies, player, true);
             PlayEffect(all, PlayEffect.GoodExplosion, Color.Aqua, wallbangHitPos, 0.2);
-            wallbangHitPlayer = RayCastHitPlayer(wallbangHitPos, wallbangHitPos + Facing() * (MAX_WALLBANG_DISTANCE - DistanceBetween(gunPos, wallbangHitPos)), wallbangLivingEnemies, player, true);
+            wallbangHitPlayer = RayCastHitPlayer(wallbangHitPos, wallbangHitPos + Facing() * (100 - DistanceBetween(gunPos, wallbangHitPos)), wallbangLivingEnemies, player, true);
             if (DistanceBetween(wallbangHitPos, EyePosition(wallbangHitPlayer) + Vector(0,0.2,0)) < 0.3 && wallbangHitPlayer != null)
             {
                 PlayEffect(player, PlayEffect.BuffImpactSound, Color.White, player, 100);
@@ -315,8 +310,8 @@ rule: "Secondary Fire :: Projectile"
     if (matchStarted && IsSecondaryHeld() && IsAlive())
     {
         livingEnemies = FilteredArray(EnemyPlayers(), IsAlive(ArrayElement()));
-        secondaryHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * SECONDARY_MAXRANGE, livingEnemies, player);
         secondaryStartPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
+        secondaryHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
         secondaryEyePos = EyePosition() + secondaryStartPos;
         DestroyEffect(secondaryOrb);
         PlayEffect(all, PlayEffect.RingExplosionSound, Color.White, player, 50);
@@ -356,10 +351,9 @@ rule: "Grapple :: Grapple Start"
     if (matchStarted && IsAbility2Held() && IsAlive())
     {
         livingEnemies = FilteredArray(EnemyPlayers(), IsAlive(ArrayElement()));
-        grappleHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * GRAPPLE_MAX_RANGE, livingEnemies, player);
-        grappleHitPlayer = RayCastHitPlayer(EyePosition(), EyePosition() + Facing() * GRAPPLE_MAX_RANGE, livingEnemies, player, true);
-        grappleStartPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
-        grappleEyePos = EyePosition() + grappleStartPos;
+        grappleHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
+        grappleHitPlayer = RayCastHitPlayer(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player, true);
+        grappleEyePos = EyePosition();
 
         if (grappleHitPlayer)
         {
@@ -388,7 +382,7 @@ rule: "Grapple :: Grapple Start"
 
 rule: "Grapple :: Pull"
     Event.OngoingPlayer
-    if (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) <= GRAPPLE_MAX_RANGE)
+    if (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) <= 100)
     {
         if (grappleHitPlayer && IsAlive(grappleHitPlayer))
             ApplyImpulse(grappleHitPlayer, Vector(0, 0.3, 0) + DirectionTowards(grappleHitPlayer, EyePosition()), GRAPPLE_PULL_SPEED / 1.25, Relative.ToWorld, ContraryMotion.Incorporate);
@@ -399,11 +393,11 @@ rule: "Grapple :: Pull"
         Loop();
     }
 
-rule: "Grapple :: Slow Directional Movement"
+rule: "Grapple :: Stop Directional Movement"
     Event.OngoingPlayer
-    if (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) <= GRAPPLE_MAX_RANGE)
+    if (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) <= 100)
     {
-        ForceThrottle(player, 0, 0.3, 0, 0.3, 0, 0.3);
+        ForceThrottle(player, 0, 0.05, 0, 0.05, 0, 0.05);
     }
 
 rule: "Grapple :: Grapple End"
