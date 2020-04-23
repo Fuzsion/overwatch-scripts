@@ -97,10 +97,16 @@ rule: "End Game"
 
 rule: "DBG Bots"
     Event.OngoingPlayer
-    if (IsButtonHeld(player, Button.Interact))
+    if (IsInteractHeld())
     {
-        MinWait();
         CreateDummyBot(HeroOf(host), OppositeTeamOf(), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100));
+    }
+
+rule: "DBG Destroy Bots"
+    Event.OngoingPlayer
+    if (IsCrouchHeld() && IsInteractHeld())
+    {
+        DestroyAllDummyBots();
     }
 
 rule: "DBG Stuff"
@@ -168,9 +174,9 @@ rule: "Bhop :: Auto Hop"
     Event.OngoingPlayer
     if (IsOnGround() && IsJumpHeld())
     {
-        DisallowButton(player, Button.Jump);
+        DisableJump();
         MinWait();
-        AllowButton(player, Button.Jump);
+        AllowJump();
     }
 
 rule: "Bhop :: Starting Speed"
@@ -186,11 +192,6 @@ rule: "Bhop :: If Airborne"
         speedAccumInAir = HorizontalSpeedOf();
         Wait(0.05);
         ChaseVariableAtRate(bhopSpeed, BHOP_MAX_SPEED, BHOP_SPEED_RATE, RateChaseReevaluation.DestinationAndRate);
-        // while (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) <= GRAPPLE_MAX_RANGE)
-        // {
-        //     ChaseVariableAtRate(bhopSpeed, BHOP_MAX_SPEED, BHOP_SPEED_RATE * 5, RateChaseReevaluation.DestinationAndRate);
-        //     Wait(0.064);
-        // }
 
         isChasing = true;
     }
