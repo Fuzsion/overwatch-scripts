@@ -125,7 +125,6 @@ rule: "Bot Joined"
     Event.OngoingPlayer
     if (IsDummyBot() && HasSpawned())
     {
-
         if (TeamOf() == Team.Team1)
         {
            owner = player1;
@@ -184,15 +183,15 @@ rule: "Bot Dead"
 rule: "Is CCed"
     Event.OngoingPlayer
     if (HasStatus(player, Status.Asleep) || 
-    HasStatus(player, Status.Frozen) || 
-    HasStatus(player, Status.KnockedDown) || 
-    HasStatus(player, Status.Rooted) || 
-    HasStatus(player, Status.Stunned) || 
-    HasStatus(owner, Status.Asleep) || 
-    HasStatus(owner, Status.Frozen) || 
-    HasStatus(owner, Status.KnockedDown) || 
-    HasStatus(owner, Status.Rooted) || 
-    HasStatus(owner, Status.Stunned))
+        HasStatus(player, Status.Frozen) || 
+        HasStatus(player, Status.KnockedDown) || 
+        HasStatus(player, Status.Rooted) || 
+        HasStatus(player, Status.Stunned) || 
+        HasStatus(owner, Status.Asleep) || 
+        HasStatus(owner, Status.Frozen) || 
+        HasStatus(owner, Status.KnockedDown) || 
+        HasStatus(owner, Status.Rooted) || 
+        HasStatus(owner, Status.Stunned))
     {
         hasCCStatus = true;
     }

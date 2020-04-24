@@ -1,49 +1,111 @@
 import "macros.del";
-globalvar define player1;
-globalvar define player2;
-globalvar define team1Bots;
-globalvar define team2Bots;
-globalvar define noSpawnRoomExists;
 
-playervar define playerHero;
-playervar define notFirstSpawn;
-playervar define heroSwitch;
+globalvar define distance = 5;
+
 playervar define owner;
+playervar define ownerAim;
 playervar define botAlive;
-playervar define botReplaced;
-playervar define botRespawn;
 playervar define hasCCStatus;
 playervar define persistentMovement;
 
 rule: "Init"
     {
+        botAlive = EmptyArray();
         DisableInspectorRecording();
         ServerLoadText();
     }
 
 rule: "Player Join Init"
     Event.OnPlayerJoin
+    if (!IsDummyBot())
     {
+        owner = true;
         PositionText();
         FacingText();
     }
 
-rule: "Hero Select Time"
-    if (IsAssemblingHeroes())
+rule: "Bot Alive"
+    Event.OngoingPlayer
+    if (IsDummyBot() && IsAlive())
     {
-        SetMatchTime(25);
+        botAlive = true;
     }
 
-rule: "Create Bots"
+rule: "Bot Dead"
     Event.OngoingPlayer
-    if (IsAlive() && HasSpawned() && !IsDummyBot() && CountOf(AllPlayers(TeamOf())) < 6)
+    if (IsDummyBot() && IsDead())
+    {
+        botAlive = false;
+    }
+
+//  @todo: scale bots with amount of players (e.g. 5 bots each for 1 player, 3 bots each for 2 players, 1 bot each for 3 players) (3v3)
+rule: "Create bots"
+    Event.OngoingPlayer
+    if (!IsDummyBot() && HasSpawned() && IsAlive())
+    {
+        
+    }
+
+//  @todo: destroy necessary bots when someone leaves and recreate the necessary amount of bots
+rule: "Destroy bots"
+    Event.OngoingPlayer
+    if (!IsDummyBot())
     {
 
-        WaitIfTrue(0.016);
+    }
+
+rule: "Bot :: Teleport if out of range of player"
+    Event.OngoingPlayer
+    if (botAlive && IsAlive(owner) && DistanceBetween(owner, player) > distance && !persistentMovement && !hasCCStatus)
+    {
+        Wait(0.3);
+        Teleport(player, owner);
+    }
+
+rule: "Bot :: Teleport if out of sight of player"
+    Event.OngoingPlayer
+    if (botAlive && IsAlive(owner) && !IsInLineOfSight(owner, player) && !hasCCStatus)
+    {
+        Teleport(player, owner);
+        WaitIfTrue(0.5);
         Loop();
     }
 
-rule: "Bots have ult whenever player has ult"
+rule: "Bot is CCed"
+    Event.OngoingPlayer
+    if (HasStatus(player, Status.Asleep) || 
+        HasStatus(player, Status.Frozen) || 
+        HasStatus(player, Status.KnockedDown) || 
+        HasStatus(player, Status.Rooted) || 
+        HasStatus(player, Status.Stunned) || 
+        HasStatus(owner, Status.Asleep) || 
+        HasStatus(owner, Status.Frozen) || 
+        HasStatus(owner, Status.KnockedDown) || 
+        HasStatus(owner, Status.Rooted) || 
+        HasStatus(owner, Status.Stunned))
+    {
+        hasCCStatus = true;
+    }
+
+rule: "Bot is not CCed"
+    Event.OngoingPlayer
+    if (!HasStatus(player, Status.Asleep) && 
+        !HasStatus(player, Status.Frozen) && 
+        !HasStatus(player, Status.KnockedDown) && 
+        !HasStatus(player, Status.Rooted) && 
+        !HasStatus(player, Status.Stunned) && 
+        !HasStatus(owner, Status.Asleep) && 
+        !HasStatus(owner, Status.Frozen) && 
+        !HasStatus(owner, Status.KnockedDown) && 
+        !HasStatus(owner, Status.Rooted) && 
+        !HasStatus(owner, Status.Stunned))
+    {
+        hasCCStatus = false;
+    }
+
+//  @todo: prevent bots from respawning when the owner and all bots are dead, basically fix the major issues in v1
+
+rule: "Bots have ult whenever owner has ult"
     Event.OngoingPlayer
     if (UltimateChargePercent(owner) == 100 && IsAlive(owner))
     {
@@ -56,9 +118,10 @@ rule: "Disable bot ult"
     if (!IsUsingUltimate(owner) && IsDummyBot())
     {
         SetUltimateAbilityEnabled(player, false);
+        SetUltimateCharge(player, 0);
     }
 
-rule: "Announce when Bots have ult"
+rule: "Announce when bots have ult"
     Event.OngoingPlayer
     if (IsDummyBot() && UltimateChargePercent() == 100)
     {
@@ -72,9 +135,7 @@ rule: "HUD Text"
         CreditText();
         Wait(1.5);
         /* spacing */
-        CreateHudText(FilteredArray(owner, EntityExists(player)), null, " ", " ", Location.Left, -1);
-        CreateHudText(FilteredArray(owner, EntityExists(player)), null, " ", " ", Location.Left, -1);
-        CreateHudText(FilteredArray(owner, EntityExists(player)), null, " ", " ", Location.Left, -1);
+        CreateHudText(FilteredArray(owner, EntityExists(player)), null, " \r\n \r\n \r\n \r\n \r\n \r\n ", null, Location.Left, -1);
         MinWait();
 
         /* bot healthy */
@@ -131,6 +192,16 @@ rule: "HUD Text"
     }
 
 /* Input Emulation - Start */
+rule: "Bot :: Movement and Aim"
+    Event.OngoingPlayer
+    if (IsDummyBot() && HasSpawned())
+    {
+        ownerAim = RayCastHitPosition(EyePosition(owner), EyePosition(owner) + (FacingDirectionOf(owner) * 25), AllPlayers(OppositeTeamOf(TeamOf())), AllPlayers(TeamOf()));
+
+        StartFacing(player, DirectionTowards(ownerAim), 1000)
+
+        StartThrottleInDirection(player, WorldVectorOf(ThrottleOf(owner), owner, LocalVector.Rotation), 0.000001 + (ThrottleOf(owner) != Vector(0,0,0)));
+    }
 rule: "Bot :: Pressed Primary"
     Event.OngoingPlayer
     if (botAlive && IsButtonHeld(owner, Button.PrimaryFire))
