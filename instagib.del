@@ -187,7 +187,7 @@ rule: "Bhop :: Starting Speed"
 
 rule: "Bhop :: If Airborne"
     Event.OngoingPlayer
-    if ((!usingGrapple && IsInAir() && HorizontalSpeedOf() > DEFAULT_START_SPEED / 33.33) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) <= 100))
+    if ((!usingGrapple && IsJumping() && HorizontalSpeedOf() > DEFAULT_START_SPEED / 33.33) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) <= 100))
     {
         speedAccumInAir = HorizontalSpeedOf();
         Wait(0.05);
