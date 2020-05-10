@@ -139,7 +139,7 @@ define item5Selected:    "Hero Select  <";
 define Right: Location.Right;
 define White: Color.White;
 
-define InfoText(ref define text): CreateHudText(all, text, "ＶＥＲ  1.2.0.21", "Spinky and Chill", Right, -100, Color.LimeGreen);
+define InfoText(ref define text): CreateHudText(all, text, "ＶＥＲ  1.2.0.21", "Spinky and Chill", Location.Right, -100, Color.LimeGreen);
 define StatusText(ref define text, Color color): CreateHudText(VisibleTo: player, Subheader: text, Location: Location.Left, SortOrder: 1, SubheaderColor: color);
 
 define CreateItemText(ref define text, ref define sortOrder)
