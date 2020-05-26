@@ -36,9 +36,6 @@ playervar define facingDir; // facing direction of the closestPlayer
 playervar define botCheck; // check if player has enough bots, if not, destroy all bots in the lobby to refresh
 playervar define botAlive; // whether a bot is alive (self explanitory)
 
-// misc
-// playervar define bastionToggle;
-
 rule: "Init"
     {
         // DisableInspectorRecording();
@@ -62,7 +59,7 @@ rule: "[All] :: CCed"
     HasStatus(player, Status.Rooted) || 
     HasStatus(player, Status.Stunned))
     {
-        Wait(0.064);
+        Wait(0.080);
         CCed = true;
     }
 
@@ -74,7 +71,7 @@ rule: "[All] :: Not CCed"
     !HasStatus(player, Status.Rooted) && 
     !HasStatus(player, Status.Stunned))
     {
-        Wait(0.064);
+        Wait(0.080);
         CCed = false;
     }
 
@@ -173,7 +170,7 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         positionOf = PositionOf(closestPlayer);
         facingDir = FacingDirectionOf(closestPlayer);
         SetFacing(closestPlayer, FacingDirectionOf(), Relative.ToWorld);
-        Wait(0.064);
+        Wait(0.080);
         Kill(closestPlayer);
         Teleport(closestPlayer, PositionOf());
         Teleport(player, positionOf);
@@ -203,7 +200,7 @@ rule: "[Owner] :: Owner Dead, Prevent Bot Spawning"
     Event.OngoingPlayer
     if (!ownerAlive)
     {
-        Wait(0.064);
+        Wait(0.080);
         DisableRespawning(FilteredArray(AllPlayers(TeamOf()), IsDummyBot(ArrayElement()) && IsDead(ArrayElement()) && ArrayElement().owner == player));
     }
 
@@ -211,7 +208,7 @@ rule: "[Owner] :: Owner Alive, Re-enable Bot Spawning"
     Event.OngoingPlayer
     if (ownerAlive)
     {
-        Wait(0.064);
+        Wait(0.080);
         Respawn(ownerBots);
         EnableRespawning(FilteredArray(AllPlayers(TeamOf()), IsDummyBot(ArrayElement()) && IsDead(ArrayElement()) && ArrayElement().owner == player));
     }
@@ -223,7 +220,7 @@ rule: "[Owner] :: Stun Bots if Owner is CCed"
     HasStatus(owner, Status.KnockedDown) || 
     HasStatus(owner, Status.Stunned))
     {
-        Wait(0.064);
+        Wait(0.080);
         SetStatus(ownerBots, null, Status.Stunned, 6);
     }
 
@@ -234,7 +231,7 @@ rule: "[Owner] :: Clear Stun if Owner is no longer CCed"
     !HasStatus(owner, Status.KnockedDown) && 
     !HasStatus(owner, Status.Stunned))
     {
-        Wait(0.064);
+        Wait(0.080);
         ClearStatus(player, Status.Stunned);
     }
 
@@ -242,7 +239,7 @@ rule: "[Owner] :: Hack Bots if Owner is Hacked"
     Event.OngoingPlayer
     if (HasStatus(owner, Status.Hacked))
     {
-        Wait(0.064);
+        Wait(0.080);
         SetStatus(ownerBots, null, Status.Hacked, 6);
     }
 
@@ -250,7 +247,7 @@ rule: "[Owner] :: Clear Hack if Owner is no longer Hacked"
     Event.OngoingPlayer
     if (!HasStatus(owner, Status.Hacked))
     {
-        Wait(0.064);
+        Wait(0.080);
         ClearStatus(player, Status.Hacked);
     }
 
@@ -264,6 +261,7 @@ rule: "[Bot] :: Alive"
     Event.OngoingPlayer
     if (IsDummyBot() && IsAlive())
     {
+        EnableRespawning();
         botAlive = true;
     }
 
@@ -282,7 +280,7 @@ rule: "[Bot] :: Incorrect Hero"
     Event.OngoingPlayer
     if (IsDummyBot() && !(EntityExists(owner) && HeroOf() == HeroOf(owner) && TeamOf() == TeamOf(owner)))
     {
-        Wait(0.064);
+        Wait(0.080);
         DestroyDummyBot(TeamOf(), SlotOf());
     }
 
@@ -290,7 +288,7 @@ rule: "[Bot] :: Enable Ult"
     Event.OngoingPlayer
     if (UltimateChargePercent(owner) == 100 && botAlive)
     {
-        Wait(0.064);
+        Wait(0.080);
         SetUltimateAbilityEnabled(player, true);
         SetUltimateCharge(player, 100);
     }
@@ -299,16 +297,9 @@ rule: "[Bot] :: Disable ult"
     Event.OngoingPlayer
     if (IsDummyBot() && (UltimateChargePercent(owner) != 100 || !IsUsingUltimate(owner) || IsDead()))
     {
-        WaitIfTrue(0.064);
+        WaitIfTrue(0.080);
         SetUltimateAbilityEnabled(player, false);
         SetUltimateCharge(player, 0);
-    }
-
-rule: "[Bot] :: Cancel Ult"
-    Event.OngoingPlayer
-    if (botAlive && IsUsingUltimate() && !IsUsingUltimate(owner))
-    {
-        CancelPrimaryAction();
     }
 
 rule: "[Bot] :: Owner out of range"
@@ -651,7 +642,7 @@ rule: "[FS] :: Not Enough Bots"
         botCheck = 0;
     }
 
-rule: "[FS] :: Bot Ult"
+rule: "[FS] :: Bot Ult Charge"
     Event.OngoingPlayer
     if (IsDummyBot() && UltimateChargePercent(owner) != 100 && UltimateChargePercent() > 1)
     {
@@ -668,30 +659,12 @@ rule: "[FS] :: CC"
         CCed = false;
     }
 
-// playervar define fsInvuln;
-// rule: "[FS] :: Give Invuln if Owner is Dead"
-//     Event.OngoingPlayer
-//     if (botAlive && !ownerAlive)
-//     {
-//         SetStatus(player, null, Status.PhasedOut);
-//         SetInvisible(player, InvisibleTo.All);
-//         fsInvuln = true;
-//     }
-
-// rule: "[FS] :: Clear Invuln if Owner is Alive"
-//     Event.OngoingPlayer
-//     if (ownerAlive && fsInvuln)
-//     {
-//         ClearStatus(player, Status.PhasedOut)
-//         SetInvisible(player, InvisibleTo.None);
-//         fsInvuln = false;
-//     }
-
 rule: "[FS] :: Player Spawn"
     Event.OngoingPlayer
     if (IsDead())
     {
         WaitIfTrue(18.5);
+        EnableRespawning();
         Respawn();
     }
 
@@ -754,13 +727,6 @@ disabled rule: "[DBG] :: Kill All"
     if (IsInteractHeld())
     {
        Kill(all);
-    }
-
-rule: "[DBG] :: test"
-    Event.OngoingPlayer
-    if (IsInteractHeld())
-    {
-       Respawn();
     }
 
 disabled rule: "[DBG] :: HUD"
