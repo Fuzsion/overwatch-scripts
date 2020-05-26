@@ -42,7 +42,42 @@ define EnemyPlayers():            AllPlayers(OppositeTeamOf(TeamOf()));
 define IsHero(ref define hero):   HeroOf() == hero;
 
 // HUD Text
-define CreditText():              CreateHudText(all, null, "Created by Fuzsion#11545", null, Location.Left, -1);
+define CreditText():              CreateHudText(all, null, "Created by Fuzsion#11545", null, Location.Right, -1);
+
+
+                                  /* server load low */
+define ServerLoadTextLow():       CreateHudText(FilteredArray(host, RoundToInteger(ServerLoad() / 2.55 < 40, Rounding.Nearest)), null, null, 
+                                                            <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", 
+                                                            RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, 
+                                                            , Location.Right, -1, Color.Green, Color.Green, Color.Green);
+
+                                  /* server load med */
+define ServerLoadTextMed():       CreateHudText(FilteredArray(host, RoundToInteger(ServerLoad() / 2.55 > 40, Rounding.Nearest) && RoundToInteger(ServerLoad() / 2.55 < 65, Rounding.Nearest)), null, null,
+                                                            <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", 
+                                                            RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, 
+                                                            Location.Right, -1, Color.Yellow, Color.Yellow, Color.Yellow);
+
+                                  /* server load high */
+define ServerLoadTextHigh():      CreateHudText(FilteredArray(host, RoundToInteger(ServerLoad() / 2.55 > 65, Rounding.Nearest) && RoundToInteger(ServerLoad() / 2.55 < 95, Rounding.Nearest)), null, null,
+                                                            <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", 
+                                                            RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, 
+                                                            Location.Right, -1, Color.Orange, Color.Orange, Color.Orange);
+
+                                  /* server load critical */
+define ServerLoadTextCrit():      CreateHudText(FilteredArray(host, RoundToInteger(ServerLoad() / 2.55 > 95, Rounding.Nearest)), null, null,
+                                                            <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", 
+                                                            RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), 
+                                                            RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, 
+                                                            Location.Right, -1, Color.Red, Color.Red, Color.Red);
+
+                                  /* server load no color */
 define ServerLoadText():          CreateHudText(host, null, <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", 
                                                             RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest), 
                                                             RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), 
