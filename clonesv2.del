@@ -33,7 +33,7 @@ playervar define positionOf; // position of the closestPlayer
 playervar define facingDir; // facing direction of the closestPlayer
 
 // bot
-playervar define botCheck; // check if bot is correct (failsafe)
+playervar define botCheck; // check if player has enough bots, if not, destroy all bots in the lobby to refresh
 playervar define botAlive; // whether a bot is alive (self explanitory)
 
 // misc
@@ -44,7 +44,7 @@ rule: "Init"
         DisableInspectorRecording();
         DISTANCE = 10;
         playerAmountArray = [5, 4, 3, 2, 1, 0];
-        CreateHudText(all, null, "Created by Fuzsion#11545\r\n              Share Code: 49X8X", null, Location.Right, -1);
+        CreateHudText(all, null, "Created by Fuzsion#11545\r\n                Share Code: JRTHX", null, Location.Right, -1);
         ServerLoadText();
     }
 
@@ -52,15 +52,6 @@ rule: "Player Join Init"
     Event.OnPlayerJoin
     {
         playerSlot = EmptyArray();
-    }
-
-disabled rule: "super special rule"
-    Event.OngoingPlayer
-    if ((<"<0>", player> == "kyy") || (<"<0>", player> == "Spinky"))
-    {
-        SetAimSpeed(player, RandomReal(50, 200));
-        Wait(3);
-        LoopIfConditionIsTrue();
     }
 
 rule: "[All] :: CCed"
@@ -95,24 +86,35 @@ playervar define genjiAO;
 // after a certain distance anyways
 rule: "[AO] :: Sombra Ability Override"
     Event.OngoingPlayer
-    if (IsDummyBot() && HeroOf() == Hero.Sombra)
+    Player.Sombra
+    if (IsDummyBot())
     {
         DisableAbility2();
     }
 
-rule: "[AO] :: Genji Ability Override On"
+rule: "[AO] :: Mercy Ability Override"
     Event.OngoingPlayer
-    if (HeroOf() == Hero.Genji && IsAbility1Held())
+    Player.Mercy
+    if (IsDummyBot())
     {
-        StartDamageModification(EnemyPlayers(), player, 25);
+        DisableAbility1();
+    }
+
+
+rule: "[AO] :: Genji Damage Mod On"
+    Event.OngoingPlayer
+    Player.Genji
+    if (IsUsingAbility1())
+    {
+        StartDamageModification(EnemyPlayers(), player, 33.334);
         genjiAO = LastDamageModificationID();
     }
 
-rule: "[AO] :: Genji Ability Override Off"
+rule: "[AO] :: Genji Damage Mod Off"
     Event.OngoingPlayer
-    if (HeroOf() == Hero.Genji && !IsAbility1Held())
+    Player.Genji
+    if (!IsUsingAbility1())
     {
-        Wait(0.3);
         StopDamageModification(genjiAO);
     }
 
@@ -159,23 +161,6 @@ rule: "[Owner] :: Destroy Bots"
     
         Wait(0.032);
         LoopIfConditionIsTrue();
-    }
-
-rule: "[Owner] :: Not Enough Bots Failsafe"
-    Event.OngoingPlayer
-    if (!IsDummyBot() && HasSpawned() && IsAlive() && 
-        (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && EntityExists(ArrayElement()) && 
-        IsDummyBot(ArrayElement()))) < RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && 
-        HasSpawned(ArrayElement())))) / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
-        Rounding.Down)))
-    {
-        botCheck += 1;
-        Wait(1);
-        SkipIf(botCheck < 4, 2);
-        DestroyAllDummyBots();
-        Skip(1);
-        LoopIfConditionIsTrue();
-        botCheck = 0;
     }
 
 rule: "[Owner] :: On Death Replace Healthiest Bot"
@@ -227,7 +212,9 @@ rule: "[Owner] :: Owner Alive, Re-enable Bot Spawning"
     {
         Wait(0.064);
         EnableRespawning(FilteredArray(AllPlayers(TeamOf()), IsDummyBot(ArrayElement()) && IsDead(ArrayElement()) && ArrayElement().owner == player));
-        Respawn(ownerBots);
+
+        if (!botAlive)
+            Respawn(ownerBots);
     }
 
 rule: "[Owner] :: Stun Bots if Owner is CCed"
@@ -279,6 +266,7 @@ rule: "[Bot] :: Alive"
     if (IsDummyBot() && IsAlive())
     {
         botAlive = true;
+        Teleport(player, owner + WorldVectorOf(Vector(0, 1, -0.5), owner));
     }
 
 rule: "[Bot] :: Dead"
@@ -329,8 +317,9 @@ rule: "[Bot] :: Owner out of range"
     Event.OngoingPlayer
     if (botAlive && IsAlive(owner) && !CCed && DistanceBetween(owner, player) > DISTANCE)
     {
-        PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Aqua, player, 0.3);
-        Teleport(player, owner + WorldVectorOf(Vector(0, 0, -0.6), owner));
+        PlayEffect(AllyPlayers(), PlayEffect.GoodPickupEffect, Color.SkyBlue, player, 0.3);
+        PlayEffect(EnemyPlayers(), PlayEffect.GoodPickupEffect, Color.Red, player, 0.3);
+        Teleport(player, owner + WorldVectorOf(Vector(0, 0, -0.5), owner));
     }
 
 rule: "[Bot] :: Owner out of sight"
@@ -338,8 +327,9 @@ rule: "[Bot] :: Owner out of sight"
     if (botAlive && IsAlive(owner) && !CCed && !IsInLineOfSight(owner, player))
     {
         WaitIfTrue(0.3);
-        PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Aqua, player, 0.3);
-        Teleport(player, owner + WorldVectorOf(Vector(0, 0, -0.6), owner));
+        PlayEffect(AllyPlayers(), PlayEffect.GoodPickupEffect, Color.SkyBlue, player, 0.3);
+        PlayEffect(EnemyPlayers(), PlayEffect.GoodPickupEffect, Color.Red, player, 0.3);
+        Teleport(player, owner + WorldVectorOf(Vector(0, 0, -0.5), owner));
     }
 
 disabled rule: "---------------- Input Emulation (IE) ----------------"{}
@@ -353,16 +343,16 @@ rule: "[IE] :: Aim & Movement"
     if (IsDummyBot() && botAlive && !CCed && HasSpawned())
     {
         StartThrottleInDirection(player, WorldVectorOf(ThrottleOf(owner), owner, LocalVector.Rotation), 0 + (ThrottleOf(owner) != Vector(0,0,0)));
+        StartFacing(player, DirectionTowards(EyePosition(), ownerAim), 10000);
+    }
 
-        if (HeroOf() != Hero.Mercy)
-        {
-            StartFacing(player, DirectionTowards(EyePosition(), ownerAim), 10000);
-        }
-        if (HeroOf() == Hero.Mercy)
-        {
-            StartFacing(player, DirectionTowards(EyePosition(), EyePosition(owner)), 100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
-            StartHoldingButton(player, Button.PrimaryFire);
-        }
+rule: "[IE] :: Mercy Aim"
+    Event.OngoingPlayer
+    Player.Mercy
+    if (IsDummyBot() && botAlive && !CCed && HasSpawned())
+    {
+        StartFacing(player, DirectionTowards(EyePosition(), EyePosition(owner)), 100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
+        StartHoldingButton(player, Button.PrimaryFire);
     }
 
 rule: "[IE] :: Stop Aim"
@@ -376,61 +366,60 @@ rule: "[IE] :: CD Init"
     Event.OngoingPlayer
     if (botAlive)
     {
-        if (HeroOf() != Hero.Soldier76 || HeroOf() != Hero.Lucio)
-            SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), 10000);
-        
-        if (HeroOf() != Hero.WreckingBall || HeroOf() != Hero.Roadhog)
-            SetAbilityCooldown(player, ButtonValue(Button.Ability1), 10000);
-        
-        if (HeroOf() != Hero.Echo)
-            SetAbilityCooldown(player, ButtonValue(Button.Ability2), 10000);
-
-        SetAbilityCooldown(player, ButtonValue(Button.Jump), 10000);
-        SetAbilityCooldown(player, ButtonValue(Button.Crouch), 10000);
+        // SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), 10000);
+        // SetAbilityCooldown(player, ButtonValue(Button.Ability1), 10000);
+        // SetAbilityCooldown(player, ButtonValue(Button.Ability2), 10000);
+        // SetAbilityCooldown(player, ButtonValue(Button.Jump), 10000);
+        // SetAbilityCooldown(player, ButtonValue(Button.Crouch), 10000);
+        SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)));
+        SetAbilityCooldown(player, ButtonValue(Button.Ability1), AbilityCooldown(owner, ButtonValue(Button.Ability1)));
+        SetAbilityCooldown(player, ButtonValue(Button.Ability2), AbilityCooldown(owner, ButtonValue(Button.Ability2)));
+        SetAbilityCooldown(player, ButtonValue(Button.Jump), AbilityCooldown(owner, ButtonValue(Button.Jump)));
+        SetAbilityCooldown(player, ButtonValue(Button.Crouch), AbilityCooldown(owner, ButtonValue(Button.Crouch)));
     }
 
                         // button pressed/released //
 disabled rule: "-- press --"{}
 rule: "[IE] :: Pressed Primary"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && IsButtonHeld(owner, Button.PrimaryFire) && HeroOf() != Hero.Mercy)
+    if (IsDummyBot() && botAlive && ownerAlive && !CCed && IsButtonHeld(owner, Button.PrimaryFire) && HeroOf() != Hero.Mercy)
     {
         StartHoldingButton(player, Button.PrimaryFire);
     }
 
 rule: "[IE] :: Pressed Secondary"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && IsButtonHeld(owner, Button.SecondaryFire))
+    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.SecondaryFire))
     {
-        if ((HeroOf() != Hero.Soldier76 || HeroOf() != Hero.Lucio) && AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)) <= 0.1)
-            SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), 0);
+        // if (AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)) <= 0.1)
+        //     SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), 0);
 
         StartHoldingButton(player, Button.SecondaryFire);
     }
 
 rule: "[IE] :: Pressed Ability 1"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && IsButtonHeld(owner, Button.Ability1))
+    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Ability1))
     {
-        if ((HeroOf() != Hero.WreckingBall || HeroOf() != Hero.Roadhog) && AbilityCooldown(owner, ButtonValue(Button.Ability1)) <= 0.1)
-            SetAbilityCooldown(player, ButtonValue(Button.Ability1), 0);
+        // if (AbilityCooldown(owner, ButtonValue(Button.Ability1)) <= 0.1)
+        //     SetAbilityCooldown(player, ButtonValue(Button.Ability1), 0);
 
         StartHoldingButton(player, Button.Ability1);
     }
 
 rule: "[IE] :: Pressed Ability 2"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && IsButtonHeld(owner, Button.Ability2))
+    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Ability2))
     {
-        if ((HeroOf() != Hero.Echo) && AbilityCooldown(owner, ButtonValue(Button.Ability2)) <= 0.1)
-            SetAbilityCooldown(player, ButtonValue(Button.Ability2), 0);
+        // if (AbilityCooldown(owner, ButtonValue(Button.Ability2)) <= 0.1)
+        //     SetAbilityCooldown(player, ButtonValue(Button.Ability2), 0);
 
         StartHoldingButton(player, Button.Ability2);
     }
 
 rule: "[IE] :: Pressed Ultimate"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && IsButtonHeld(owner, Button.Ultimate))
+    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Ultimate))
     {
         StartHoldingButton(player, Button.Ultimate);
         Wait(0.08);
@@ -439,33 +428,34 @@ rule: "[IE] :: Pressed Ultimate"
 
 rule: "[IE] :: Pressed Jump"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && (IsButtonHeld(owner, Button.Jump)))
+    if (IsDummyBot() && botAlive && ownerAlive && !CCed && (IsButtonHeld(owner, Button.Jump)))
     {
-        if (AbilityCooldown(owner, ButtonValue(Button.Jump)) <= 0.1)
-            SetAbilityCooldown(player, ButtonValue(Button.Jump), 0);
+        // if (AbilityCooldown(owner, ButtonValue(Button.Jump)) <= 0.1)
+        //     SetAbilityCooldown(player, ButtonValue(Button.Jump), 0);
 
         StartHoldingButton(player, Button.Jump);
     }
 
 rule: "[IE] :: Pressed Crouch"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && (IsButtonHeld(owner, Button.Crouch)))
+    if (IsDummyBot() && botAlive && ownerAlive && !CCed && (IsButtonHeld(owner, Button.Crouch)))
     {
-        if (AbilityCooldown(owner, ButtonValue(Button.Crouch)) <= 0.1)
-            SetAbilityCooldown(player, ButtonValue(Button.Crouch), 0);
+        // if (AbilityCooldown(owner, ButtonValue(Button.Crouch)) <= 0.1)
+        //     SetAbilityCooldown(player, ButtonValue(Button.Crouch), 0);
+
         StartHoldingButton(player, Button.Crouch);
     }
 
 rule: "[IE] :: Pressed Melee"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && IsButtonHeld(owner, Button.Melee) && HeroOf() != Hero.Mercy)
+    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Melee) && HeroOf() != Hero.Mercy)
     {
         StartHoldingButton(player, Button.Melee);
     }
 
 rule: "[IE] :: Pressed Reload"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && IsButtonHeld(owner, Button.Reload))
+    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Reload))
     {
         StartHoldingButton(player, Button.Reload);
     }
@@ -483,74 +473,73 @@ disabled rule: "-- release --"{}
 
 rule: "[IE] :: Released Primary"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && HeroOf() != Hero.Mercy && (!IsButtonHeld(owner, Button.PrimaryFire) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && HeroOf() != Hero.Mercy && (!IsButtonHeld(owner, Button.PrimaryFire) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.PrimaryFire);
     }
 
 rule: "[IE] :: Released Secondary"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && (!IsButtonHeld(owner, Button.SecondaryFire) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && (!IsButtonHeld(owner, Button.SecondaryFire) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.SecondaryFire);
-
-        if (HeroOf() != Hero.Soldier76 || HeroOf() != Hero.Lucio)
-            SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), 10000);
+        SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)));
+        // SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), 10000);
     }
 
 rule: "[IE] :: Released Ability 1"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && (!IsButtonHeld(owner, Button.Ability1) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && (!IsButtonHeld(owner, Button.Ability1) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.Ability1);
-
-        if (HeroOf() != Hero.WreckingBall || HeroOf() != Hero.Roadhog)
-            SetAbilityCooldown(player, ButtonValue(Button.Ability1), 10000);
+        SetAbilityCooldown(player, ButtonValue(Button.Ability1), AbilityCooldown(owner, ButtonValue(Button.Ability1)));
+        // SetAbilityCooldown(player, ButtonValue(Button.Ability1), 10000);
     }
 
 rule: "[IE] :: Released Ability 2"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && (!IsButtonHeld(owner, Button.Ability2) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && (!IsButtonHeld(owner, Button.Ability2) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.Ability2);
-
-        if (HeroOf() != Hero.Echo)
-            SetAbilityCooldown(player, ButtonValue(Button.Ability2), 10000);
+        SetAbilityCooldown(player, ButtonValue(Button.Ability2), AbilityCooldown(owner, ButtonValue(Button.Ability2)));
+        // SetAbilityCooldown(player, ButtonValue(Button.Ability2), 10000);
     }
 
 rule: "[IE] :: Released Ultimate"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && (!IsButtonHeld(owner, Button.Ultimate) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && (!IsButtonHeld(owner, Button.Ultimate) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.Ultimate);
     }
 
 rule: "[IE] :: Released Jump"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && (!IsButtonHeld(owner, Button.Jump) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && (!IsButtonHeld(owner, Button.Jump) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.Jump);
-        SetAbilityCooldown(player, ButtonValue(Button.Jump), 10000);
+        SetAbilityCooldown(player, ButtonValue(Button.Jump), AbilityCooldown(owner, ButtonValue(Button.Jump)));
+        // SetAbilityCooldown(player, ButtonValue(Button.Jump), 10000);
     }
 
 rule: "[IE] :: Released Crouch"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && (!IsButtonHeld(owner, Button.Crouch) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && (!IsButtonHeld(owner, Button.Crouch) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.Crouch);
-        SetAbilityCooldown(player, ButtonValue(Button.Crouch), 10000);
+        SetAbilityCooldown(player, ButtonValue(Button.Crouch), AbilityCooldown(owner, ButtonValue(Button.Crouch)));
+        // SetAbilityCooldown(player, ButtonValue(Button.Crouch), 10000);
     }
 
 rule: "[IE] :: Released Melee"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && (!IsButtonHeld(owner, Button.Melee) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && (!IsButtonHeld(owner, Button.Melee) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.Melee);
     }
 
 rule: "[IE] :: Released Reload"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && (!IsButtonHeld(owner, Button.Reload) || IsDead(owner) || CCed || !botAlive))
+    if (IsDummyBot() && (!IsButtonHeld(owner, Button.Reload) || !ownerAlive || CCed || !botAlive))
     {
         StopHoldingButton(player, Button.Reload);
     }
@@ -609,21 +598,14 @@ disabled rule: "---------------- HUD Text ----------------"{}
                 /////////////    HUD TEXT    /////////////
                 /////////////                /////////////
 
-disabled rule: "[HUD] :: Spacing"
-    {
-        CreateHudText(all, null, 
-        " \n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n", 
-        null, Location.Left, -1);
-    }
-
 rule: "[HUD] :: Total Stats"
     Event.OngoingPlayer
     {
         Wait(0.5);
         CreateHudText(player, null, null,
-        <"Stats: Kills: <0> | Deaths: <1> | <2>", totalKills, totalDeaths, 
-        <"Damage Dealt: <0> | Damage Recieved: <1> | <2>", totalDamageDealt, totalDamageRecieved, 
-        <"Healing Dealt: <0> | Healing Recieved: <1>", totalHealDealt, totalHealRecieved>>>, 
+        <"Kills: <0> | Deaths: <1> \r\n<2>", totalKills, totalDeaths, 
+        <"DMG Dealt: <0> | DMG Recieved: <1> \r\n<2>", totalDamageDealt, totalDamageRecieved, 
+        <"Heal Dealt: <0> | Heal Recieved: <1>", totalHealDealt, totalHealRecieved>>>, 
         Location.Left, SlotOf(), Color.White, Color.White, Color.White);
     }
 
@@ -633,7 +615,7 @@ rule: "[HUD] :: Bot Stats"
     {
         Wait(0.5);
 
-        /* bot healthy */
+        /* more than 170/200 */
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsAlive() && 
                     NormalizedHealth() > 0.85),
                     HeroIconString(HeroOf()),
@@ -641,7 +623,7 @@ rule: "[HUD] :: Bot Stats"
                     <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                     Location.Left, SlotOf(), Color.Green, Color.Blue, Color.Green);
 
-        /* bot hurt */
+        /* 170/200 - 120/200 */
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsAlive() && 
                     NormalizedHealth() < 0.85 && NormalizedHealth() > 0.6),
                     HeroIconString(HeroOf()),
@@ -649,7 +631,7 @@ rule: "[HUD] :: Bot Stats"
                     <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                     Location.Left, SlotOf(), Color.Yellow, Color.Blue, Color.Yellow);
 
-        /* bot very hurt */
+        /* 120/200 - 70/200*/
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsAlive() && 
                     NormalizedHealth() < 0.6 && NormalizedHealth() > 0.35),
                     HeroIconString(HeroOf()),
@@ -657,7 +639,7 @@ rule: "[HUD] :: Bot Stats"
                     <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                     Location.Left, SlotOf(), Color.Orange, Color.Blue, Color.Orange);
 
-        /* bot critical */
+        /* less than 70/200 */
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsAlive() && 
                     NormalizedHealth() < 0.35),
                     HeroIconString(HeroOf()),
@@ -665,20 +647,38 @@ rule: "[HUD] :: Bot Stats"
                     <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                     Location.Left, SlotOf(), Color.Red, Color.Blue, Color.Red);
 
-        /* bot dead */
+        /* dead */
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsDead()),
                     HeroIconString(HeroOf()),
                     <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
-                    <"<0> Dead", IconString(Icon.Skull)>,
+                    <"<0> Dead <0>", IconString(Icon.Skull)>,
                     Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
     }
-disabled rule: "---------------- Error Check ----------------"{}
+disabled rule: "---------------- Fail Safes ----------------"{}
 
-                /////////////                   /////////////
-                /////////////    ERROR CHECK    /////////////
-                /////////////                   /////////////
+                /////////////                  /////////////
+                /////////////    FAIL SAFES    /////////////
+                /////////////                  /////////////
 
-rule: "[EC] :: Bot Ult Error Check"
+rule: "[FS] :: Not Enough Bots"
+    Event.OngoingPlayer
+    if (!IsDummyBot() && HasSpawned() && IsAlive() && 
+        (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && EntityExists(ArrayElement()) && IsDummyBot(ArrayElement()))) 
+        < RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement())))) 
+        / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
+        Rounding.Down)))
+    {
+        botCheck += 1;
+        Wait(1);
+
+        if (botCheck > 4)
+            DestroyAllDummyBots();
+
+        LoopIfConditionIsTrue();
+        botCheck = 0;
+    }
+
+rule: "[FS] :: Bot Ult"
     Event.OngoingPlayer
     if (IsDummyBot() && UltimateChargePercent(owner) != 100 && UltimateChargePercent() > 1)
     {
@@ -687,7 +687,7 @@ rule: "[EC] :: Bot Ult Error Check"
         SetUltimateCharge(player, 0);
     }
 
-rule: "[EC] :: CC Error Check"
+rule: "[FS] :: CC"
     Event.OngoingPlayer
     if (CCed)
     {
@@ -695,22 +695,36 @@ rule: "[EC] :: CC Error Check"
         CCed = false;
     }
 
-rule: "[EC] :: Bot Spawn Error Check"
+playervar define fsInvuln;
+rule: "[FS] :: Give Invuln if Owner is Dead"
     Event.OngoingPlayer
-    if (botAlive && IsDead(owner))
+    if (botAlive && !ownerAlive)
     {
-        WaitIfTrue(2);
-        Kill();
+        SetStatus(player, null, Status.PhasedOut);
+        SetInvisible(player, InvisibleTo.All);
+        fsInvuln = true;
     }
 
-rule: "[EC] :: Player Spawn Error Check"
+rule: "[FS] :: Clear Invuln if Owner is Alive"
+    Event.OngoingPlayer
+    if (ownerAlive && fsInvuln)
+    {
+        ClearStatus(player, Status.PhasedOut)
+        SetInvisible(player, InvisibleTo.None);
+        fsInvuln = false;
+    }
+
+rule: "[FS] :: Player Spawn"
     Event.OngoingPlayer
     if (IsDead())
     {
-        WaitIfTrue(18);
+        WaitIfTrue(18.5);
         Resurrect();
-        Kill();
         Wait(0.064);
+        Kill();
+        DisableRespawning();
+        Wait(0.064);
+        EnableRespawning();
         Respawn();
         Loop();
     }
@@ -793,3 +807,12 @@ disabled rule: "[DBG] :: HUD"
         CreateHudText(player, null, null, <"CCed: <0>", CCed>, Location.Right, -1);
         CreateHudText(player, null, null, <"ownerAlive: <0>", ownerAlive>, Location.Right, -1);
      }
+
+disabled rule: "super special kyy rule"
+    Event.OngoingPlayer
+    if (<"<0>", player> == "kyy")
+    {
+        SetAimSpeed(player, RandomReal(10, 200));
+        Wait(1);
+        LoopIfConditionIsTrue();
+    }
