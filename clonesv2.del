@@ -41,7 +41,7 @@ rule: "Init"
         // DisableInspectorRecording();
         DISTANCE = 10;
         playerAmountArray = [5, 4, 3, 2, 1, 0];
-        CreateHudText(all, null, "Created by Fuzsion#11545\r\n                Share Code: JRTHX", null, Location.Right, -1);
+        CreateHudText(all, null, "Created by Fuzsion#11545\r\n                Share Code: KEGSM", null, Location.Right, -1);
         // ServerLoadText();
     }
 
