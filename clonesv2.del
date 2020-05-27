@@ -12,6 +12,7 @@ globalvar define playerAmountArray; // amount of players and bots (from 0 - 5)
 // all
 playervar define CCed; // if cc status is applied to a player
 playervar define playerSlot; // get slot of player to create bots for
+playervar define genjiAO;
 
 // stats
 playervar define totalKills; // total amount of kills owner and bots have
@@ -20,6 +21,7 @@ playervar define totalDamageDealt; // total amount of damage owner and bots have
 playervar define totalDamageRecieved; // total amount of damage owner and bots have taken
 playervar define totalHealDealt; // total amount of healing owner and bots have done
 playervar define totalHealRecieved; // total amount of healing owner and bots have recieved
+
 playervar define killAmount; // amount of kills a bot has
 playervar define deathAmount; // amount of deaths a bot has
 playervar define damageDealtAmount; // amount of damage a bot has done
@@ -36,19 +38,25 @@ playervar define facingDir; // facing direction of the closestPlayer
 playervar define botCheck; // check if player has enough bots, if not, destroy all bots in the lobby to refresh
 playervar define botAlive; // whether a bot is alive (self explanitory)
 
-rule: "Init"
+rule: "Initial Global"
     {
-        // DisableInspectorRecording();
-        DISTANCE = 10;
+        DISTANCE = 12;
         playerAmountArray = [5, 4, 3, 2, 1, 0];
-        CreateHudText(all, null, "Created by Fuzsion#11545\r\n                Share Code: KEGSM", null, Location.Right, -1);
+        DisableInspectorRecording();
+        CreateHudText(all, null, "Created by Fuzsion#11545\r\n              Share Code: KEGSM", null, Location.Right, -1);
         // ServerLoadText();
     }
 
-rule: "Player Join Init"
+rule: "Initial Player Join"
     Event.OnPlayerJoin
     {
         playerSlot = EmptyArray();
+        totalKills = "None"
+        totalDeaths = "None"
+        totalDamageDealt = "None"
+        totalDamageRecieved = "None"
+        totalHealDealt = "None"
+        totalHealRecieved = "None"
     }
 
 rule: "[All] :: CCed"
@@ -76,12 +84,11 @@ rule: "[All] :: Not CCed"
     }
 
 disabled rule: "---------------- Ability Overrides ----------------"{}
+                /////////////                         /////////////
+                /////////////    ABILITY OVERRIDES    /////////////
+                /////////////                         /////////////
 
-playervar define genjiAO;
-// bug within AbilityCooldown() ignores the owners condition for sombra, 
-// disabled ability2 for bots because the bots will just teleport to you 
-// after a certain distance anyways
-rule: "[AO] :: Sombra Ability Override"
+rule: "[AO] :: Sombra"
     Event.OngoingPlayer
     Player.Sombra
     if (IsDummyBot())
@@ -89,7 +96,7 @@ rule: "[AO] :: Sombra Ability Override"
         DisableAbility2();
     }
 
-rule: "[AO] :: Mercy Ability Override"
+rule: "[AO] :: Mercy"
     Event.OngoingPlayer
     Player.Mercy
     if (IsDummyBot())
@@ -97,8 +104,7 @@ rule: "[AO] :: Mercy Ability Override"
         DisableAbility1();
     }
 
-
-rule: "[AO] :: Genji Damage Mod On"
+rule: "[AO] :: Genji On"
     Event.OngoingPlayer
     Player.Genji
     if (IsUsingAbility1())
@@ -107,7 +113,7 @@ rule: "[AO] :: Genji Damage Mod On"
         genjiAO = LastDamageModificationID();
     }
 
-rule: "[AO] :: Genji Damage Mod Off"
+rule: "[AO] :: Genji Off"
     Event.OngoingPlayer
     Player.Genji
     if (!IsUsingAbility1())
@@ -124,15 +130,16 @@ disabled rule: "---------------- Owner Rules ----------------"{}
 rule: "[Owner] :: Create Bots"
     Event.OngoingPlayer
     if (!IsDummyBot() && HasSpawned() && IsAlive() && 
-        (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && 
-        EntityExists(ArrayElement()) && IsDummyBot(ArrayElement()) && true)) 
-        < RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && true))) 
-        / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
-        Rounding.Down)))
+       (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && 
+                                                    EntityExists(ArrayElement()) && IsDummyBot(ArrayElement()))) 
+                                                    < RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement())))) 
+                                                    / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
+                                                    Rounding.Down)))
     {
         owner = player;
+
         playerSlot = FirstOf(FilteredArray(playerAmountArray, 
-                     !EntityExists(PlayersInSlot(ArrayElement(), TeamOf())) || (IsDummyBot(ArrayElement()) && !EntityExists(ArrayElement().owner))));
+                            !EntityExists(PlayersInSlot(ArrayElement(), TeamOf())) || (IsDummyBot(ArrayElement()) && !EntityExists(ArrayElement().owner))));
 
         CreateDummyBot(HeroOf(), TeamOf(), playerSlot, PositionOf() + WorldVectorOf(Vector(0, 0, -0.6), player), FacingDirectionOf());
         PlayersInSlot(playerSlot, TeamOf()).owner = player;
@@ -143,11 +150,11 @@ rule: "[Owner] :: Create Bots"
 rule: "[Owner] :: Destroy Bots"
     Event.OngoingPlayer
     if (!IsDummyBot() && 
-        (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && EntityExists(ArrayElement()) && 
-        IsDummyBot(ArrayElement()) && true)) 
-        > RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))))
-        / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
-        Rounding.Down)))
+       (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && 
+                                                    EntityExists(ArrayElement()) && IsDummyBot(ArrayElement()))) 
+                                                    > RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))))
+                                                    / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
+                                                    Rounding.Down)))
     {
         owner = player;
 
@@ -155,7 +162,7 @@ rule: "[Owner] :: Destroy Bots"
         LastOf(FilteredArray(playerAmountArray, IsDummyBot(PlayersInSlot(ArrayElement(), TeamOf())) && 
         PlayersInSlot(ArrayElement(), TeamOf()).owner == player && 
         EntityExists(PlayersInSlot(ArrayElement(), TeamOf())))));
-    
+
         Wait(0.032);
         LoopIfConditionIsTrue();
     }
@@ -196,7 +203,7 @@ rule: "[Owner] :: Dead"
         ownerAlive = false;
     }
 
-rule: "[Owner] :: Owner Dead, Prevent Bot Spawning"
+rule: "[Owner] :: Owner Dead; Prevent Bot Spawning"
     Event.OngoingPlayer
     if (!ownerAlive)
     {
@@ -204,7 +211,7 @@ rule: "[Owner] :: Owner Dead, Prevent Bot Spawning"
         DisableRespawning(FilteredArray(AllPlayers(TeamOf()), IsDummyBot(ArrayElement()) && IsDead(ArrayElement()) && ArrayElement().owner == player));
     }
 
-rule: "[Owner] :: Owner Alive, Re-enable Bot Spawning"
+rule: "[Owner] :: Owner Alive; Re-enable Bot Spawning"
     Event.OngoingPlayer
     if (ownerAlive)
     {
@@ -213,26 +220,68 @@ rule: "[Owner] :: Owner Alive, Re-enable Bot Spawning"
         EnableRespawning(FilteredArray(AllPlayers(TeamOf()), IsDummyBot(ArrayElement()) && IsDead(ArrayElement()) && ArrayElement().owner == player));
     }
 
-rule: "[Owner] :: Stun Bots if Owner is CCed"
+rule: "[Owner] :: Stun Bots if Owner is Stunned"
     Event.OngoingPlayer
-    if (HasStatus(owner, Status.Asleep) || 
-    HasStatus(owner, Status.Frozen) || 
-    HasStatus(owner, Status.KnockedDown) || 
-    HasStatus(owner, Status.Stunned))
+    if (HasStatus(owner, Status.Stunned))
     {
         Wait(0.080);
         SetStatus(ownerBots, null, Status.Stunned, 6);
     }
 
-rule: "[Owner] :: Clear Stun if Owner is no longer CCed"
+rule: "[Owner] :: Clear Stun if Owner is no longer Stunned"
     Event.OngoingPlayer
-    if (!HasStatus(owner, Status.Asleep) && 
-    !HasStatus(owner, Status.Frozen) && 
-    !HasStatus(owner, Status.KnockedDown) && 
-    !HasStatus(owner, Status.Stunned))
+    if (!HasStatus(owner, Status.Stunned))
     {
         Wait(0.080);
         ClearStatus(player, Status.Stunned);
+    }
+
+rule: "[Owner] :: Sleep Bots if Owner is asleep"
+    Event.OngoingPlayer
+    if (HasStatus(owner, Status.Asleep))
+    {
+        Wait(0.080);
+        SetStatus(ownerBots, null, Status.Asleep, 5.5);
+    }
+
+rule: "[Owner] :: Clear Sleep if Owner is no longer asleep"
+    Event.OngoingPlayer
+    if (!HasStatus(owner, Status.Asleep))
+    {
+        Wait(0.080);
+        ClearStatus(player, Status.Asleep);
+    }
+
+rule: "[Owner] :: Freeze Bots if Owner is frozen"
+    Event.OngoingPlayer
+    if (HasStatus(owner, Status.Frozen))
+    {
+        Wait(0.080);
+        SetStatus(ownerBots, null, Status.Frozen, 7.35);
+    }
+
+rule: "[Owner] :: Clear Freeze if Owner is no longer frozen"
+    Event.OngoingPlayer
+    if (!HasStatus(owner, Status.Frozen))
+    {
+        Wait(0.080);
+        ClearStatus(player, Status.Frozen);
+    }
+
+rule: "[Owner] :: Knockdown Bots if Owner is knocked down"
+    Event.OngoingPlayer
+    if (HasStatus(owner, Status.KnockedDown))
+    {
+        Wait(0.080);
+        SetStatus(ownerBots, null, Status.KnockedDown, 3);
+    }
+
+rule: "[Owner] :: Clear Knockdown if Owner is no longer knocked down"
+    Event.OngoingPlayer
+    if (!HasStatus(owner, Status.KnockedDown))
+    {
+        Wait(0.080);
+        ClearStatus(player, Status.KnockedDown);
     }
 
 rule: "[Owner] :: Hack Bots if Owner is Hacked"
@@ -240,7 +289,7 @@ rule: "[Owner] :: Hack Bots if Owner is Hacked"
     if (HasStatus(owner, Status.Hacked))
     {
         Wait(0.080);
-        SetStatus(ownerBots, null, Status.Hacked, 6);
+        SetStatus(ownerBots, null, Status.Hacked, 5.5);
     }
 
 rule: "[Owner] :: Clear Hack if Owner is no longer Hacked"
@@ -351,10 +400,11 @@ rule: "[IE] :: Stop Aim"
         StopFacing();
     }
 
-rule: "[IE] :: CD Init"
+rule: "[IE] :: Set CD on Bot Spawn"
     Event.OngoingPlayer
     if (botAlive)
     {
+        SetAbilityCooldown(player, ButtonValue(Button.PrimaryFire), AbilityCooldown(owner, ButtonValue(Button.PrimaryFire)));
         SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)));
         SetAbilityCooldown(player, ButtonValue(Button.Ability1), AbilityCooldown(owner, ButtonValue(Button.Ability1)));
         SetAbilityCooldown(player, ButtonValue(Button.Ability2), AbilityCooldown(owner, ButtonValue(Button.Ability2)));
@@ -362,8 +412,14 @@ rule: "[IE] :: CD Init"
         SetAbilityCooldown(player, ButtonValue(Button.Crouch), AbilityCooldown(owner, ButtonValue(Button.Crouch)));
     }
 
-                        // button pressed/released //
-disabled rule: "-- press --"{}
+rule: "[IE] :: Hello"
+    Event.OngoingPlayer
+    if (IsDummyBot() && IsCommunicating(owner, Communication.Hello))
+    {
+        Communicate(player, Communication.Hello);
+    }
+
+                        // button pressed //
 rule: "[IE] :: Pressed Primary"
     Event.OngoingPlayer
     if (IsDummyBot() && botAlive && ownerAlive && !CCed && IsButtonHeld(owner, Button.PrimaryFire) && IsNotHero(Hero.Mercy))
@@ -428,15 +484,6 @@ rule: "[IE] :: Pressed Reload"
     {
         StartHoldingButton(player, Button.Reload);
     }
-
-rule: "[IE] :: Hello"
-    Event.OngoingPlayer
-    if (IsDummyBot() && IsCommunicating(owner, Communication.Hello))
-    {
-        Communicate(player, Communication.Hello);
-    }
-
-disabled rule: "-- release --"{}
 
                            // release //
 
@@ -569,7 +616,7 @@ rule: "[HUD] :: Total Stats"
         CreateHudText(player, null, null,
         <"Kills: <0> | Deaths: <1> \r\n<2>", totalKills, totalDeaths, 
         <"DMG Dealt: <0> | DMG Recieved: <1> \r\n<2>", totalDamageDealt, totalDamageRecieved, 
-        <"Heal Dealt: <0> | Heal Recieved: <1>", totalHealDealt, totalHealRecieved>>>, 
+        <"Heal Dealt: <0> | Heal Recieved: <1> \r\n", totalHealDealt, totalHealRecieved>>>, 
         Location.Left, SlotOf(), Color.White, Color.White, Color.White);
     }
 
@@ -585,7 +632,7 @@ rule: "[HUD] :: Bot Stats"
                     HeroIconString(HeroOf()),
                     <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                     <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
-                    Location.Left, SlotOf(), Color.Green, Color.Blue, Color.Green);
+                    Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
 
         /* 170/200 - 120/200 */
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsAlive() && 
@@ -593,7 +640,7 @@ rule: "[HUD] :: Bot Stats"
                     HeroIconString(HeroOf()),
                     <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                     <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
-                    Location.Left, SlotOf(), Color.Yellow, Color.Blue, Color.Yellow);
+                    Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
 
         /* 120/200 - 70/200*/
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsAlive() && 
@@ -601,7 +648,7 @@ rule: "[HUD] :: Bot Stats"
                     HeroIconString(HeroOf()),
                     <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                     <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
-                    Location.Left, SlotOf(), Color.Orange, Color.Blue, Color.Orange);
+                    Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
 
         /* less than 70/200 */
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsAlive() && 
@@ -609,7 +656,7 @@ rule: "[HUD] :: Bot Stats"
                     HeroIconString(HeroOf()),
                     <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                     <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
-                    Location.Left, SlotOf(), Color.Red, Color.Blue, Color.Red);
+                    Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
 
         /* dead */
         CreateHudText(FilteredArray(owner, EntityExists(player) && IsDead()),
@@ -618,6 +665,7 @@ rule: "[HUD] :: Bot Stats"
                     <"<0> Dead <0>", IconString(Icon.Skull)>,
                     Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
     }
+
 disabled rule: "---------------- Fail Safes ----------------"{}
 
                 /////////////                  /////////////
@@ -634,10 +682,9 @@ rule: "[FS] :: Not Enough Bots"
     {
         botCheck += 1;
         Wait(1);
-
-        if (botCheck > 4)
-            DestroyAllDummyBots();
-
+        SkipIf(botCheck < 4, 2);
+        DestroyAllDummyBots();
+        Skip(1);
         LoopIfConditionIsTrue();
         botCheck = 0;
     }
@@ -694,11 +741,11 @@ disabled rule: "[DBG] :: CC Owner Bots"
         SetStatus(ownerBots, null, Status.Stunned, 5);
     }
 
-disabled rule: "[DBG] :: CC Owner"
+disabled rule: "[DBG] :: CC"
     Event.OngoingPlayer
     if (IsInteractHeld())
     {
-        SetStatus(owner, null, Status.Stunned, 2);
+        SetStatus(player, null, Status.Stunned, 2);
     }
 
 disabled rule: "[DBG] :: Kill All Bots"
@@ -715,11 +762,11 @@ disabled rule: "[DBG] :: Kill Owner Bots"
        Kill(ownerBots);
     }
 
-disabled rule: "[DBG] :: Kill Owner"
+disabled rule: "[DBG] :: Kill"
     Event.OngoingPlayer
     if (IsInteractHeld())
     {
-       Kill(owner);
+       Kill();
     }
 
 disabled rule: "[DBG] :: Kill All"
