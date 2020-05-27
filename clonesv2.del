@@ -105,7 +105,7 @@ rule: "Initial Global"
     {
         DISTANCE = 12;
         playerAmountArray = [5, 4, 3, 2, 1, 0];
-        DisableInspectorRecording();
+        // DisableInspectorRecording();
         CreateHudText(all, null, "Created by Fuzsion#11545\r\n              Share Code: KEGSM", null, Location.Right, -1);
         // ServerLoadText();
     }
@@ -260,8 +260,8 @@ rule: "[Owner] :: Alive"
     }
 
 rule: "[Owner] :: Dead"
-    Event.OngoingPlayer
-    if (IsDead(owner) && !isRezzing)
+    Event.OnDeath
+    if (!isRezzing)
     {
         ownerAlive = false;
     }
@@ -441,7 +441,7 @@ disabled rule: "---------------- Input Emulation (IE) ----------------"{}
 
 rule: "[IE] :: Aim & Movement"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && !CCed && HasSpawned())
+    if (botAlive && !CCed && HasSpawned())
     {
         StartThrottleInDirection(player, WorldVectorOf(ThrottleOf(owner), owner, LocalVector.Rotation), 0 + (ThrottleOf(owner) != Vector(0,0,0)));
         StartFacing(player, DirectionTowards(EyePosition(), ownerAim), 10000);
@@ -450,7 +450,7 @@ rule: "[IE] :: Aim & Movement"
 rule: "[IE] :: Mercy Aim"
     Event.OngoingPlayer
     Player.Mercy
-    if (IsDummyBot() && botAlive && !CCed && HasSpawned())
+    if (botAlive && !CCed && HasSpawned())
     {
         StartFacing(player, DirectionTowards(EyePosition(), EyePosition(owner)), 100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
         StartHoldingButton(player, Button.PrimaryFire);
@@ -458,7 +458,7 @@ rule: "[IE] :: Mercy Aim"
 
 rule: "[IE] :: Stop Aim"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && CCed)
+    if (botAlive && CCed)
     {
         StopFacing();
     }
@@ -485,35 +485,35 @@ rule: "[IE] :: Hello"
                         // button pressed //
 rule: "[IE] :: Pressed Primary"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive && !CCed && IsButtonHeld(owner, Button.PrimaryFire) && !IsHero(Hero.Mercy))
+    if (IsButtonHeld(owner, Button.PrimaryFire) && botAlive && ownerAlive && !CCed && !IsHero(Hero.Mercy))
     {
         StartHoldingButton(player, Button.PrimaryFire);
     }
 
 rule: "[IE] :: Pressed Secondary"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.SecondaryFire))
+    if (IsButtonHeld(owner, Button.SecondaryFire) && botAlive && ownerAlive && !CCed)
     {
         StartHoldingButton(player, Button.SecondaryFire);
     }
 
 rule: "[IE] :: Pressed Ability 1"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Ability1))
+    if (IsButtonHeld(owner, Button.Ability1) && botAlive && ownerAlive && !CCed)
     {
         StartHoldingButton(player, Button.Ability1);
     }
 
 rule: "[IE] :: Pressed Ability 2"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Ability2))
+    if (IsButtonHeld(owner, Button.Ability2) && botAlive && ownerAlive && !CCed)
     {
         StartHoldingButton(player, Button.Ability2);
     }
 
 rule: "[IE] :: Pressed Ultimate"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Ultimate))
+    if (IsButtonHeld(owner, Button.Ultimate) && botAlive && ownerAlive && !CCed)
     {
         StartHoldingButton(player, Button.Ultimate);
         Wait(0.08);
@@ -522,28 +522,28 @@ rule: "[IE] :: Pressed Ultimate"
 
 rule: "[IE] :: Pressed Jump"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive && !CCed && (IsButtonHeld(owner, Button.Jump)))
+    if (IsButtonHeld(owner, Button.Jump) && botAlive && ownerAlive && !CCed)
     {
         StartHoldingButton(player, Button.Jump);
     }
 
 rule: "[IE] :: Pressed Crouch"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive && !CCed && (IsButtonHeld(owner, Button.Crouch)))
+    if (IsButtonHeld(owner, Button.Crouch) && botAlive && ownerAlive && !CCed)
     {
         StartHoldingButton(player, Button.Crouch);
     }
 
 rule: "[IE] :: Pressed Melee"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Melee) && !IsHero(Hero.Mercy))
+    if (IsButtonHeld(owner, Button.Melee) && botAlive && ownerAlive && !CCed && !IsHero(Hero.Mercy))
     {
         StartHoldingButton(player, Button.Melee);
     }
 
 rule: "[IE] :: Pressed Reload"
     Event.OngoingPlayer
-    if (IsDummyBot() && botAlive && ownerAlive &&  !CCed && IsButtonHeld(owner, Button.Reload))
+    if (IsButtonHeld(owner, Button.Reload) && botAlive && ownerAlive && !CCed)
     {
         StartHoldingButton(player, Button.Reload);
     }
@@ -627,16 +627,16 @@ disabled rule: "---------------- Stats ----------------"{}
 rule: "[Stats] :: Update Kills"
     Event.OnFinalBlow
     {
-        killAmount += 1;
-        owner.totalKills += 1;
+        killAmount++;
+        owner.totalKills++;
     }
 
 rule: "[Stats] :: Update Deaths"
     Event.OnDeath
     if (!isRezzing)
     {
-        deathAmount += 1;
-        owner.totalDeaths += 1;
+        deathAmount++;
+        owner.totalDeaths++;
     }
 
 rule: "[Stats] :: Update Damage Dealt"
