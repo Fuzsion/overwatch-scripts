@@ -42,7 +42,6 @@ define RestartIfTrue(define time):  Wait(time, WaitBehavior.RestartWhenTrue); //
 define EnemyPlayers():              AllPlayers(OppositeTeamOf(TeamOf()));
 define AllyPlayers():               AllPlayers(TeamOf());
 define IsHero(ref define hero):     HeroOf() == hero;
-define IsNotHero(ref define hero):  HeroOf() != hero;
 
 // HUD Text
 define CreditText():                CreateHudText(all, null, "Created by Fuzsion#11545", null, Location.Right, -1);
