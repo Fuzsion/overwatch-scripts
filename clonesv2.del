@@ -699,8 +699,7 @@ rule: "[HUD] :: Bot Stats"
         Wait(0.5);
 
         /* more than 170/200 */
-        CreateHudText(FilteredArray(owner, 
-                      NormalizedHealth() >= 0.85),
+        CreateHudText(NormalizedHealth() >= 0.85 ? owner : null,
                       HeroIconString(HeroOf()),
                       <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                       <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
@@ -731,8 +730,7 @@ rule: "[HUD] :: Bot Stats"
                       Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
 
         /* dead */
-        CreateHudText(FilteredArray(owner, 
-                      IsDead()),
+        CreateHudText(IsDead() ? owner : null,
                       HeroIconString(HeroOf()),
                       <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                       <"<0> Dead <0>", IconString(Icon.Skull)>,
