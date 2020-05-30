@@ -37,7 +37,6 @@ define DisableCrouch():             DisallowButton(player, Button.Crouch);
 define DisableMelee():              DisallowButton(player, Button.Melee);
 
 define WaitIfTrue(define time):     Wait(time, WaitBehavior.AbortWhenFalse); // Aborts the rule if the condition goes false while waiting
-define RestartIfTrue(define time):  Wait(time, WaitBehavior.RestartWhenTrue); // Restarts the rule if the condition goes true while waiting
 
 define EnemyPlayers():              AllPlayers(OppositeTeamOf(TeamOf()));
 define AllyPlayers():               AllPlayers(TeamOf());
@@ -46,7 +45,7 @@ define IsHero(ref define hero):     HeroOf() == hero;
 // HUD Text
 define CreditText():                CreateHudText(all, null, "Created by Fuzsion#11545", null, Location.Right, -1);
 
-define ServerLoadText():            CreateHudText(host, null, <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", 
+define ServerLoadText():            CreateHudText(all, null, <"Server Load: (<0>% Cur | <1>% Avg | <2>% Peak)", 
                                                             RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest), 
                                                             RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), 
                                                             RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, 
