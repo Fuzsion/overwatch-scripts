@@ -29,18 +29,22 @@ playervar define closestPlayer; // closest bot to owner upon death
 playervar define positionOf; // position of the closestPlayer
 playervar define facingDir; // facing direction of the closestPlayer
 playervar define healthOf; // health of the closestPlayer
+playervar define healOT; // heal over time for the owner
+playervar define timer; // time out of combat
+
 
 // bot
 playervar define botAlive; // whether a bot is alive (self explanitory)
 
-// misc
+// blacklist
 playervar define name;
 
 rule: "Initial Global"
     {
         DISTANCE = 12;
         playerAmount = [5, 4, 3, 2, 1, 0];
-        DisableInspectorRecording();
+        // DisableInspectorRecording();
+        DisableAnnouncer();
         CreateHudText(all, null, "Created by Fuzsion#11545\r\n             Share Code: WRYEPㅤ", null, Location.Right, -1);
         // ServerLoadText();
     }
@@ -67,31 +71,27 @@ rule: "Info Text"
         textTimer = 60;
         ChaseVariableOverTime(textTimer, 0, 60, TimeChaseReevaluation.DestinationAndDuration);
         infoText = EmptyArray();
-        CreateHudText(player, null, null, <"ㅤ\r\n<0> Notice <0>", IconString(Icon.Warning)>, Location.Top, 1, Color.Yellow, Color.Yellow, Color.Yellow);
+        CreateHudText(player, null, null, <"ㅤ\r\n<0> Notice <0>\r\n", IconString(Icon.Warning)>, Location.Top, 1, Color.Yellow, Color.Yellow, Color.Yellow);
         infoText[0] = LastTextID();
-        CreateHudText(player, null, "This is an in-development *complete rewrite* inspired by the original Clone Wars mode.", null, Location.Top, 2);
+        CreateHudText(player, null, "This is an in-development !complete rewrite!. meaning it is completely independant from the mode this is based on.", null, Location.Top, 2);
         infoText[1] = LastTextID();
-        CreateHudText(player, null, "I have no association with the original Clone Wars gamemode or creator. This is just a pet project of mine.", null, Location.Top, 3);
+        CreateHudText(player, null, "I have no association with the gamemode, code of said mode, or creator. This is just a pet project of mine.", null, Location.Top, 3);
         infoText[2] = LastTextID();
         MinWait();
-        CreateHudText(player, null, "There will definitely be bugs and they will be fixed as soon as I am made aware of them.", null, Location.Top, 4);
+        CreateHudText(player, null, "Nothing is from said mode. There will be bugs and they will be fixed as soon as I'm made aware of them.", null, Location.Top, 4);
         infoText[3] = LastTextID();
-        CreateHudText(player, null, "Please tell me about any issues or suggestions you have, either by adding my Btag in the top right or telling me in-game!", null, Location.Top, 5);
+        CreateHudText(player, null, "Please tell me about any issues or suggestions you have, either by adding my Btag in the top right or telling me in-game.", null, Location.Top, 5);
         infoText[4] = LastTextID();
         CreateHudText(player, null, null, <"This message will disappear in <0> s", RoundToInteger(textTimer, Rounding.Up)>, Location.Top, 6);
         infoText[5] = LastTextID();
 
         Wait(60);
         DestroyHudText(infoText[0]);
-        MinWait();
         DestroyHudText(infoText[1]);
-        MinWait();
         DestroyHudText(infoText[2]);
         MinWait();
         DestroyHudText(infoText[3]);
-        MinWait();
         DestroyHudText(infoText[4]);
-        MinWait();
         DestroyHudText(infoText[5]);
         StopChasingVariable(textTimer);
         infoText = EmptyArray();
@@ -186,17 +186,18 @@ rule: "[Owner] :: Create Bots"
     Event.OngoingPlayer
     if (!IsDummyBot() && HasSpawned() && IsAlive() && 
        (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && IsDummyBot(ArrayElement()))) 
-                                                    < RoundToInteger(6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement())))
+                                                    < RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()))))
                                                     / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
                                                     Rounding.Down)))
     {
         owner = player;
+
         playerSlot = FirstOf(FilteredArray(playerAmount, 
                             !EntityExists(PlayersInSlot(ArrayElement(), TeamOf())) || (IsDummyBot(ArrayElement()) && !EntityExists(ArrayElement().owner))));
 
         CreateDummyBot(HeroOf(), TeamOf(), playerSlot, PositionOf() + WorldVectorOf(Vector(0, 0, -0.5), player), FacingDirectionOf());
         PlayersInSlot(playerSlot, TeamOf()).owner = player;
-        Wait(0.032);
+        Wait(0.048);
         LoopIfConditionIsTrue();
     }
 
@@ -204,17 +205,18 @@ rule: "[Owner] :: Destroy Bots"
     Event.OngoingPlayer
     if (!IsDummyBot() && 
        (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && IsDummyBot(ArrayElement()))) 
-                                                    > RoundToInteger(6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement())))
+                                                    > RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))))
                                                     / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
                                                     Rounding.Down)))
     {
         owner = player;
+
         DestroyDummyBot(TeamOf(), 
         LastOf(FilteredArray(playerAmount, IsDummyBot(PlayersInSlot(ArrayElement(), TeamOf())) && 
         PlayersInSlot(ArrayElement(), TeamOf()).owner == player && 
         EntityExists(PlayersInSlot(ArrayElement(), TeamOf())))));
 
-        Wait(0.032);
+        Wait(0.048);
         LoopIfConditionIsTrue();
     }
 
@@ -230,23 +232,34 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         facingDir = FacingDirectionOf(closestPlayer);
         healthOf = Health(closestPlayer)
         SetFacing(closestPlayer, Facing(), Relative.ToWorld);
-        Wait(0.080);
         Kill(closestPlayer);
         Teleport(closestPlayer, PositionOf());
         Teleport(player, positionOf);
         SetFacing(player, facingDir, Relative.ToWorld);
         Resurrect();
-        Wait(0.032);
+        MinWait();
         CancelPrimaryAction(bots);
         Damage(player, null, MaxHealth() - healthOf);
         isRezzing = false;
     }
 
-rule: "[Owner] :: Assign"
-    Event.OnPlayerJoin
+rule: "[Owner] :: In Combat"
+    Event.OnDamageTaken
     if (!IsDummyBot())
     {
-        owner = player;
+        timer = 3
+        ChaseVariableAtRate(timer, 0, 1, RateChaseReevaluation.DestinationAndRate);
+        StopHealOverTime(healOT);
+    }
+
+rule: "[Owner] :: Not In Combat"
+    Event.OngoingPlayer
+    if (!IsDummyBot() && timer == 0)
+    {
+        StopChasingVariable(timer);
+        timer = 0
+        StartHealOverTime(player, null, 10000, 15);
+        healOT = LastHealOverTime();
     }
 
 rule: "[Owner] :: Alive"
@@ -363,7 +376,7 @@ disabled rule: "---------------- Bot Rules ----------------"{}
                 /////////////                 /////////////
                 /////////////    BOT RULES    /////////////
                 /////////////                 /////////////
-playervar define allowBotCC;
+
 rule: "[Bot] :: Alive"
     Event.OngoingPlayer
     if (IsDummyBot() && IsAlive())
@@ -375,7 +388,6 @@ rule: "[Bot] :: Alive"
         SetAbilityCooldown(player, ButtonValue(Button.Ability2), AbilityCooldown(owner, ButtonValue(Button.Ability2)));
         SetAbilityCooldown(player, ButtonValue(Button.Jump), AbilityCooldown(owner, ButtonValue(Button.Jump)));
         SetAbilityCooldown(player, ButtonValue(Button.Crouch), AbilityCooldown(owner, ButtonValue(Button.Crouch)));
-
         botAlive = true;
     }
 
@@ -391,6 +403,13 @@ rule: "[Bot] :: Dead"
         botAlive = false;
     }
 
+rule: "[Bot] :: Respawn Timer"
+    Event.OngoingPlayer
+    if (IsDummyBot())
+    {
+        SetRespawnMaxTime(player, 15)
+    }
+
 rule: "[Bot] :: Incorrect Hero"
     Event.OngoingPlayer
     if (IsDummyBot() && !(EntityExists(owner) && HeroOf() == HeroOf(owner) && TeamOf() == TeamOf(owner)))
@@ -403,9 +422,10 @@ rule: "[Bot] :: Enable Ult"
     Event.OngoingPlayer
     if (UltimateChargePercent(owner) == 100 && botAlive)
     {
-        WaitIfTrue(0.080);
         SetUltimateAbilityEnabled(player, true);
         SetUltimateCharge(player, 100);
+        Wait(0.08);
+        LoopIf(UltimateChargePercent(player) != 100);
     }
 
 rule: "[Bot] :: Disable ult"
@@ -513,8 +533,6 @@ rule: "[IE] :: Pressed Ultimate"
     if (!IsDummyBot() && IsButtonHeld(player, Button.Ultimate) && IsAlive() && !CCed)
     {
         StartHoldingButton(livingBots, Button.Ultimate);
-        Wait(0.08);
-        LoopIf(IsButtonHeld(player, Button.Ultimate));
     }
 
 rule: "[IE] :: Pressed Jump"
@@ -625,20 +643,20 @@ rule: "[IE] :: Released Reload"
         StopHoldingButton(bots, Button.Reload);
     }
 
-disabled rule: "---------------- Stats ----------------"{}
+disabled rule: "---------------- HUD Text ----------------"{}
 
-                /////////////             /////////////
-                /////////////    STATS    /////////////
-                /////////////             /////////////
+                /////////////                /////////////
+                /////////////    HUD TEXT    /////////////
+                /////////////                /////////////
 
-rule: "[Stats] :: Update Kills"
+rule: "[HUD] :: Update Kills"
     Event.OnFinalBlow
     {
         killAmount++;
         (owner == null ? player : owner).totalKills++;
     }
 
-rule: "[Stats] :: Update Deaths"
+rule: "[HUD] :: Update Deaths"
     Event.OnDeath
     if (!isRezzing)
     {
@@ -646,7 +664,7 @@ rule: "[Stats] :: Update Deaths"
         (owner == null ? player : owner).totalDeaths++;
     }
 
-rule: "[Stats] :: Update Damage Dealt"
+rule: "[HUD] :: Update Damage Dealt"
     Event.OnDamageDealt
     if (Victim() != player)
     {
@@ -654,32 +672,26 @@ rule: "[Stats] :: Update Damage Dealt"
         (owner == null ? player : owner).totalDamageDealt += RoundToInteger(EventDamage(), Rounding.Nearest);
     }
 
-rule: "[Stats] :: Update Damage Recieved"
+rule: "[HUD] :: Update Damage Recieved"
     Event.OnDamageTaken
     if (Attacker() != player)
     {
         (owner == null ? player : owner).totalDamageRecieved += RoundToInteger(EventDamage(), Rounding.Nearest);
     }
 
-rule: "[Stats] :: Update Heal Dealt"
+rule: "[HUD] :: Update Heal Dealt"
     Event.OnHealingDealt
     if (Healee() != player)
     {
         (owner == null ? player : owner).totalHealDealt += RoundToInteger(EventHealing(), Rounding.Nearest);
     }
 
-rule: "[Stats] :: Update Heal Recieved"
+rule: "[HUD] :: Update Heal Recieved"
     Event.OnHealingTaken
     if (Healer() != player)
     {
         (owner == null ? player : owner).totalHealRecieved += RoundToInteger(EventHealing(), Rounding.Nearest);
     }
-
-disabled rule: "---------------- HUD Text ----------------"{}
-
-                /////////////                /////////////
-                /////////////    HUD TEXT    /////////////
-                /////////////                /////////////
 
 rule: "[HUD] :: Total Stats"
     Event.OngoingPlayer
@@ -745,13 +757,13 @@ disabled rule: "---------------- Fail Safes (FS) ----------------"{}
                 /////////////                      /////////////
 
 // shits fucked yo
-// @todo: abort rule if someone on team hasnt selected hero
+// @todo: abort rule if someone hasnt selected a hero
 
 // rule: "[FS] :: Not Enough Bots"
 //     Event.OngoingPlayer
-//     if (!IsDummyBot() && HasSpawned() && IsAlive() && 
+//     if (!IsDummyBot() && HasSpawned() && IsAlive() &&
 //        (CountOf(FilteredArray(AllPlayers(TeamOf()), ArrayElement().owner == player && IsDummyBot(ArrayElement()))) 
-//                                                     < RoundToInteger(6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement())))
+//                                                     < RoundToInteger((6 - CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))))
 //                                                     / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(ArrayElement()) && HasSpawned(ArrayElement()))), 
 //                                                     Rounding.Down)))
 //     {
@@ -762,7 +774,7 @@ disabled rule: "---------------- Fail Safes (FS) ----------------"{}
 
 rule: "[FS] :: Bot Ult Charge"
     Event.OngoingPlayer
-    if (IsDummyBot() && UltimateChargePercent(owner) != 100 && UltimateChargePercent() > 1)
+    if (IsDummyBot() && UltimateChargePercent(owner) != 100 && UltimateChargePercent() > 0)
     {
         WaitIfTrue(3);
         SetUltimateAbilityEnabled(player, false);
@@ -847,31 +859,28 @@ disabled rule: "[DBG] :: Kill All"
        Kill(all);
     }
 
-disabled rule: "[DBG] :: HUD"
+rule: "[DBG] :: Damage"
+    Event.OngoingPlayer
+    if (IsInteractHeld())
+    {
+       Damage(player, player, 10);
+    }
+
+rule: "[DBG] :: HUD"
     Event.OnPlayerJoin
-    if (!IsDummyBot())
+    if (player == host && !IsDummyBot())
     {
         MinWait();
-        CreateHudText(player, null, null, <"PrimaryFire: <0>", IsFiringPrimary()>, Location.Right, -1);
-        CreateHudText(player, null, null, <"SecondaryFire: <0>", IsFiringSecondary()>, Location.Right, -1);
-        CreateHudText(player, null, null, <"Ability1: <0>", IsUsingAbility1()>, Location.Right, -1);
-        CreateHudText(player, null, null, <"Ability2: <0>", IsUsingAbility2()>, Location.Right, -1);
-        CreateHudText(player, null, null, <"Reload: <0>", IsButtonHeld(player, Button.Reload)>, Location.Right, -1);
-        CreateHudText(player, null, null, <"Jump: <0>", IsJumping()>, Location.Right, -1);
-        CreateHudText(player, null, null, <"Crouch: <0>", IsCrouching()>, Location.Right, -1);
-        CreateHudText(player, null, null, <"Melee: <0>", IsMeleeing()>, Location.Right, -1);
-        CreateHudText(player, null, null, <"isRezzing: <0>", isRezzing>, Location.Right, -1);
-        CreateHudText(player, null, null, <"CCed: <0>", CCed>, Location.Right, -1);
-        CreateHudText(player, null, null, <"ownerAlive: <0>", ownerAlive>, Location.Right, -1);
+        CreateHudText(host, null, null, <"PrimaryFire: <0>", IsFiringPrimary()>, Location.Right, 1);
+        CreateHudText(host, null, null, <"SecondaryFire: <0>", IsFiringSecondary()>, Location.Right, 2);
+        CreateHudText(host, null, null, <"Ability1: <0>", IsUsingAbility1()>, Location.Right, 3);
+        CreateHudText(host, null, null, <"Ability2: <0>", IsUsingAbility2()>, Location.Right, 4);
+        CreateHudText(host, null, null, <"Reload: <0>", IsButtonHeld(player, Button.Reload)>, Location.Right, 5);
+        CreateHudText(host, null, null, <"Jump: <0>", IsJumping()>, Location.Right, 6);
+        CreateHudText(host, null, null, <"Crouch: <0>", IsCrouching()>, Location.Right, 7);
+        CreateHudText(host, null, null, <"Melee: <0>", IsMeleeing()>, Location.Right, 8);
+        CreateHudText(host, null, null, <"isRezzing: <0>", isRezzing>, Location.Right, 9);
+        CreateHudText(host, null, null, <"CCed: <0>", CCed>, Location.Right, 10);
+        CreateHudText(host, null, null, <"ownerAlive: <0>", ownerAlive>, Location.Right, 11);
+        CreateHudText(host, null, null, <"timer: <0>", timer>, Location.Right, 12);
      }
-
-rule: "special toxic people rule"
-    Event.OngoingPlayer
-    if (name == "kyy" || 
-        name == "MOM" ||
-        name == "NICHETAS")
-    {
-        SetAimSpeed(player, RandomReal(1, 200));
-        Wait(1);
-        LoopIfConditionIsTrue();
-    }
