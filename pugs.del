@@ -1,7 +1,9 @@
 import "macros.del";
-globalvar define WIDOW_NUM_WALLBANGS = 10;
-playervar define widowIsFiring;
-playervar define widowWallbangEnabled;
+
+// widow
+globalvar define NUM_WALLBANGS = 10;
+playervar define isFiring;
+playervar define wallbangEnabled;
 playervar define widowChase;
 
 rule: "[DBG] :: HUD"
@@ -48,14 +50,14 @@ rule: "[Widow] :: Ult True"
     Event.OngoingPlayer
     if ( IsUsingUltimate() && IsHero(Hero.Widowmaker) )
     {
-        widowWallbangEnabled = true;
+        wallbangEnabled = true;
     }
 
 rule: "[Widow] :: Ult False"
     Event.OngoingPlayer
     if ( !IsUsingUltimate() && IsHero(Hero.Widowmaker) )
     {
-        widowWallbangEnabled = false;
+        wallbangEnabled = false;
         StopChasingVariable(widowChase);
         widowChase = 0;
         AllowButton(player, Button.PrimaryFire);
@@ -63,37 +65,38 @@ rule: "[Widow] :: Ult False"
 
 rule: "[Widow] :: Disable Primary"
     Event.OngoingPlayer
-    if ( widowWallbangEnabled && !IsButtonHeld(player, Button.SecondaryFire) )
+    if ( wallbangEnabled && !IsButtonHeld(player, Button.SecondaryFire) )
     {
         DisallowButton(player, Button.PrimaryFire)
     }
 
 rule: "[Widow] :: Enable Primary"
     Event.OngoingPlayer
-    if ( widowWallbangEnabled && IsButtonHeld(player, Button.SecondaryFire) )
+    if ( wallbangEnabled && IsButtonHeld(player, Button.SecondaryFire) )
     {
         AllowButton(player, Button.PrimaryFire)
     }
 
 // todo: prevent damage being applied twice if shot is not through wall
+// fuck this shit i want to kill myself
 rule: "[Widow] :: Wallbang Logic"
     Event.OngoingPlayer
-    if ( IsFiringPrimary() && widowWallbangEnabled && !widowIsFiring )
+    if ( IsFiringPrimary() && wallbangEnabled && !isFiring )
     {
         define wallbangHitPos = EyePosition();
-        widowIsFiring = true;
+        isFiring = true;
 
         define wallbangLivingEnemies;
         define wallbangHitPlayer;
         define wallbangCount = 0;
-        while (DistanceBetween(EyePosition(), wallbangHitPos) < 100 && wallbangCount < WIDOW_NUM_WALLBANGS)
+        while (DistanceBetween(EyePosition(), wallbangHitPos) < 100 && wallbangCount < NUM_WALLBANGS)
         {
             wallbangLivingEnemies = FilteredArray(EnemyPlayers(), IsAlive(Curr()));
             wallbangHitPos = RayCastHitPosition(wallbangHitPos + Facing(), wallbangHitPos + Facing() * (100 - DistanceBetween(EyePosition(), wallbangHitPos)), wallbangLivingEnemies, player, true);
 
             PlayEffect(all, PlayEffect.GoodExplosion, Color.Red, wallbangHitPos, 0.2);
 
-            wallbangHitPlayer = RayCastHitPlayer(wallbangHitPos, wallbangHitPos + Facing() * (100 - DistanceBetween(EyePosition(), wallbangHitPos)), wallbangLivingEnemies, player, true);
+            wallbangHitPlayer = RayCastHitPlayer(wallbangHitPos + Facing(), wallbangHitPos + Facing() * (100 - DistanceBetween(EyePosition(), wallbangHitPos)), wallbangLivingEnemies, player, true);
             wallbangCount++;
 
             if (wallbangHitPlayer != null)
@@ -102,21 +105,19 @@ rule: "[Widow] :: Wallbang Logic"
             }
         }
 
-        PlayEffect(all, PlayEffect.GoodExplosion, Color.Red, EyePosition(), 0.2);
-
-        widowIsFiring = false;
+        isFiring = false;
     }
 
 rule: "[Widow] :: Reset isFiring"
     Event.OngoingPlayer
     if ( !IsFiringPrimary() )
     {
-        widowIsFiring = false;
+        isFiring = false;
     }
 
 rule: "[Widow] :: Set Charge"
     Event.OngoingPlayer
-    if ( widowWallbangEnabled && IsButtonHeld(player, Button.SecondaryFire) )
+    if ( wallbangEnabled && IsButtonHeld(player, Button.SecondaryFire) )
     {
         widowChase = 0;
         Wait(0.33);
@@ -126,7 +127,7 @@ rule: "[Widow] :: Set Charge"
 
 rule: "[Widow] :: Reset Charge Scoped"
     Event.OngoingPlayer
-    if ( widowWallbangEnabled && IsButtonHeld(player, Button.SecondaryFire) && IsFiringPrimary() )
+    if ( wallbangEnabled && IsButtonHeld(player, Button.SecondaryFire) && IsFiringPrimary() )
     {
         StopChasingVariable(widowChase);
         widowChase = 0;
@@ -136,7 +137,7 @@ rule: "[Widow] :: Reset Charge Scoped"
 
 rule: "[Widow] :: Reset Charge Unscoped"
     Event.OngoingPlayer
-    if ( widowWallbangEnabled && !IsButtonHeld(player, Button.SecondaryFire) )
+    if ( wallbangEnabled && !IsButtonHeld(player, Button.SecondaryFire) )
     {
         StopChasingVariable(widowChase);
         widowChase = 0;
