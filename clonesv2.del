@@ -78,7 +78,7 @@ rule: "Info Text"
         infoText[1] = LastTextID();
         CreateHudText(player, null, "I have no association with the gamemode, code, or creator. This is just a pet project of mine.", null, Location.Top, 3);
         infoText[2] = LastTextID();
-        MinWait();
+        Wait();
         CreateHudText(player, null, "Nothing is from said mode, and nothing is 'stolen'. Bugs will be fixed as soon as I'm made aware of them.", null, Location.Top, 4);
         infoText[3] = LastTextID();
         CreateHudText(player, null, "Please tell me about any issues or suggestions you have, either by adding my Btag in the top right or by telling me in-game.", null, Location.Top, 5);
@@ -90,7 +90,7 @@ rule: "Info Text"
         DestroyHudText(infoText[0]);
         DestroyHudText(infoText[1]);
         DestroyHudText(infoText[2]);
-        MinWait();
+        Wait();
         DestroyHudText(infoText[3]);
         DestroyHudText(infoText[4]);
         DestroyHudText(infoText[5]);
@@ -185,7 +185,7 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         Teleport(player, positionOf);
         SetFacing(player, facingDir, Relative.ToWorld);
         Resurrect();
-        MinWait();
+        Wait();
         CancelPrimaryAction(bots);
         Damage(player, null, MaxHealth() - healthOf);
         isRezzing = false;
@@ -1005,7 +1005,7 @@ rule: "[DBG] :: HUD"
 
         CreateHudText(host, null, null, <"Holding PrimaryFire: <0>", IsButtonHeld(player, Button.PrimaryFire)>, Location.Right, 7);
         CreateHudText(host, null, null, <"IsFiringPrimary(): <0>\n", IsFiringPrimary()>, Location.Right, 8);
-        MinWait();
+        Wait();
     
         CreateHudText(host, null, null, <"Holding SecondayFire: <0>", IsButtonHeld(player, Button.SecondaryFire)>, Location.Right, 9);
         CreateHudText(host, null, null, <"IsFiringSecondary(): <0>\n", IsFiringSecondary()>, Location.Right, 10);
@@ -1015,7 +1015,7 @@ rule: "[DBG] :: HUD"
 
         CreateHudText(host, null, null, <"Holding Ability2: <0>", IsButtonHeld(player, Button.Ability2)>, Location.Right, 13);
         CreateHudText(host, null, null, <"IsUsingAbility2(): <0>\n", IsUsingAbility2()>, Location.Right, 14);
-        MinWait();
+        Wait();
 
         CreateHudText(host, null, null, <"Holding Jump: <0>", IsButtonHeld(player, Button.Jump)>, Location.Right, 15);
         CreateHudText(host, null, null, <"IsJumping(): <0>\n", IsJumping()>, Location.Right, 16);
