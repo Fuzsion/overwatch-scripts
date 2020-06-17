@@ -25,6 +25,7 @@ playervar define totalHealRecieved; // total amount of healing owner and bots ha
 playervar define killAmount; // amount of kills a bot has
 playervar define deathAmount; // amount of deaths a bot has
 playervar define damageDealtAmount; // amount of damage a bot has done
+playervar define maxHealth; // maximum health a player spawned with
 
 // owner
 playervar define owner; // determines who owns a set of bots
@@ -127,93 +128,6 @@ rule: "[All] :: Not CCed"
         CCed = false;
     }
 
-disabled rule: "---------------- Ability Changes (AC) ----------------"{}
-                /////////////                            /////////////
-                /////////////    ABILITY CHANGES (AC)    /////////////
-                /////////////                            /////////////
-
-rule: "[AC] :: Sombra Disable Ability 2"
-    Event.OngoingPlayer
-    Player.Sombra
-    if ( IsDummyBot() )
-    {
-        DisableAbility2();
-    }
-
-rule: "[AC] :: Sombra Stealth"
-    Event.OngoingPlayer
-    Player.Sombra
-    if ( IsUsingAbility1() )
-    {
-        isInStealth = true;
-    }
-
-rule: "[AC] :: Sombra Unstealth"
-    Event.OngoingPlayer
-    Player.Sombra
-    if ( !IsUsingAbility1() )
-    {
-        isInStealth = false;
-    }
-
-rule: "[AC] :: Sombra Stealth After Bot Spawns"
-    Event.OngoingPlayer
-    Player.Sombra
-    if ( owner.isInStealth && botAlive )
-    {
-        while ( !IsUsingAbility1() )
-        {
-            Wait(0.16);
-            PressButton(IsAlive() ? player : null, Button.Ability1);
-        }
-    }
-
-rule: "[AC] :: Sombra Unstealth Bots"
-    Event.OngoingPlayer
-    Player.Sombra
-    if ( !owner.isInStealth && IsUsingAbility1() )
-    {
-        PressButton(IsAlive() ? player : null, Button.Ability1);
-    }
-
-// stupid gross fucking mei bug fix fuck you blizzard
-rule: "[AC] :: Mei Cancel Ice Block"
-    Event.OngoingPlayer
-    Player.Mei
-    if ( !IsUsingAbility1(owner) )
-    {
-        CancelPrimaryAction();
-    }
-
-rule: "[AC] :: Mei Ice Block After Bot Spawns"
-    Event.OngoingPlayer
-    Player.Mei
-    if ( IsUsingAbility1(owner) && botAlive )
-    {
-        while ( !IsUsingAbility1() )
-        {
-            Wait(0.16);
-            PressButton(IsAlive() ? player : null, Button.Ability1);
-        }
-    }
-
-rule: "[AC] :: Genji On"
-    Event.OngoingPlayer
-    Player.Genji
-    if ( IsUsingAbility1() )
-    {
-        StartDamageModification(EnemyPlayers(), player, 33.334);
-        genjiAO = LastDamageModificationID();
-    }
-
-rule: "[AC] :: Genji Off"
-    Event.OngoingPlayer
-    Player.Genji
-    if ( !IsUsingAbility1() )
-    {
-        StopDamageModification(genjiAO);
-    }
-
 disabled rule: "---------------- Owner Rules ----------------"{}
 
                 /////////////                   /////////////
@@ -268,7 +182,6 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         healthOf = Health(closestPlayer)
         SetFacing(closestPlayer, Facing(), Relative.ToWorld);
         Kill(closestPlayer);
-        Teleport(closestPlayer, PositionOf());
         Teleport(player, positionOf);
         SetFacing(player, facingDir, Relative.ToWorld);
         Resurrect();
@@ -296,7 +209,7 @@ rule: "[Owner] :: Destroy Effect"
         DestroyEffect(enemyEffect);
     }
 
-rule: "[Owner] :: Start healOT"
+rule: "[Owner] :: Start healOT" // stop timer
     Event.OngoingPlayer
     if ( !IsDummyBot() && timer == 0 && Health() < MaxHealth() )
     {
@@ -308,7 +221,7 @@ rule: "[Owner] :: Start healOT"
 
 rule: "[Owner] :: Stop healOT"
     Event.OnDamageTaken
-    if ( !IsDummyBot() && !IsHero(Hero.Mercy) )
+    if ( !IsDummyBot() && !IsHero(Hero.Mercy) ) // start timer
     {
         StopChasingVariable(timer);
         timer = 6
@@ -463,12 +376,13 @@ rule: "[Bot] :: Dead"
         SetUltimateAbilityEnabled(player, false);
     }
 
-rule: "[Bot] :: Respawn Time"
-    Event.OngoingPlayer
-    if ( IsDummyBot() )
-    {
-        SetRespawnMaxTime(player, 15)
-    }
+// latest workshop patch breaks the timer visual in tab if this rule is active
+// rule: "[Bot] :: Respawn Time"
+//     Event.OngoingPlayer
+//     if ( IsDummyBot() )
+//     {
+//         SetRespawnMaxTime(player, 15)
+//     }
 
 rule: "[Bot] :: Incorrect Hero"
     Event.OngoingPlayer
@@ -485,7 +399,7 @@ rule: "[Bot] :: Enable Ult"
         SetUltimateAbilityEnabled(player, true);
         SetUltimateCharge(player, 100);
         Wait(0.08);
-        LoopIf(UltimateChargePercent(player) != 100);
+        LoopIf(UltimateChargePercent() != 100);
     }
 
 rule: "[Bot] :: Disable ult"
@@ -515,8 +429,8 @@ rule: "[Bot] :: Owner out of range"
 
         AbortIf( isInStealth ); // prevent teleport effects from being played if isInStealth is true
 
-        PlayEffect(EnemyPlayers(), PlayEffect.GoodPickupEffect, Color.Red, player, 0.3);
-        PlayEffect(AllyPlayers(), PlayEffect.GoodPickupEffect, Color.SkyBlue, player, 0.3);
+        PlayEffect(EnemyPlayers(), PlayEffect.BadPickupEffect, Color.Red, player, 0.3);
+        PlayEffect(AllyPlayers(), PlayEffect.BadPickupEffect, Color.SkyBlue, player, 0.3);
     }
 
 rule: "[Bot] :: Owner out of sight"
@@ -529,8 +443,8 @@ rule: "[Bot] :: Owner out of sight"
 
         AbortIf( isInStealth ); // prevent teleport effects from being played if isInStealth is true
 
-        PlayEffect(EnemyPlayers(), PlayEffect.GoodPickupEffect, Color.Red, player, 0.3);
-        PlayEffect(AllyPlayers(), PlayEffect.GoodPickupEffect, Color.SkyBlue, player, 0.3);
+        PlayEffect(EnemyPlayers(), PlayEffect.BadPickupEffect, Color.Red, player, 0.3);
+        PlayEffect(AllyPlayers(), PlayEffect.BadPickupEffect, Color.SkyBlue, player, 0.3);
     }
 
 
@@ -551,14 +465,14 @@ rule: "[IE] :: Aim & Movement"
         10000);
     }
 
-rule: "[IE] :: Mercy Aim"
-    Event.OngoingPlayer
-    Player.Mercy
-    if ( botAlive && !CCed && HasSpawned() )
-    {
-        StartFacing(player, DirectionTowards(EyePosition(), EyePosition(owner)), 100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
-        StartHoldingButton(player, Button.PrimaryFire);
-    }
+// rule: "[IE] :: Mercy Aim"
+//     Event.OngoingPlayer
+//     Player.Mercy
+//     if ( botAlive && !CCed && HasSpawned() )
+//     {
+//         StartFacing(player, DirectionTowards(EyePosition(), EyePosition(owner)), 100, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
+//         StartHoldingButton(player, Button.PrimaryFire);
+//     }
 
 rule: "[IE] :: Stop Aim"
     Event.OngoingPlayer
@@ -802,6 +716,17 @@ rule: "[HUD] :: Update Heal Recieved"
         (owner == null ? player : owner).totalHealRecieved += RoundToInteger(EventHealing(), Rounding.Nearest);
     }
 
+
+rule: "[HUD] :: Get Max Health for overheal detection" // this is bad and needs to be improved
+    Event.OngoingPlayer
+    if ( IsAlive() && maxHealth == 0 )
+    {
+        maxHealth = MaxHealth();
+        Wait(0.08);
+        LoopIfConditionIsTrue();
+    }
+
+
 rule: "[HUD] :: Total Stats"
     Event.OngoingPlayer
     if ( !IsDummyBot() )
@@ -818,9 +743,18 @@ rule: "[HUD] :: Bot Stats"
     Event.OngoingPlayer
     if ( IsDummyBot() )
     {
-        Wait(1.5);
+        Wait(0.25);
+
+        /* more than max */
+        CreateHudText(Health() > maxHealth ? owner : null,
+                      HeroIconString(HeroOf()),
+                      <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
+                      <"<0> HPㅤ", RoundToInteger(Health(), Rounding.Up)>,
+                      Location.Left, SlotOf(), Color.Blue, Color.White, Color.Blue);
+
         /* more than 170/200 */
-        CreateHudText(NormalizedHealth() >= 0.85 ? owner : null,
+        CreateHudText(FilteredArray(owner,
+                      Health() <= maxHealth && NormalizedHealth() >= 0.85),
                       HeroIconString(HeroOf()),
                       <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                       <"<0> HPㅤ", RoundToInteger(Health(), Rounding.Up)>,
@@ -850,6 +784,8 @@ rule: "[HUD] :: Bot Stats"
                       <"<0> HPㅤ", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
 
+
+
         // /* 170/200 - 120/200 */
         // CreateHudText(NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6 ? owner : null,
         //               HeroIconString(HeroOf()),
@@ -877,6 +813,94 @@ rule: "[HUD] :: Bot Stats"
                       <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                       "Deadㅤ",
                       Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
+    }
+
+
+disabled rule: "---------------- Ability Changes (AC) ----------------"{}
+                /////////////                            /////////////
+                /////////////    ABILITY CHANGES (AC)    /////////////
+                /////////////                            /////////////
+
+rule: "[AC] :: Sombra Disable Ability 2"
+    Event.OngoingPlayer
+    Player.Sombra
+    if ( IsDummyBot() )
+    {
+        DisableAbility2();
+    }
+
+rule: "[AC] :: Sombra Stealth"
+    Event.OngoingPlayer
+    Player.Sombra
+    if ( IsUsingAbility1() )
+    {
+        isInStealth = true;
+    }
+
+rule: "[AC] :: Sombra Unstealth"
+    Event.OngoingPlayer
+    Player.Sombra
+    if ( !IsUsingAbility1() )
+    {
+        isInStealth = false;
+    }
+
+rule: "[AC] :: Sombra Stealth After Bot Spawns"
+    Event.OngoingPlayer
+    Player.Sombra
+    if ( owner.isInStealth && botAlive )
+    {
+        while ( !IsUsingAbility1() )
+        {
+            Wait(0.16);
+            PressButton(IsAlive() ? player : null, Button.Ability1);
+        }
+    }
+
+rule: "[AC] :: Sombra Unstealth Bots"
+    Event.OngoingPlayer
+    Player.Sombra
+    if ( !owner.isInStealth && IsUsingAbility1() )
+    {
+        PressButton(IsAlive() ? player : null, Button.Ability1);
+    }
+
+// stupid gross fucking mei bug fix fuck you blizzard
+rule: "[AC] :: Mei Cancel Ice Block"
+    Event.OngoingPlayer
+    Player.Mei
+    if ( !IsUsingAbility1(owner) )
+    {
+        CancelPrimaryAction();
+    }
+
+rule: "[AC] :: Mei Ice Block After Bot Spawns"
+    Event.OngoingPlayer
+    Player.Mei
+    if ( IsUsingAbility1(owner) && botAlive )
+    {
+        while ( !IsUsingAbility1() )
+        {
+            Wait(0.16);
+            PressButton(IsAlive() ? player : null, Button.Ability1);
+        }
+    }
+
+rule: "[AC] :: Genji On"
+    Event.OngoingPlayer
+    Player.Genji
+    if ( IsUsingAbility1() )
+    {
+        StartDamageModification(EnemyPlayers(), player, 33.334);
+        genjiAO = LastDamageModificationID();
+    }
+
+rule: "[AC] :: Genji Off"
+    Event.OngoingPlayer
+    Player.Genji
+    if ( !IsUsingAbility1() )
+    {
+        StopDamageModification(genjiAO);
     }
 
 disabled rule: "---------------- Debug ----------------"{}
@@ -976,30 +1000,31 @@ rule: "[DBG] :: HUD"
         CreateHudText(host, null, null, <"isRezzing: <0>", isRezzing>, Location.Right, 2);
         CreateHudText(host, null, null, <"CCed: <0>", CCed>, Location.Right, 3);
         CreateHudText(host, null, null, <"ownerAlive: <0>", ownerAlive>, Location.Right, 4);
-        CreateHudText(host, null, null, <"timer: <0>\n", timer>, Location.Right, 5);
+        CreateHudText(host, null, null, <"timer: <0>", timer>, Location.Right, 5);
+        CreateHudText(host, null, null, <"NormalizedHealth: <0>\n", NormalizedHealth()>, Location.Right, 6);
 
-        CreateHudText(host, null, null, <"Holding PrimaryFire: <0>", IsButtonHeld(player, Button.PrimaryFire)>, Location.Right, 6);
-        CreateHudText(host, null, null, <"IsFiringPrimary(): <0>\n", IsFiringPrimary()>, Location.Right, 7);
+        CreateHudText(host, null, null, <"Holding PrimaryFire: <0>", IsButtonHeld(player, Button.PrimaryFire)>, Location.Right, 7);
+        CreateHudText(host, null, null, <"IsFiringPrimary(): <0>\n", IsFiringPrimary()>, Location.Right, 8);
         MinWait();
     
-        CreateHudText(host, null, null, <"Holding SecondayFire: <0>", IsButtonHeld(player, Button.SecondaryFire)>, Location.Right, 8);
-        CreateHudText(host, null, null, <"IsFiringSecondary(): <0>\n", IsFiringSecondary()>, Location.Right, 9);
+        CreateHudText(host, null, null, <"Holding SecondayFire: <0>", IsButtonHeld(player, Button.SecondaryFire)>, Location.Right, 9);
+        CreateHudText(host, null, null, <"IsFiringSecondary(): <0>\n", IsFiringSecondary()>, Location.Right, 10);
 
-        CreateHudText(host, null, null, <"Holding Ability1: <0>", IsButtonHeld(player, Button.Ability1)>, Location.Right, 10);
-        CreateHudText(host, null, null, <"IsUsingAbility1(): <0>\n", IsUsingAbility1()>, Location.Right, 11);
+        CreateHudText(host, null, null, <"Holding Ability1: <0>", IsButtonHeld(player, Button.Ability1)>, Location.Right, 11);
+        CreateHudText(host, null, null, <"IsUsingAbility1(): <0>\n", IsUsingAbility1()>, Location.Right, 12);
 
-        CreateHudText(host, null, null, <"Holding Ability2: <0>", IsButtonHeld(player, Button.Ability2)>, Location.Right, 12);
-        CreateHudText(host, null, null, <"IsUsingAbility2(): <0>\n", IsUsingAbility2()>, Location.Right, 13);
+        CreateHudText(host, null, null, <"Holding Ability2: <0>", IsButtonHeld(player, Button.Ability2)>, Location.Right, 13);
+        CreateHudText(host, null, null, <"IsUsingAbility2(): <0>\n", IsUsingAbility2()>, Location.Right, 14);
         MinWait();
 
-        CreateHudText(host, null, null, <"Holding Jump: <0>", IsButtonHeld(player, Button.Jump)>, Location.Right, 14);
-        CreateHudText(host, null, null, <"IsJumping(): <0>\n", IsJumping()>, Location.Right, 15);
+        CreateHudText(host, null, null, <"Holding Jump: <0>", IsButtonHeld(player, Button.Jump)>, Location.Right, 15);
+        CreateHudText(host, null, null, <"IsJumping(): <0>\n", IsJumping()>, Location.Right, 16);
 
-        CreateHudText(host, null, null, <"Holding Crouch: <0>", IsButtonHeld(player, Button.Crouch)>, Location.Right, 16);
-        CreateHudText(host, null, null, <"IsCrouching(): <0>\n", IsCrouching()>, Location.Right, 17);
+        CreateHudText(host, null, null, <"Holding Crouch: <0>", IsButtonHeld(player, Button.Crouch)>, Location.Right, 17);
+        CreateHudText(host, null, null, <"IsCrouching(): <0>\n", IsCrouching()>, Location.Right, 18);
 
-        CreateHudText(host, null, null, <"Holding Melee: <0>", IsButtonHeld(player, Button.Melee)>, Location.Right, 18);
-        CreateHudText(host, null, null, <"IsMeleeing(): <0>\n", IsMeleeing()>, Location.Right, 19);
+        CreateHudText(host, null, null, <"Holding Melee: <0>", IsButtonHeld(player, Button.Melee)>, Location.Right, 19);
+        CreateHudText(host, null, null, <"IsMeleeing(): <0>\n", IsMeleeing()>, Location.Right, 20);
 
-        CreateHudText(host, null, null, <"Holding Reload: <0>", IsButtonHeld(player, Button.Reload)>, Location.Right, 20);
+        CreateHudText(host, null, null, <"Holding Reload: <0>", IsButtonHeld(player, Button.Reload)>, Location.Right, 21);
      }
