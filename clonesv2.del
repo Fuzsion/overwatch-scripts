@@ -267,8 +267,8 @@ rule: "[Owner] :: Owner Alive; Re-enable Bot Spawning"
     }
 
 rule: "[Owner] :: Respawn Failsafe"
-    Event.OngoingPlayer
-    if ( !IsDummyBot() && IsDead() )
+    Event.OnDeath
+    if ( !isRezzing )
     {
         WaitIfTrue(18.5);
         Respawn();
@@ -384,6 +384,7 @@ rule: "[Bot] :: Dead"
         SetUltimateCharge(player, 0);
         SetUltimateAbilityEnabled(player, false);
     }
+
 
 // latest workshop patch breaks the timer visual on tab if this rule is enabled
 // rule: "[Bot] :: Respawn Time"
@@ -720,7 +721,7 @@ rule: "[HUD] :: Total Stats"
     Event.OngoingPlayer
     if ( !IsDummyBot() )
     {
-        Wait(0.5);
+        Wait(0.25);
         CreateHudText(player, null, null,
         <"Kills: <0> | Deaths: <1> \r\n<2>", totalKills, totalDeaths, 
         <"DMG Dealt: <0> | DMG Recieved: <1> \r\n<2>", totalDamageDealt, totalDamageRecieved, 
@@ -781,8 +782,6 @@ rule: "[HUD] :: Bot Stats"
                       <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
                       "Deadㅤ",
                       Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
-
-        
     }
 
 
