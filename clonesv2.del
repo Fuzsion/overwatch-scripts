@@ -3,6 +3,7 @@ define ownerBots: FilteredArray(AllPlayers(TeamOf()), IsDummyBot(Curr()) && Curr
 define livingBots: FilteredArray(AllLivingPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player);
 // global
 globalvar define DISTANCE; // maximum distance until bot teleports to owner
+globalvar define TIMER_DUR; // duration of the combat timer
 globalvar define playerAmount; // amount of players and bots per team (from 0 - 5)
 globalvar define inspector; // enable/disable toggle for inspector
 
@@ -45,12 +46,12 @@ playervar define botAlive; // if a bot is alive
 
 rule: "Initial Global"
     {
-        // DisableInspectorRecording();
+        DisableInspectorRecording();
         DisableAnnouncer();
         DISTANCE = 12;
+        TIMER_DUR = 6;
         playerAmount = [5, 4, 3, 2, 1, 0];
         CreateHudText(all, null, "Created by Fuzsion#11545\r\n             Share Code: WRYEPㅤ", null, Location.Right, 0);
-        // ServerLoadText();
     }
 
 rule: "Initial Player Join"
@@ -74,12 +75,12 @@ rule: "Disclaimer Text"
         infoText = EmptyArray();
         CreateHudText(player, null, null, <"ㅤ\r\n<0> Notice <0>\r\n", IconString(Icon.Warning)>, Location.Top, 1, Color.Yellow, Color.Yellow, Color.Yellow);
         infoText[0] = LastTextID();
-        CreateHudText(player, null, "This is an in-development rewrite written entirely in OSTW, entirely independent from the mode this is inspired from.", null, Location.Top, 1.1);
+        CreateHudText(player, null, "This is an in-development rewrite written entirely in OSTW, and entirely independent from the mode this is inspired from.", null, Location.Top, 1.1);
         infoText[1] = LastTextID();
-        CreateHudText(player, null, "I have no association with the gamemode, code, or creator. This is simply just a pet project that I enjoy working on.", null, Location.Top, 1.2);
+        CreateHudText(player, null, "I have no association with that gamemode, code, or creator. This is simply just a pet project that I enjoy working on.", null, Location.Top, 1.2);
         infoText[2] = LastTextID();
         Wait();
-        CreateHudText(player, null, "Nothing is from said mode, and certainly nothing is 'stolen'. Bugs will be fixed as soon as I am made aware of them.", null, Location.Top, 1.3);
+        CreateHudText(player, null, "Nothing is from said mode, and certainly nothing is stolen. Bugs will be fixed as soon as I am made aware of them.", null, Location.Top, 1.3);
         infoText[3] = LastTextID();
         CreateHudText(player, null, "Please tell me about any issues or suggestions you have, either by adding my Btag in the top right or by telling me in-game.", null, Location.Top, 1.4);
         infoText[4] = LastTextID();
@@ -186,7 +187,7 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         Teleport(player, positionOf);
         SetFacing(player, facingDir, Relative.ToWorld);
         Resurrect();
-        Wait();
+        Wait(0.032);
         CancelPrimaryAction(bots);
         Damage(player, null, MaxHealth() - healthOf);
         isRezzing = false;
@@ -220,12 +221,12 @@ rule: "[Owner] :: Start healOT" // stop timer
         healOT = LastHealOverTime();
     }
 
-rule: "[Owner] :: Stop healOT" // start timer
+rule: "[Owner] :: Stop healOT" // start timer :: damage
     Event.OnDamageTaken
     if ( !IsDummyBot() && !IsHero(Hero.Mercy) )
     {
         StopChasingVariable(timer);
-        timer = 6
+        timer = TIMER_DUR;
         ChaseVariableAtRate(timer, 0, 1, RateChaseReevaluation.None);
         StopHealOverTime(healOT);
     }
@@ -266,9 +267,9 @@ rule: "[Owner] :: Owner Alive; Re-enable Bot Spawning"
         EnableRespawning(FilteredArray(AllDeadPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player));
     }
 
-rule: "[Owner] :: Respawn Failsafe"
+rule: "[Owner] :: Respawn Failsafe" // this shit is just fucked and i dont know why
     Event.OnDeath
-    if ( !isRezzing )
+    if ( !IsDummyBot() && IsDead() && !isRezzing )
     {
         WaitIfTrue(18.5);
         Respawn();
@@ -559,7 +560,7 @@ rule: "[IE] :: Pressed Ultimate"
 
 rule: "[IE] :: Released Primary"
     Event.OngoingPlayer
-    if ( !IsDummyBot() && !IsHero(Hero.Mercy) && (!IsButtonHeld(player, Button.PrimaryFire) || IsDead() || CCed) )
+    if ( !IsDummyBot() && (!IsButtonHeld(player, Button.PrimaryFire) || IsDead() || CCed) )
     {
         define bots = ownerBots;
         StopHoldingButton(bots, Button.PrimaryFire);
@@ -637,32 +638,36 @@ rule: "[IE] :: Released Ultimate"
 
                            // cooldowns //
 
-rule: "[IE] :: Primary Cooldown"
+rule: "[IE] :: Brig Cooldown"
     Event.OngoingPlayer
-    if ( !IsFiringPrimary(owner) && IsButtonHeld(owner, Button.SecondaryFire) && IsHero(Hero.Brigitte) && AbilityCooldown(owner, ButtonValue(Button.PrimaryFire)) != 0 )
+    if ( !IsDummyBot() && !IsFiringPrimary() && IsButtonHeld(player, Button.SecondaryFire) && IsHero(Hero.Brigitte) && AbilityCooldown(player, ButtonValue(Button.PrimaryFire)) != 0 )
     {
-        SetAbilityCooldown(player, ButtonValue(Button.PrimaryFire), AbilityCooldown(owner, ButtonValue(Button.PrimaryFire)));
+        define bots = ownerBots;
+        SetAbilityCooldown(bots, ButtonValue(Button.PrimaryFire), AbilityCooldown(player, ButtonValue(Button.PrimaryFire)));
     }
 
 rule: "[IE] :: Secondary Cooldown"
     Event.OngoingPlayer
-    if ( !IsFiringSecondary(owner) )
+    if ( !IsDummyBot() && !IsFiringSecondary() )
     {
-        SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)));
+        define bots = ownerBots;
+        SetAbilityCooldown(bots, ButtonValue(Button.SecondaryFire), AbilityCooldown(player, ButtonValue(Button.SecondaryFire)));
     }
 
 rule: "[IE] :: Ability 1 Cooldown"
     Event.OngoingPlayer
-    if ( !IsUsingAbility1(owner) )
+    if ( !IsDummyBot() && !IsUsingAbility1() )
     {
-        SetAbilityCooldown(player, ButtonValue(Button.Ability1), AbilityCooldown(owner, ButtonValue(Button.Ability1)));
+        define bots = ownerBots;
+        SetAbilityCooldown(bots, ButtonValue(Button.Ability1), AbilityCooldown(player, ButtonValue(Button.Ability1)));
     }
 
 rule: "[IE] :: Ability 2 Cooldown"
     Event.OngoingPlayer
-    if ( !IsUsingAbility2(owner) )
+    if ( !IsDummyBot() && !IsUsingAbility2() )
     {
-        SetAbilityCooldown(player, ButtonValue(Button.Ability2), AbilityCooldown(owner, ButtonValue(Button.Ability2)));
+        define bots = ownerBots;
+        SetAbilityCooldown(bots, ButtonValue(Button.Ability2), AbilityCooldown(player, ButtonValue(Button.Ability2)));
     }
 
 // there is no Jump or Crouch cooldown rules (for ball/hanzo) because workshop can't detect if those abilities are being used, IsJumping() or IsCrouching() doesnt work
@@ -834,8 +839,7 @@ rule: "[AC] :: Sombra Unstealth Bots"
         PressButton(IsAlive() ? player : null, Button.Ability1);
     }
 
-// stupid gross fucking mei bug fix fuck you blizzard
-rule: "[AC] :: Mei Cancel Ice Block"
+rule: "[AC] :: Mei Cancel Ice Block" // stupid gross fucking mei bug fix fuck you blizzard
     Event.OngoingPlayer
     Player.Mei
     if ( !IsDummyBot() && !IsUsingAbility1() )
@@ -856,6 +860,43 @@ rule: "[AC] :: Mei Ice Block After Bot Spawns"
             Wait(0.16);
             PressButton(bots, Button.Ability1);
         }
+    }
+
+
+rule: "[AC] :: Echo Flight Fix"
+    Event.OngoingPlayer
+    Player.Echo
+    if ( IsDummyBot() && IsUsingAbility1(owner) )
+    {
+        if ( IsButtonHeld(owner, Button.Jump) )
+            ApplyImpulse(player, Up(), 4.85, Relative.ToWorld);
+        else if ( IsButtonHeld(owner, Button.Crouch) )
+            ApplyImpulse(player, Down(), 4.85, Relative.ToWorld);
+        
+        Wait();
+        LoopIfConditionIsTrue();
+
+        // bug: if moving in a direction mercy will gain/lose more distance than intended if i use echos default flight speed (8)
+        // bandaid fix for this is to make the speed of the impulse less intense
+        // not sure how to fix this
+    }
+
+rule: "[AC] :: Mercy Valk Flight Fix"
+    Event.OngoingPlayer
+    Player.Mercy
+    if ( IsDummyBot() && IsUsingUltimate(owner) )
+    {
+        if ( IsButtonHeld(owner, Button.Jump) )
+            ApplyImpulse(player, Up(), 5.35, Relative.ToWorld);
+        else if ( IsButtonHeld(owner, Button.Crouch) )
+            ApplyImpulse(player, Down(), 5.35, Relative.ToWorld);
+
+        Wait();
+        LoopIfConditionIsTrue();
+
+        // bug: if moving in a direction mercy will gain/lose more distance than intended if i use mercy valk default speed (9)
+        // bandaid fix for this is to make the speed of the impulse less intense
+        // not sure how to fix this
     }
 
 rule: "[AC] :: Reaper Cancel TP if bot failed"
@@ -891,7 +932,7 @@ disabled rule: "---------------- Debug ----------------"{}
                 /////////////             /////////////
 
 rule: "[DBG] :: Inspector Toggle"
-    if ( IsButtonHeld(host, Button.Crouch) && IsButtonHeld(host, Button.Interact) )
+    if ( IsButtonHeld(host, Button.Melee) && IsButtonHeld(host, Button.Interact) )
     {
         inspector = !inspector;
         if (inspector)
@@ -926,7 +967,7 @@ disabled rule: "[DBG] :: CC Owner Bots"
         SetStatus(ownerBots, null, Status.Asleep, 5);
     }
 
-rule: "[DBG] :: CC"
+disabled rule: "[DBG] :: CC"
     Event.OngoingPlayer
     if ( IsInteractHeld() )
     {
@@ -961,14 +1002,14 @@ disabled rule: "[DBG] :: Kill All"
        Kill(all);
     }
 
-disabled rule: "[DBG] :: Damage"
+rule: "[DBG] :: Damage"
     Event.OngoingPlayer
     if ( IsInteractHeld() )
     {
        Damage(player, player, 10);
     }
 
-rule: "[DBG] :: HUD"
+disabled rule: "[DBG] :: HUD"
     Event.OnPlayerJoin
     if ( player == host )
     {
@@ -982,7 +1023,10 @@ rule: "[DBG] :: HUD"
         CreateHudText(host, null, null, <"CCed: <0>", CCed>, Location.Right, 1.2);
         CreateHudText(host, null, null, <"ownerAlive: <0>", ownerAlive>, Location.Right, 1.3);
         CreateHudText(host, null, null, <"timer: <0>", timer>, Location.Right, 1.4);
-        CreateHudText(host, null, null, <"NormalizedHealth: <0>\n", NormalizedHealth()>, Location.Right, 1.5);
+        CreateHudText(host, null, null, <"NormalizedHealth: <0>", NormalizedHealth()>, Location.Right, 1.5);
+        CreateHudText(host, null, null, <"Throttle: <0>", ThrottleOf()>, Location.Right, 1.51);
+        CreateHudText(host, null, null, <"Facing Direction: <0>", Facing()>, Location.Right, 1.52);
+        CreateHudText(host, null, null, <"Speed: <0> M/S\n", SpeedOf()>, Location.Right, 1.53);
 
         CreateHudText(host, null, null, <"Holding PrimaryFire: <0>", IsButtonHeld(player, Button.PrimaryFire)>, Location.Right, 1.6);
         CreateHudText(host, null, null, <"IsFiringPrimary(): <0>\n", IsFiringPrimary()>, Location.Right, 1.7);

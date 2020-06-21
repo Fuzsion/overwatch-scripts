@@ -41,7 +41,7 @@ define Wait():                      MinWait(); // just because I'm lazy
 define EnemyPlayers():              AllPlayers(OppositeTeamOf(TeamOf()));
 define AllyPlayers():               AllPlayers(TeamOf());
 define IsHero(ref define hero):     HeroOf() == hero;
-define Curr():             ArrayElement();
+define Curr():                      ArrayElement();
 
 // HUD Text
 define CreditText():                CreateHudText(all, null, "Created by Fuzsion#11545", null, Location.Right, -1);
