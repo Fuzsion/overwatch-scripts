@@ -13,7 +13,8 @@ playervar define playerSlot; // get slot of player to create bots for
 playervar define genjiAO; // genji damage nerf
 playervar define infoText; // disclaimer text array
 playervar define infoTimer; // disclaimer timer
-playervar define isInStealth; 
+playervar define isInStealth; // boolean is sombra using ability 1
+playervar define maxHealth; // maximum health a player spawned with
 
 // stats
 playervar define totalKills; // total amount of kills owner and bots have
@@ -22,11 +23,6 @@ playervar define totalDamageDealt; // total amount of damage owner and bots have
 playervar define totalDamageRecieved; // total amount of damage owner and bots have taken
 playervar define totalHealDealt; // total amount of healing owner and bots have done
 playervar define totalHealRecieved; // total amount of healing owner and bots have recieved
-
-playervar define killAmount; // amount of kills a bot has
-playervar define deathAmount; // amount of deaths a bot has
-playervar define damageDealtAmount; // amount of damage a bot has done
-playervar define maxHealth; // maximum health a player spawned with
 
 // owner
 playervar define owner; // determines who owns a set of bots
@@ -51,7 +47,7 @@ rule: "Initial Global"
         DISTANCE = 12;
         TIMER_DUR = 6;
         playerAmount = [5, 4, 3, 2, 1, 0];
-        CreateHudText(all, null, "Created by Fuzsion#11545\r\n             Share Code: WRYEPㅤ", null, Location.Right, 0);
+        CreateHudText(all, null, "ㅤCreated by Fuzsion#11545", "ㅤShare Code: WRYEP", Location.Right, 0);
     }
 
 rule: "Initial Player Join"
@@ -457,7 +453,6 @@ rule: "[Bot] :: Owner out of sight"
         TeleportBot()
     }
 
-
 disabled rule: "---------------- Input Emulation (IE) ----------------"{}
 
                 /////////////                            /////////////
@@ -682,7 +677,6 @@ disabled rule: "---------------- HUD Text ----------------"{}
 rule: "[HUD] :: Update Kills"
     Event.OnFinalBlow
     {
-        killAmount++;
         (owner == null ? player : owner).totalKills++;
     }
 
@@ -690,7 +684,6 @@ rule: "[HUD] :: Update Deaths"
     Event.OnDeath
     if ( !isRezzing )
     {
-        deathAmount++;
         (owner == null ? player : owner).totalDeaths++;
     }
 
@@ -698,7 +691,6 @@ rule: "[HUD] :: Update Damage Dealt"
     Event.OnDamageDealt
     if ( Victim() != player )
     {
-        damageDealtAmount += RoundToInteger(EventDamage(), Rounding.Nearest);
         (owner == null ? player : owner).totalDamageDealt += RoundToInteger(EventDamage(), Rounding.Nearest);
     }
 
@@ -741,53 +733,53 @@ rule: "[HUD] :: Bot Stats"
     {
         Wait(0.25);
 
-        # MaxHealth() updates whenever someone is overhealed, setting this on bot spawn lets me detect if someone is overhealed
+        # MaxHealth() updates dynamically, setting this on bot spawn lets me detect if someone is overhealed
         maxHealth = MaxHealth();
 
         /* overheal */
         CreateHudText(Health() > maxHealth ? owner : null,
                       HeroIconString(HeroOf()),
-                      <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
-                      <"<0> HPㅤ", RoundToInteger(Health(), Rounding.Up)>,
+                      HeroOf(),
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Blue, Color.White, Color.Blue);
 
         /* more than 170/200 */
         CreateHudText(FilteredArray(owner,
                       Health() <= maxHealth && NormalizedHealth() >= 0.85),
                       HeroIconString(HeroOf()),
-                      <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
-                      <"<0> HPㅤ", RoundToInteger(Health(), Rounding.Up)>,
+                      HeroOf(),
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
 
         /* 170/200 - 120/200 */
         CreateHudText(FilteredArray(owner, 
                       NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6),
                       HeroIconString(HeroOf()),
-                      <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
-                      <"<0> HPㅤ", RoundToInteger(Health(), Rounding.Up)>,
+                      HeroOf(),
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
 
         /* 120/200 - 70/200*/
         CreateHudText(FilteredArray(owner, 
                       NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35),
                       HeroIconString(HeroOf()),
-                      <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
-                      <"<0> HPㅤ", RoundToInteger(Health(), Rounding.Up)>,
+                      HeroOf(),
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
 
         /* less than 70/200 */
         CreateHudText(FilteredArray(owner, 
                       IsAlive() && NormalizedHealth() < 0.35),
                       HeroIconString(HeroOf()),
-                      <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
-                      <"<0> HPㅤ", RoundToInteger(Health(), Rounding.Up)>,
+                      HeroOf(),
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
 
         /* dead */
         CreateHudText(IsDead() ? owner : null,
                       IconString(Icon.Skull),
-                      <"Kills: <0> | Deaths: <1> | Damage: <2>", killAmount, deathAmount, damageDealtAmount>,
-                      "Deadㅤ",
+                      HeroOf(),
+                      "Dead",
                       Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
     }
 
@@ -845,7 +837,6 @@ rule: "[AC] :: Mei Cancel Ice Block"
     if ( !IsDummyBot() && !IsUsingAbility1() )
     {
         define bots = livingBots;
-        
         CancelPrimaryAction(bots);
     }
 
@@ -1002,7 +993,7 @@ disabled rule: "[DBG] :: Kill All"
         Kill(all);
     }
 
-rule: "[DBG] :: Damage"
+disabled rule: "[DBG] :: Damage"
     Event.OngoingPlayer
     if ( IsInteractHeld() )
     {
