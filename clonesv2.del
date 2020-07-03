@@ -733,7 +733,7 @@ rule: "[HUD] :: Bot Stats"
     {
         Wait(0.25);
 
-        # MaxHealth() updates dynamically, setting this on bot spawn lets me detect if someone is overhealed
+        # MaxHealth() updates dynamically, using a variable lets me detect if someone is overhealed. this will break when echo clones someone or if dva is out of mech
         maxHealth = MaxHealth();
 
         /* overheal */
@@ -883,7 +883,7 @@ rule: "[AC] :: Mercy Valk Flight Fix"
 // rule: "[AC] :: Dva Demech"
 //     Event.OngoingPlayer
 //     Player.Dva
-//     if ( !IsDummyBot() && (Health() == 1 || IsInAlternateForm()) )
+//     if ( !IsDummyBot() && ( Health() == 1 || IsInAlternativeForm()) )
 //     {
 //         WaitIfTrue(1.6);
 //         define dvaBots = RemoveFromArray(livingBots, MaxHealth() == 150);
@@ -972,7 +972,7 @@ disabled rule: "[DBG] :: Kill All Bots"
         Kill(FilteredArray(AllPlayers(), IsDummyBot(Curr())));
     }
 
-disabled rule: "[DBG] :: Kill Owner Bots"
+rule: "[DBG] :: Kill Owner Bots"
     Event.OngoingPlayer
     if ( IsInteractHeld() )
     {
@@ -997,7 +997,7 @@ disabled rule: "[DBG] :: Damage"
     Event.OngoingPlayer
     if ( IsInteractHeld() )
     {
-        Damage(player, player, 10);
+        Damage(player, player, 100);
     }
 
 disabled rule: "[DBG] :: HUD"
