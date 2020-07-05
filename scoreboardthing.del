@@ -1,0 +1,43 @@
+import "macros.del";
+
+rule: "create text"
+    Event.OngoingPlayer
+    {
+        /* more than 170/200 */
+        CreateHudText(NormalizedHealth() >= 0.85 ? AllyPlayers() : null,
+                      HeroIconString(HeroOf()),
+                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
+                      Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
+
+        /* 170/200 - 120/200 */
+        CreateHudText(FilteredArray(AllyPlayers(),
+                      NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6),
+                      HeroIconString(HeroOf()),
+                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
+                      Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
+
+        /* 120/200 - 70/200*/
+        CreateHudText(FilteredArray(AllyPlayers(),
+                      NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35),
+                      HeroIconString(HeroOf()),
+                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
+                      Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
+
+        /* less than 70/200 */
+        CreateHudText(FilteredArray(AllyPlayers(),
+                      IsAlive() && NormalizedHealth() < 0.35),
+                      HeroIconString(HeroOf()),
+                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
+                      Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
+
+        /* dead */
+        CreateHudText(IsDead() ? AllyPlayers() : null,
+                      IconString(Icon.Skull),
+                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+                      "Dead",
+                      Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
+    }
