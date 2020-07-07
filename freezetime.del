@@ -1,7 +1,11 @@
 import "macros.del";
-globalvar define freezeToggle;
+globalvar define timeToggle;
 globalvar define timeFrozen;
+globalvar define timeCooldown;
+globalvar define timeDuration;
 globalvar define icon;
+playervar define cooldownHud;
+playervar define durationHud;
 playervar define tsHudText;
 playervar define trHudText;
 playervar define tsIcon;
@@ -9,29 +13,21 @@ playervar define trIcon;
 playervar define healingMod;
 
 rule: "toggle"
-    if (IsButtonHeld(host, Button.Interact))
+    if (IsButtonHeld(host, Button.Interact)/*  && timeCooldown == 0 */)
     {
-        freezeToggle = !freezeToggle;
-        if (freezeToggle)
+        timeToggle = !timeToggle;
+        if (timeToggle)
         {
             timeFrozen = true;
+            // timeDuration = 10;
+            // ChaseVariableAtRate(timeDuration, 0, 1, RateChaseReevaluation.DestinationAndRate);
+            // Wait(0.5);
         }
-        else
+        else /* if (timeDuration == 0) */
         {
             timeFrozen = false;
-            Wait(3);
-        }
-    }
-
-rule: "icon"
-    if (timeFrozen)
-    {
-        for (define loop; 6; 1)
-        {
-            icon = "ㅤ";
-            Wait(0.25);
-            icon = "■";
-            Wait(0.25);
+            // timeCooldown = 10;
+            // ChaseVariableAtRate(timeCooldown, 0, 1, RateChaseReevaluation.DestinationAndRate);
         }
     }
 
@@ -43,12 +39,18 @@ rule: "time stop"
 
         DestroyHudText(trIcon);
         DestroyHudText(trHudText);
+        DestroyHudText(cooldownHud);
+        DestroyHudText(tsIcon);
+        DestroyHudText(tsHudText);
+        DestroyHudText(durationHud);
 
         Wait();
 
-        CreateHudText(player, null, null, <" \n\n\n\n\n\n\n\n\n\n\n<0>", icon>, Location.Top, 1, Color.White, Color.White, Color.Red);
+        // CreateHudText(player, null, null, <" \nDuration: <0>", timeDuration>, Location.Top, 1, Color.White, Color.White, Color.White);
+        // durationHud = LastTextID();
+        CreateHudText(player, null, null, <" \n\n\n\n\n\n\n\n\n<0>", icon>, Location.Top, 2, Color.White, Color.White, Color.Red);
         tsIcon = LastTextID();
-        CreateHudText(player, null, null, " \nTime stopped", Location.Top, 2, Color.White, Color.White, Color.Red);
+        CreateHudText(player, null, null, " \nTime stopped", Location.Top, 3, Color.White, Color.White, Color.Red);
         tsHudText = LastTextID();
 
         SetStatus(RemoveFromArray(all, host), null, Status.Frozen, 10000);
@@ -74,18 +76,24 @@ rule: "time stop"
 
 rule: "time resume"
     Event.OngoingPlayer
-    if (!timeFrozen)
+    if (!timeFrozen/*  || timeDuration == 0 */)
     {
         UnpauseMatchTime();
 
+        DestroyHudText(trIcon);
+        DestroyHudText(trHudText);
+        DestroyHudText(cooldownHud);
         DestroyHudText(tsIcon);
         DestroyHudText(tsHudText);
+        DestroyHudText(durationHud);
 
         Wait();
 
-        CreateHudText(player, null, null, " \n\n\n\n\n\n\n\n\n\n\n▶", Location.Top, 1, Color.White, Color.White, Color.SkyBlue);
+        // CreateHudText(player, null, null, <" \nCooldown: <0>", timeCooldown>, Location.Top, 1, Color.White, Color.White, Color.White);
+        // cooldownHud = LastTextID();
+        CreateHudText(player, null, null, " \n\n\n\n\n\n\n\n\n▶", Location.Top, 2, Color.White, Color.White, Color.SkyBlue);
         trIcon = LastTextID();
-        CreateHudText(player, null, null, " \nTime resumed", Location.Top, 2, Color.White, Color.White, Color.SkyBlue);
+        CreateHudText(player, null, null, " \nTime resumed", Location.Top, 3, Color.White, Color.White, Color.SkyBlue);
         trHudText = LastTextID();
 
         ClearStatus(all, Status.Frozen);
@@ -110,17 +118,29 @@ rule: "time resume"
         DestroyHudText(trHudText);
     }
 
-rule: "prevent knockback"
-    Event.PlayerReceivedKnockback
+// rule: "prevent knockback"
+//     Event.PlayerReceivedKnockback
+//     if (timeFrozen)
+//     {
+//         SetGravity(!host ? player : null, 100);
+//         WaitIfTrue(0.5);
+//         SetGravity(!host ? player : null, 0);
+//         ApplyImpulse(!host ? player : null, Up(), 0.001);
+//         ApplyImpulse(!host ? player : null, Down(), 0.001);
+//         ApplyImpulse(!host ? player : null, Left(), 0.001);
+//         ApplyImpulse(!host ? player : null, Right(), 0.001);
+//         ApplyImpulse(!host ? player : null, Forward(), 0.001);
+//         ApplyImpulse(!host ? player : null, Backward(), 0.001);
+//     }
+
+rule: "icon"
     if (timeFrozen)
     {
-        SetGravity(player, 100);
-        WaitIfTrue(0.5);
-        SetGravity(player, 0);
-        ApplyImpulse(player, Up(), 0.001);
-        ApplyImpulse(player, Down(), 0.001);
-        ApplyImpulse(player, Left(), 0.001);
-        ApplyImpulse(player, Right(), 0.001);
-        ApplyImpulse(player, Forward(), 0.001);
-        ApplyImpulse(player, Backward(), 0.001);
+        for (define loop; 6; 1)
+        {
+            icon = "ㅤ";
+            Wait(0.25);
+            icon = "■";
+            Wait(0.25);
+        }
     }
