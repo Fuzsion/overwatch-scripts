@@ -1,0 +1,126 @@
+import "macros.del";
+globalvar define freezeToggle;
+globalvar define timeFrozen;
+globalvar define icon;
+playervar define tsHudText;
+playervar define trHudText;
+playervar define tsIcon;
+playervar define trIcon;
+playervar define healingMod;
+
+rule: "toggle"
+    if (IsButtonHeld(host, Button.Interact))
+    {
+        freezeToggle = !freezeToggle;
+        if (freezeToggle)
+        {
+            timeFrozen = true;
+        }
+        else
+        {
+            timeFrozen = false;
+            Wait(3);
+        }
+    }
+
+rule: "icon"
+    if (timeFrozen)
+    {
+        for (define loop; 6; 1)
+        {
+            icon = "ㅤ";
+            Wait(0.25);
+            icon = "■";
+            Wait(0.25);
+        }
+    }
+
+rule: "time stop"
+    Event.OngoingPlayer
+    if (timeFrozen)
+    {
+        PauseMatchTime();
+
+        DestroyHudText(trIcon);
+        DestroyHudText(trHudText);
+
+        Wait();
+
+        CreateHudText(player, null, null, <" \n\n\n\n\n\n\n\n\n\n\n<0>", icon>, Location.Top, 1, Color.White, Color.White, Color.Red);
+        tsIcon = LastTextID();
+        CreateHudText(player, null, null, " \nTime stopped", Location.Top, 2, Color.White, Color.White, Color.Red);
+        tsHudText = LastTextID();
+
+        SetStatus(RemoveFromArray(all, host), null, Status.Frozen, 10000);
+        SetStatus(RemoveFromArray(all, host), null, Status.Unkillable, 10000);
+
+        SetProjectileSpeed(all, 10);
+        SetProjectileGravity(all, 1);
+
+        StartHealingModification(all, all, 0);
+        healingMod = LastHealingModificationID();
+
+        SetGravity(RemoveFromArray(all, host), 0);
+
+        ForceThrottle(RemoveFromArray(all, host), 0, 0, 0, 0, 0, 0);
+
+        ApplyImpulse(RemoveFromArray(all, host), Up(), 0.001);
+        ApplyImpulse(RemoveFromArray(all, host), Down(), 0.001);
+        ApplyImpulse(RemoveFromArray(all, host), Left(), 0.001);
+        ApplyImpulse(RemoveFromArray(all, host), Right(), 0.001);
+        ApplyImpulse(RemoveFromArray(all, host), Forward(), 0.001);
+        ApplyImpulse(RemoveFromArray(all, host), Backward(), 0.001);
+    }
+
+rule: "time resume"
+    Event.OngoingPlayer
+    if (!timeFrozen)
+    {
+        UnpauseMatchTime();
+
+        DestroyHudText(tsIcon);
+        DestroyHudText(tsHudText);
+
+        Wait();
+
+        CreateHudText(player, null, null, " \n\n\n\n\n\n\n\n\n\n\n▶", Location.Top, 1, Color.White, Color.White, Color.SkyBlue);
+        trIcon = LastTextID();
+        CreateHudText(player, null, null, " \nTime resumed", Location.Top, 2, Color.White, Color.White, Color.SkyBlue);
+        trHudText = LastTextID();
+
+        ClearStatus(all, Status.Frozen);
+        ClearStatus(all, Status.Unkillable);
+
+        StopForcingThrottle();
+
+        SetProjectileSpeed(all, 100);
+        SetProjectileGravity(all, 100);
+
+        StopHealingModification(healingMod);
+
+        SetGravity(all, 100);
+
+        Wait();
+
+        Kill(FilteredArray(all, Health(Curr()) == 1), host);
+
+        Wait(3);
+
+        DestroyHudText(trIcon);
+        DestroyHudText(trHudText);
+    }
+
+rule: "prevent knockback"
+    Event.PlayerReceivedKnockback
+    if (timeFrozen)
+    {
+        SetGravity(player, 100);
+        WaitIfTrue(0.5);
+        SetGravity(player, 0);
+        ApplyImpulse(player, Up(), 0.001);
+        ApplyImpulse(player, Down(), 0.001);
+        ApplyImpulse(player, Left(), 0.001);
+        ApplyImpulse(player, Right(), 0.001);
+        ApplyImpulse(player, Forward(), 0.001);
+        ApplyImpulse(player, Backward(), 0.001);
+    }
