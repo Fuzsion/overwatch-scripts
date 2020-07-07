@@ -14,6 +14,7 @@ rule: "hover"
     Event.OngoingPlayer
     if (IsInAir() && !IsJumping() && AltitudeOf() > 0.25)
     {
+        AbortIf(AltitudeOf() <= 0.25); // check again...
         hovering = true;
         SetGravity(player, 0);
         CreateEffect(all, Effect.Sparkles, Color.Yellow, PositionOf(), 1);
