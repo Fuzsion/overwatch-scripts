@@ -1,5 +1,5 @@
 import "macros.del";
-globalvar define timeToggle;
+globalvar define TIME_COOLDOWN = 10;
 globalvar define timeFrozen;
 globalvar define timeCooldown;
 globalvar define timeDuration;
@@ -12,24 +12,40 @@ playervar define tsIcon;
 playervar define trIcon;
 playervar define healingMod;
 
-rule: "toggle"
-    if (IsButtonHeld(host, Button.Interact)/*  && timeCooldown == 0 */)
+rule: "activate"
+    if (IsButtonHeld(host, Button.Interact) && IsAlive(host) && timeCooldown == 0)
     {
-        timeToggle = !timeToggle;
-        if (timeToggle)
-        {
-            timeFrozen = true;
-            // timeDuration = 10;
-            // ChaseVariableAtRate(timeDuration, 0, 1, RateChaseReevaluation.DestinationAndRate);
-            // Wait(0.5);
-        }
-        else /* if (timeDuration == 0) */
-        {
-            timeFrozen = false;
-            // timeCooldown = 10;
-            // ChaseVariableAtRate(timeCooldown, 0, 1, RateChaseReevaluation.DestinationAndRate);
-        }
+        timeFrozen = true;
+        timeCooldown = TIME_COOLDOWN;
+        StopChasingVariable(timeCooldown);
+        timeDuration = 20;
+        ChaseVariableAtRate(timeDuration, 0, 1, RateChaseReevaluation.None);
     }
+
+rule: "deactivate"
+    if (timeFrozen && timeDuration == 0)
+    {
+        timeFrozen = false;
+        StopChasingVariable(timeDuration);
+        timeCooldown = TIME_COOLDOWN;
+        ChaseVariableAtRate(timeCooldown, 0, 1, RateChaseReevaluation.None);
+    }
+
+        // timeToggle = !timeToggle;
+        // if (timeToggle)
+        // {
+        //     timeFrozen = true;
+        //     // timeDuration = 10;
+        //     // ChaseVariableAtRate(timeDuration, 0, 1, RateChaseReevaluation.DestinationAndRate);
+        //     // Wait(0.5);
+        // }
+        // else /* if (timeDuration == 0) */
+        // {
+        //     timeFrozen = false;
+        //     // timeCooldown = 10;
+        //     // ChaseVariableAtRate(timeCooldown, 0, 1, RateChaseReevaluation.DestinationAndRate);
+        // }
+
 
 rule: "time stop"
     Event.OngoingPlayer
@@ -39,25 +55,22 @@ rule: "time stop"
 
         DestroyHudText(trIcon);
         DestroyHudText(trHudText);
-        DestroyHudText(cooldownHud);
         DestroyHudText(tsIcon);
         DestroyHudText(tsHudText);
         DestroyHudText(durationHud);
 
         Wait();
 
-        // CreateHudText(player, null, null, <" \nDuration: <0>", timeDuration>, Location.Top, 1, Color.White, Color.White, Color.White);
-        // durationHud = LastTextID();
-        CreateHudText(player, null, null, <" \n\n\n\n\n\n\n\n\n<0>", icon>, Location.Top, 2, Color.White, Color.White, Color.Red);
+        CreateHudText(player, null, null, <" \n\n\n\n\n\n\n\n\n\n<0>", icon>, Location.Top, 2, Color.White, Color.White, Color.Red);
         tsIcon = LastTextID();
-        CreateHudText(player, null, null, " \nTime stopped", Location.Top, 3, Color.White, Color.White, Color.Red);
+        CreateHudText(player, null, null, <" \nTime will resume in <0>", RoundToInteger(timeDuration, Rounding.Up)>, Location.Top, 3, Color.White, Color.White, Color.Red);
         tsHudText = LastTextID();
+
+        // SetSlowMotion(0);
+        // SetMoveSpeed(host, 1000);
 
         SetStatus(RemoveFromArray(all, host), null, Status.Frozen, 10000);
         SetStatus(RemoveFromArray(all, host), null, Status.Unkillable, 10000);
-
-        SetProjectileSpeed(all, 10);
-        SetProjectileGravity(all, 1);
 
         StartHealingModification(all, all, 0);
         healingMod = LastHealingModificationID();
@@ -72,26 +85,34 @@ rule: "time stop"
         ApplyImpulse(RemoveFromArray(all, host), Right(), 0.001);
         ApplyImpulse(RemoveFromArray(all, host), Forward(), 0.001);
         ApplyImpulse(RemoveFromArray(all, host), Backward(), 0.001);
+
+        for (define loop; 6; 1)
+        {
+            icon = "ㅤ";
+            Wait(0.25);
+            icon = "■";
+            Wait(0.25);
+        }
     }
 
 rule: "time resume"
     Event.OngoingPlayer
-    if (!timeFrozen/*  || timeDuration == 0 */)
+    if (!timeFrozen)
     {
         UnpauseMatchTime();
 
         DestroyHudText(trIcon);
         DestroyHudText(trHudText);
-        DestroyHudText(cooldownHud);
         DestroyHudText(tsIcon);
         DestroyHudText(tsHudText);
         DestroyHudText(durationHud);
+        DestroyHudText(cooldownHud);
 
         Wait();
 
-        // CreateHudText(player, null, null, <" \nCooldown: <0>", timeCooldown>, Location.Top, 1, Color.White, Color.White, Color.White);
-        // cooldownHud = LastTextID();
-        CreateHudText(player, null, null, " \n\n\n\n\n\n\n\n\n▶", Location.Top, 2, Color.White, Color.White, Color.SkyBlue);
+        CreateHudText(player, null, null, <"<0>", timeCooldown == 0 ? <"Time Stop:  <0>", IconString(Icon.Checkmark)> : <"Time Stop: <0>", RoundToInteger(timeCooldown, Rounding.Up)>>, Location.Right, 1, Color.White, Color.White, Color.White);
+        cooldownHud = LastTextID();
+        CreateHudText(player, null, null, " \n\n\n\n\n\n\n\n\n\n▶", Location.Top, 2, Color.White, Color.White, Color.SkyBlue);
         trIcon = LastTextID();
         CreateHudText(player, null, null, " \nTime resumed", Location.Top, 3, Color.White, Color.White, Color.SkyBlue);
         trHudText = LastTextID();
@@ -100,9 +121,6 @@ rule: "time resume"
         ClearStatus(all, Status.Unkillable);
 
         StopForcingThrottle();
-
-        SetProjectileSpeed(all, 100);
-        SetProjectileGravity(all, 100);
 
         StopHealingModification(healingMod);
 
@@ -118,29 +136,46 @@ rule: "time resume"
         DestroyHudText(trHudText);
     }
 
-// rule: "prevent knockback"
+// rule: "fake gravity"
+//     Event.OngoingPlayer
+//     if (timeFrozen)
+//     {
+//         ApplyImpulse(player, Down(), 10, Relative.ToWorld, ContraryMotion.Incorporate);
+//         Wait();
+//         LoopIfConditionIsTrue();
+//     }
+
+// rule: "fake jump"
+//     Event.OngoingPlayer
+//     if (timeFrozen && IsButtonHeld(player, Button.Jump) && IsOnGround())
+//     {
+//         ApplyImpulse(player, Up(), 40, Relative.ToWorld, ContraryMotion.Incorporate);
+//     }
+
+// rule: "knockback"
 //     Event.PlayerReceivedKnockback
 //     if (timeFrozen)
 //     {
-//         SetGravity(!host ? player : null, 100);
+//         SetGravity(player != host ? player : null, 100);
 //         WaitIfTrue(0.5);
-//         SetGravity(!host ? player : null, 0);
-//         ApplyImpulse(!host ? player : null, Up(), 0.001);
-//         ApplyImpulse(!host ? player : null, Down(), 0.001);
-//         ApplyImpulse(!host ? player : null, Left(), 0.001);
-//         ApplyImpulse(!host ? player : null, Right(), 0.001);
-//         ApplyImpulse(!host ? player : null, Forward(), 0.001);
-//         ApplyImpulse(!host ? player : null, Backward(), 0.001);
+//         SetGravity(player != host ? player : null, 0);
+//         ApplyImpulse(player != host ? player : null, Up(), 0.001);
+//         ApplyImpulse(player != host ? player : null, Down(), 0.001);
+//         ApplyImpulse(player != host ? player : null, Left(), 0.001);
+//         ApplyImpulse(player != host ? player : null, Right(), 0.001);
+//         ApplyImpulse(player != host ? player : null, Forward(), 0.001);
+//         ApplyImpulse(player != host ? player : null, Backward(), 0.001);
 //     }
 
-rule: "icon"
-    if (timeFrozen)
-    {
-        for (define loop; 6; 1)
-        {
-            icon = "ㅤ";
-            Wait(0.25);
-            icon = "■";
-            Wait(0.25);
-        }
-    }
+// rule: "icon"
+//     Event.OngoingPlayer
+//     if (timeFrozen)
+//     {
+//         for (define loop; 6; 1)
+//         {
+//             icon = "ㅤ";
+//             Wait(0.25);
+//             icon = "■";
+//             Wait(0.25);
+//         }
+//     }
