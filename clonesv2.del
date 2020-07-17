@@ -33,6 +33,7 @@ playervar define closestPlayer; // closest bot to owner upon death
 playervar define positionOf; // position of the closestPlayer
 playervar define facingDir; // facing direction of the closestPlayer
 playervar define healthOf; // health of the closestPlayer
+playervar define ammoOf; // ammo of closestPlayer
 playervar define healOT; // heal over time for the owner
 playervar define timer; // time out of combat
 playervar define allyEffect; // owner effect visible to ally players
@@ -178,6 +179,8 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         positionOf = PositionOf(closestPlayer);
         facingDir = FacingDirectionOf(closestPlayer);
         healthOf = Health(closestPlayer)
+        ammoOf[0] = Ammo(closestPlayer, 0);
+        ammoOf[1] = Ammo(closestPlayer, 1); // bap heal clip
         SetFacing(closestPlayer, Facing(), Relative.ToWorld);
         Kill(closestPlayer);
         Teleport(player, positionOf);
@@ -185,7 +188,9 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         Resurrect();
         Wait(0.032);
         CancelPrimaryAction(bots);
-        Damage(player, null, MaxHealth() - healthOf);
+        SetPlayerHealth(player, healthOf);
+        SetAmmo(player, 0, ammoOf[0]);
+        SetAmmo(player, 1, ammoOf[1]);
         isRezzing = false;
     }
 
@@ -211,7 +216,7 @@ rule: "[Owner] :: Start healOT"
     Event.OngoingPlayer
     if (!IsDummyBot() && timer == 0 && Health() < MaxHealth())
     {
-        # stop timer
+        // stop timer
         timer = 0;
         StopChasingVariable(timer);
         StartHealOverTime(player, null, 10000, 10);
@@ -222,7 +227,7 @@ rule: "[Owner] :: Stop healOT"
     Event.OnDamageTaken
     if (!IsDummyBot() && !IsHero(Hero.Mercy))
     {
-        # start timer
+        // start timer
         timer = TIMER_DUR;
         StopChasingVariable(timer);
         ChaseVariableAtRate(timer, 0, 1, RateChaseReevaluation.None);
@@ -366,6 +371,7 @@ rule: "[Bot] :: Alive"
     if (IsDummyBot() && IsAlive())
     {
         EnableRespawning();
+        SetAmmo(player, 0, Ammo(owner));
         SetAbilityCooldown(player, ButtonValue(Button.PrimaryFire), AbilityCooldown(owner, ButtonValue(Button.PrimaryFire)));
         SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)));
         SetAbilityCooldown(player, ButtonValue(Button.Ability1), AbilityCooldown(owner, ButtonValue(Button.Ability1)));
@@ -388,7 +394,7 @@ disabled rule: "[Bot] :: Respawn Time"
     Event.OngoingPlayer
     if (IsDummyBot())
     {
-        # latest overwatch patch (1.49) breaks the timer visual on scoreboard if this rule is enabled
+        // latest overwatch patch (1.49) breaks the timer visual on scoreboard if this rule is enabled
         SetRespawnMaxTime(player, 15)
     }
 
@@ -431,7 +437,7 @@ void TeleportBot() playervar "Teleport Subroutine"
     {
         Teleport(player, owner + WorldVectorOf(Vector(0, 0, -0.5), owner));
 
-        # prevent teleport effects from being played if isInStealth is true
+        // prevent teleport effects from being played if isInStealth is true
         AbortIf(isInStealth);
 
         PlayEffect(EnemyPlayers(), PlayEffect.BadPickupEffect, Color.Red, player, 0.3);
@@ -558,6 +564,10 @@ rule: "[IE] :: Released Primary"
     {
         define bots = ownerBots;
         StopHoldingButton(bots, Button.PrimaryFire);
+
+        if (Ammo(player, 0) != Ammo(owner, 0))
+            SetAmmo(player, 0, Ammo(owner, 0));
+
         SetAbilityCooldown(bots, ButtonValue(Button.PrimaryFire), AbilityCooldown(player, ButtonValue(Button.PrimaryFire)));
     }
 
@@ -567,6 +577,10 @@ rule: "[IE] :: Released Secondary"
     {
         define bots = ownerBots;
         StopHoldingButton(bots, Button.SecondaryFire);
+
+        if (Ammo(player, 1) != Ammo(owner, 1))
+            SetAmmo(player, 1, Ammo(owner, 1));
+
         SetAbilityCooldown(bots, ButtonValue(Button.SecondaryFire), AbilityCooldown(player, ButtonValue(Button.SecondaryFire)));
     }
 
@@ -632,7 +646,7 @@ rule: "[IE] :: Released Ultimate"
 
                            // cooldowns //
 
-rule: "[IE] :: Brig Cooldown"
+rule: "[IE] :: Primary Cooldown (Brig)"
     Event.OngoingPlayer
     Player.Brigitte
     if (!IsDummyBot() && !IsFiringPrimary() && IsButtonHeld(player, Button.SecondaryFire) && AbilityCooldown(player, ButtonValue(Button.PrimaryFire)) != 0)
@@ -662,7 +676,6 @@ rule: "[IE] :: Ability 2 Cooldown"
     if (!IsDummyBot() && !IsUsingAbility2())
     {
         define bots = ownerBots;
-        # there is no Jump or Crouch cooldown rules (for ball/hanzo) because workshop can't detect if those abilities are being used, IsJumping() or IsCrouching() wont work
         SetAbilityCooldown(bots, ButtonValue(Button.Ability2), AbilityCooldown(player, ButtonValue(Button.Ability2)));
     }
 
@@ -720,7 +733,7 @@ rule: "[HUD] :: Total Stats"
     if (!IsDummyBot())
     {
         Wait(0.25);
-        # this is disgusting
+        // this is disgusting
         CreateHudText(player, null, null,
         <"Kills: <0> | Deaths: <1> \r\n<2>", totalKills, totalDeaths, 
         <"DMG Dealt: <0> | DMG Recieved: <1> \r\n<2>", totalDamageDealt, totalDamageRecieved, 
@@ -734,7 +747,7 @@ rule: "[HUD] :: Bot Stats"
     {
         Wait(0.25);
 
-        # MaxHealth() updates dynamically, using a variable lets me detect if someone is overhealed. this will break when echo clones someone or if dva is out of mech
+        // MaxHealth() updates dynamically, using a variable lets me detect if someone is overhealed. this will break when echo clones someone or if dva is out of mech
         maxHealth = MaxHealth();
 
         /* overheal */
@@ -834,7 +847,7 @@ rule: "[AC] :: Sombra Unstealth Bots"
 rule: "[AC] :: Mei Cancel Ice Block"
     Event.OngoingPlayer
     Player.Mei
-    # gross fix, thanks blizzard
+    // gross fix, thanks blizzard
     if (!IsDummyBot() && !IsUsingAbility1())
     {
         define bots = livingBots;
@@ -851,12 +864,12 @@ rule: "[AC] :: Mei Ice Block After Bot Spawns"
         LoopIfConditionIsTrue();
     }
 
+// bug: if moving in a direction echo will gain/lose more distance than intended if i use echos default flight speed (8), bandaid fix for this is to make the speed of the impulse less intense. not sure how to fix this
 rule: "[AC] :: Echo Flight Fix"
     Event.OngoingPlayer
     Player.Echo
     if (IsDummyBot() && IsUsingAbility1(owner))
     {
-        # bug: if moving in a direction echo will gain/lose more distance than intended if i use echos default flight speed (8), bandaid fix for this is to make the speed of the impulse less intense. not sure how to fix this
         if (IsButtonHeld(owner, Button.Jump))
             ApplyImpulse(player, Up(), 4.85, Relative.ToWorld);
         else if (IsButtonHeld(owner, Button.Crouch))
@@ -866,12 +879,12 @@ rule: "[AC] :: Echo Flight Fix"
         LoopIfConditionIsTrue();
     }
 
+// bug: if moving in a direction mercy will gain/lose more distance than intended if i use mercy valk default speed (9), bandaid fix for this is to make the speed of the impulse less intense. not sure how to fix this
 rule: "[AC] :: Mercy Valk Flight Fix"
     Event.OngoingPlayer
     Player.Mercy
     if (IsDummyBot() && IsUsingUltimate(owner))
     {
-        # bug: if moving in a direction mercy will gain/lose more distance than intended if i use mercy valk default speed (9), bandaid fix for this is to make the speed of the impulse less intense. not sure how to fix this
         if (IsButtonHeld(owner, Button.Jump))
             ApplyImpulse(player, Up(), 5.35, Relative.ToWorld);
         else if (IsButtonHeld(owner, Button.Crouch))
@@ -881,15 +894,23 @@ rule: "[AC] :: Mercy Valk Flight Fix"
         LoopIfConditionIsTrue();
     }
 
-// rule: "[AC] :: Dva Demech"
-//     Event.OngoingPlayer
-//     Player.Dva
-//     if (!IsDummyBot() && (Health() == 1 || IsInAlternativeForm()))
-//     {
-//         WaitIfTrue(1.6);
-//         define dvaBots = RemoveFromArray(livingBots, MaxHealth() == 150);
-//         Damage(dvaBots, null, 10000);
-//     }
+rule: "[AC] :: Baptiste Reload Fix"
+    Event.OngoingPlayer
+    Player.Baptiste
+    if (IsDummyBot() && (Ammo(player, 0) == 0 || Ammo(player, 1) == 0))
+    {
+        PressButton(player, Button.Reload);
+    }
+
+rule: "[AC] :: Dva Demech"
+    Event.OngoingPlayer
+    Player.Dva
+    if (!IsDummyBot() && (Health() == 1 || IsInAlternateForm()))
+    {
+        WaitIfTrue(1.6);
+        define dvaBots = RemoveFromArray(livingBots, MaxHealth() == 150);
+        Damage(dvaBots, null, 10000);
+    }
 
 rule: "[AC] :: Reaper Cancel TP if bot failed"
     Event.OngoingPlayer
@@ -1044,4 +1065,5 @@ disabled rule: "[DBG] :: HUD"
         CreateHudText(host, null, null, <"IsMeleeing(): <0>\n", IsMeleeing()>, Location.Right, 2.9);
 
         CreateHudText(host, null, null, <"Holding Reload: <0>", IsButtonHeld(player, Button.Reload)>, Location.Right, 3);
+        CreateHudText(host, null, null, <"IsReloading(): <0>", IsReloading()>, Location.Right, 3.1);
      }

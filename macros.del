@@ -37,6 +37,7 @@ define DisableCrouch():             DisallowButton(player, Button.Crouch);
 define DisableMelee():              DisallowButton(player, Button.Melee);
 
 define WaitIfTrue(define time):     Wait(time, WaitBehavior.AbortWhenFalse); // Aborts the rule if the condition goes false while waiting
+define MinWaitIfTTrue():            MinWait(WaitBehavior.AbortWhenFalse);
 define Wait():                      MinWait(); // just because I'm lazy
 define EnemyPlayers():              AllPlayers(OppositeTeamOf(TeamOf()));
 define AllyPlayers():               AllPlayers(TeamOf());
