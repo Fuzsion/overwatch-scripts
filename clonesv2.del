@@ -48,7 +48,7 @@ rule: "Initial Global"
         DisableAnnouncer();
         DISTANCE = 12;
         TIMER_DUR = 6;
-        playerAmount = [5, 4, 3, 2, 1, 0];
+        playerAmount = [0, 1, 2, 3, 4, 5];
         CreateHudText(all, null, "ㅤCreated by Fuzsion#11545", "ㅤ Share Code: WRYEP", Location.Right, 0);
     }
 
@@ -141,7 +141,7 @@ rule: "[Owner] :: Create Bots"
                                                     / CountOf(FilteredArray(AllPlayers(TeamOf()), !IsDummyBot(Curr()) && HasSpawned(Curr()))), 
                                                     Rounding.Down)))
     {
-        playerSlot = FirstOf(FilteredArray(playerAmount, 
+        playerSlot = LastOf(FilteredArray(playerAmount, 
                             !EntityExists(PlayersInSlot(Curr(), TeamOf())) || (IsDummyBot(Curr()) && !EntityExists(Curr().owner))));
 
         CreateDummyBot(HeroOf(), TeamOf(), playerSlot, PositionOf() + WorldVectorOf(Vector(0, 0, -0.5), player), FacingDirectionOf());
@@ -160,7 +160,7 @@ rule: "[Owner] :: Destroy Bots"
                                                     Rounding.Down)))
     {
         DestroyDummyBot(TeamOf(), 
-                        LastOf(FilteredArray(playerAmount, IsDummyBot(PlayersInSlot(Curr(), TeamOf())) &&
+                        FirstOf(FilteredArray(playerAmount, IsDummyBot(PlayersInSlot(Curr(), TeamOf())) &&
                         PlayersInSlot(Curr(), TeamOf()).owner == player && 
                         EntityExists(PlayersInSlot(Curr(), TeamOf())))));
 
@@ -366,19 +366,24 @@ disabled rule: "---------------- Bot Rules ----------------"{}
                 /////////////    BOT RULES    /////////////
                 /////////////                 /////////////
 
+playervar define abilities;
+playervar define statuses;
+
 rule: "[Bot] :: Alive"
     Event.OngoingPlayer
     if (IsDummyBot() && IsAlive())
     {
+        botAlive = true;
         EnableRespawning();
-        SetAmmo(player, 0, Ammo(owner));
+        SetWeapon(player, Weapon(owner));
+        SetAmmo(player, 0, Ammo(owner, 0));
+        SetAmmo(player, 1, Ammo(owner, 1)); // bap clip
         SetAbilityCooldown(player, ButtonValue(Button.PrimaryFire), AbilityCooldown(owner, ButtonValue(Button.PrimaryFire)));
         SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)));
         SetAbilityCooldown(player, ButtonValue(Button.Ability1), AbilityCooldown(owner, ButtonValue(Button.Ability1)));
         SetAbilityCooldown(player, ButtonValue(Button.Ability2), AbilityCooldown(owner, ButtonValue(Button.Ability2)));
         SetAbilityCooldown(player, ButtonValue(Button.Jump), AbilityCooldown(owner, ButtonValue(Button.Jump)));
         SetAbilityCooldown(player, ButtonValue(Button.Crouch), AbilityCooldown(owner, ButtonValue(Button.Crouch)));
-        botAlive = true;
     }
 
 rule: "[Bot] :: Dead"
@@ -491,6 +496,23 @@ rule: "[IE] :: Hello"
         Communicate(bots, Communication.Hello);
     }
 
+rule: "[IE] :: Weapon 1"
+    Event.OngoingPlayer
+    if (!IsDummyBot() && Weapon() == 1)
+    {
+        define bots = ownerBots;
+        SetWeapon(bots, 1);
+    }
+
+rule: "[IE] :: Weapon 2"
+    Event.OngoingPlayer
+    if (!IsDummyBot() && Weapon() == 2)
+    {
+        define bots = ownerBots;
+        SetWeapon(bots, 2);
+    }
+
+
                         // button pressed //
 
 rule: "[IE] :: Pressed Primary"
@@ -565,8 +587,8 @@ rule: "[IE] :: Released Primary"
         define bots = ownerBots;
         StopHoldingButton(bots, Button.PrimaryFire);
 
-        if (Ammo(player, 0) != Ammo(owner, 0))
-            SetAmmo(player, 0, Ammo(owner, 0));
+        if (Ammo(bots, 0) != Ammo(player, 0))
+            SetAmmo(bots, 0, Ammo(player, 0));
 
         SetAbilityCooldown(bots, ButtonValue(Button.PrimaryFire), AbilityCooldown(player, ButtonValue(Button.PrimaryFire)));
     }
@@ -578,8 +600,8 @@ rule: "[IE] :: Released Secondary"
         define bots = ownerBots;
         StopHoldingButton(bots, Button.SecondaryFire);
 
-        if (Ammo(player, 1) != Ammo(owner, 1))
-            SetAmmo(player, 1, Ammo(owner, 1));
+        if (Ammo(bots, 1) != Ammo(player, 1))
+            SetAmmo(bots, 1, Ammo(player, 1));
 
         SetAbilityCooldown(bots, ButtonValue(Button.SecondaryFire), AbilityCooldown(player, ButtonValue(Button.SecondaryFire)));
     }
@@ -847,7 +869,7 @@ rule: "[AC] :: Sombra Unstealth Bots"
 rule: "[AC] :: Mei Cancel Ice Block"
     Event.OngoingPlayer
     Player.Mei
-    // gross fix, thanks blizzard
+    // gross fix fuck you blizzard
     if (!IsDummyBot() && !IsUsingAbility1())
     {
         define bots = livingBots;
@@ -900,16 +922,6 @@ rule: "[AC] :: Baptiste Reload Fix"
     if (IsDummyBot() && (Ammo(player, 0) == 0 || Ammo(player, 1) == 0))
     {
         PressButton(player, Button.Reload);
-    }
-
-rule: "[AC] :: Dva Demech"
-    Event.OngoingPlayer
-    Player.Dva
-    if (!IsDummyBot() && (Health() == 1 || IsInAlternateForm()))
-    {
-        WaitIfTrue(1.6);
-        define dvaBots = RemoveFromArray(livingBots, MaxHealth() == 150);
-        Damage(dvaBots, null, 10000);
     }
 
 rule: "[AC] :: Reaper Cancel TP if bot failed"
