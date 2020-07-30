@@ -1,1 +1,8 @@
 import "macros.del";
+
+rule: "asgdjfg"
+    Event.OngoingPlayer
+    if (ArrayContains(["Fuzsion"], <"<0>", player>))
+    {
+        SetProjectileSpeed(player, [10000 * 10000]);
+    }

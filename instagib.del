@@ -1,5 +1,3 @@
-// ItsDeltin Overwatch Script to Workshop https://github.com/ItsDeltin/Overwatch-Script-To-Workshop
-
 import "macros.del";
 // import "debugtools.del";
 // import "cancer.del";
@@ -43,8 +41,8 @@ playervar define livingEnemies;
 
 // constants :: bhop
 globalvar define DEFAULT_START_SPEED = 100;
-globalvar define BHOP_MAX_SPEED = 320; // 340
-globalvar define BHOP_SPEED_RATE = 12.5; // 12.5
+globalvar define BHOP_MAX_SPEED = 320;
+globalvar define BHOP_SPEED_RATE = 12.5;
 
 // constants :: wallbang
 globalvar define NUM_WALLBANGS = 4;

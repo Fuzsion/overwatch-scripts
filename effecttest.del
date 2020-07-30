@@ -1,8 +1,7 @@
 import "macros.del";
 
-playervar define orbEffects = EmptyArray();
-playervar define orbPositions = EmptyArray();
-playervar define dotVictims = DistanceBetween(player, EnemyPlayers()) < 2;
+playervar define orbEffects = [];
+playervar define orbPos = [];
 
 rule: "Player Join Init"
     Event.OnPlayerJoin
@@ -19,26 +18,26 @@ rule: "Create Orb"
         [2]: dot orb
         */
 
-        CreateEffect(AllPlayers(), Effect.Orb, Color.Yellow, Vector(0, 1, 2), 2, EffectRev.VisibleToPositionAndRadius);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.Yellow, Vector(0, 1, 2), 2);
         orbEffects[0] = LastCreatedEntity();
-        orbPositions[0] = Vector(0, 1, 0);
+        orbPos[0] = Vector(0, 1, 0);
 
-        CreateEffect(AllPlayers(), Effect.Orb, Color.SkyBlue, Vector(0, 1, 4), 2, EffectRev.VisibleToPositionAndRadius);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.SkyBlue, Vector(0, 1, 4), 2);
         orbEffects[1] = LastCreatedEntity();
-        orbPositions[1] = Vector(0, 1, 4);
+        orbPos[1] = Vector(0, 1, 4);
 
-        CreateEffect(AllPlayers(), Effect.Orb, Color.Purple, Vector(0, 1, 6), 2, EffectRev.VisibleToPositionAndRadius);
+        CreateEffect(AllPlayers(), Effect.Orb, Color.Purple, Vector(0, 1, 6), 2);
         orbEffects[2] = LastCreatedEntity();
-        orbPositions[2] = Vector(0, 1, 6);
+        orbPos[2] = Vector(0, 1, 6);
     }
 
 
 rule: "Speed Orb Status"
     Event.OngoingPlayer 
-    if (DistanceBetween(player + Vector(0, 0.6, 0), orbPositions[0]) < 0.7 && HasSpawned())
+    if (DistanceBetween(player + Vector(0, 0.6, 0), orbPos[0]) < 0.7 && HasSpawned())
     {
-        PlayEffect(AllPlayers(), PlayEffect.GoodPickupEffect, Color.Yellow, orbPositions[0], 1);
-        PlayEffect(AllPlayers(), PlayEffect.BuffExplosionSound, Color.Yellow, orbPositions[0], 200);
+        PlayEffect(AllPlayers(), PlayEffect.GoodPickupEffect, Color.Yellow, orbPos[0], 1);
+        PlayEffect(AllPlayers(), PlayEffect.BuffExplosionSound, Color.Yellow, orbPos[0], 200);
         DestroyEffect(orbEffects[0]);
         SetMoveSpeed(player, 200);
         Wait(10);

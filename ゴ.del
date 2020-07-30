@@ -1,0 +1,22 @@
+import "macros.del";
+
+playervar define textSize;
+playervar define textPos;
+
+rule: "create text"
+    Event.OngoingPlayer
+    if (IsInteractHeld())
+    {
+        for (define loop; 8; 1)
+        {
+            textPos = Vector(RandomReal(-1, 1), RandomReal(-1, 1), RandomReal(-1, 1));
+            CreateInWorldText(all, "ゴ", EyePosition() + Vector(0, -0.5, 0) + Vector(RandomReal(-1, 1), RandomReal(-1, 1), RandomReal(-1, 1)), RandomInteger(1, 15), Clipping.DoNotClip, InworldTextRev.VisibleToAndPosition, Color.Purple);
+        }
+    }
+
+rule: "destroy text"
+    Event.OngoingPlayer
+    if (IsReloadHeld())
+    {
+        DestroyAllInworldText(); 
+    }

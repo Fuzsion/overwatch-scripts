@@ -1,11 +1,13 @@
 import "macros.del";
 
-globalvar define NUM_BOUNCES = 64; // max 64 if one player :: 5 if 12 people
+globalvar define NUM_BOUNCES;
 
 playervar define normals;
-playervar define hitPositions;
+playervar define hitPos;
+playervar define hitPosPlayer;
 playervar define ricochets;
 playervar define hitPosBounces;
+playervar define hitPosPlayerBounces;
 
 playervar define eyePos;
 playervar define facing;
@@ -13,37 +15,25 @@ playervar define facing;
 rule: "init"
     {
         ServerLoadText();
-    }
-
-disabled rule: "raycast effect"
-   Event.OngoingPlayer
-   {
-      CreateEffect(player, Effect.Sphere, Color.Aqua, RayCastHitPosition(EyePosition(), EyePosition() + FacingDirectionOf() * 100), 0.1);
-   }
-
-disabled rule: "face forward"
-    Event.OngoingPlayer
-    if (IsReloadHeld())
-    {
-        StartFacing(player, Forward(), 100, Relative.ToPlayer, FacingRev.DirectionAndTurnRate);
-        Wait(0.5);
-        StopFacing(player);
+        NUM_BOUNCES = WorkshopSettingInteger("Raycast (if this isn't set correctly effects will not appear)", "Bounces (1 player = 64 maximum // 12 players = 5 maximum)", 5, 1, 64);
     }
 
 rule: "Ray Bounce"
     Event.OngoingPlayer
     if (IsFiringPrimary())
     {
-        normals = EmptyArray();
-        hitPositions = EmptyArray();
-        ricochets = EmptyArray();
-        hitPosBounces = EmptyArray();
+        normals = [];
+        hitPos = [];
+        hitPosPlayer = [];
+        ricochets = [];
+        hitPosBounces = [];
+        hitPosPlayerBounces = [];
 
         for (define loop = 0; loop < NUM_BOUNCES; loop++)
         {
             if (loop > 0)
             {
-                eyePos = hitPositions[loop - 1];
+                eyePos = hitPos[loop - 1];
                 facing = ricochets[loop - 1];
             }
             else
@@ -52,14 +42,18 @@ rule: "Ray Bounce"
                 facing = FacingDirectionOf();
             }
 
-            normals[loop] = RayCastHitNormal(eyePos, eyePos + facing * 1000, AllPlayers(), player, true);
-            hitPositions[loop] = RayCastHitPosition(eyePos, eyePos + facing * 1000, AllPlayers(), player, true);
+            normals[loop] = RayCastHitNormal(eyePos, eyePos + facing * 100, all, player, true);
+            hitPos[loop] = RayCastHitPosition(eyePos, eyePos + facing * 100, all, player, true);
+            hitPosPlayer[loop] = RayCastHitPlayer(eyePos, eyePos + facing * 100, all, player, true);
             ricochets[loop] = facing - (2 * (normals[loop] * DotProduct(facing, normals[loop])));
-            hitPosBounces[loop] = RayCastHitPosition(hitPositions[loop], hitPositions[loop] + ricochets[loop] * 1000, AllPlayers(), player, true);
+            hitPosBounces[loop] = RayCastHitPosition(hitPos[loop], hitPos[loop] + ricochets[loop] * 100, all, player, true);
+            hitPosPlayerBounces[loop] = RayCastHitPlayer(hitPos[loop], hitPos[loop] + ricochets[loop] * 100, all, player, true);
 
-            CreateBeamEffect(AllPlayers(), BeamType.BadBeam, eyePos, hitPositions[loop], Color.SkyBlue, EffectRev.None);
-            CreateBeamEffect(AllPlayers(), BeamType.BadBeam, hitPositions[loop], hitPosBounces[loop], Color.SkyBlue, EffectRev.None);
-            MinWait();
+            CreateBeamEffect(all, BeamType.BadBeam, eyePos, hitPos[loop], Color.SkyBlue, EffectRev.None);
+            CreateBeamEffect(all, BeamType.BadBeam, hitPos[loop], hitPosBounces[loop], Color.SkyBlue, EffectRev.None);
+
+            Kill(hitPosPlayer[loop], player);
+            Kill(hitPosPlayerBounces[loop], player);
         }
     }
 
