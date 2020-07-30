@@ -12,7 +12,7 @@ globalvar define icon;
 // playervar
 playervar define timeCD;
 playervar define teleCD;
-playervar define mineCD;
+playervar define tbdCD;
 playervar define cooldownHud = [];
 playervar define timeStatusHud = [];
 playervar define timeStatusIcon = [];
@@ -24,7 +24,7 @@ playervar define echoHP;
 
 // ult: stops time for everyone for 10 seconds
 // ability 1: teleports and launches the user
-// ability 2: mine that rewinds the victims position 5 seconds ago
+// ability 2: who knows
 // secondary: who fuckin knows
 
 rule: "Init"
@@ -45,7 +45,7 @@ rule: "Init"
         CreateHudText(player, null, null, <"<0>", teleCD == 0 ? <"<0> Teleport [<2>]:  <1>", AbilityIconString(Hero.Zarya, ButtonValue(Button.Ability2)), IconString(Icon.Checkmark), InputBindingString(ButtonValue(Button.Ability1))> : <"<0> Teleport [<2>]: <1>", AbilityIconString(Hero.Zarya, ButtonValue(Button.Ability2)), RoundToInteger(teleCD, Rounding.Up), InputBindingString(ButtonValue(Button.Ability1))>>, Location.Top, 2, Color.White, Color.White, Color.White);
         cooldownHud[1] = LastTextID();
 
-        CreateHudText(player, null, null, <"<0>", mineCD == 0 ? <"<0> Recall Mine [<2>]:  <1>", AbilityIconString(Hero.Tracer, ButtonValue(Button.Ultimate)), IconString(Icon.Checkmark), InputBindingString(ButtonValue(Button.Ability2))> : <"<0> Recall Mine [<2>]: <1>", AbilityIconString(Hero.Tracer, ButtonValue(Button.Ultimate)), RoundToInteger(mineCD, Rounding.Up), InputBindingString(ButtonValue(Button.Ability2))>>, Location.Top, 3, Color.White, Color.White, Color.White);
+        CreateHudText(player, null, null, <"<0>", tbdCD == 0 ? <"<0> tbd [<2>]:  <1>", AbilityIconString(Hero.Tracer, ButtonValue(Button.Ultimate)), IconString(Icon.Checkmark), InputBindingString(ButtonValue(Button.Ability2))> : <"<0> tbd [<2>]: <1>", AbilityIconString(Hero.Tracer, ButtonValue(Button.Ultimate)), RoundToInteger(tbdCD, Rounding.Up), InputBindingString(ButtonValue(Button.Ability2))>>, Location.Top, 3, Color.White, Color.White, Color.White);
         cooldownHud[2] = LastTextID();
     }
 
