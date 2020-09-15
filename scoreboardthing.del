@@ -5,31 +5,28 @@ rule: "create text"
     if (HasSpawned())
     {
         /* more than 170/200 */
-        CreateHudText(NormalizedHealth() >= 0.85 ? AllyPlayers() : null,
+        CreateHudText((NormalizedHealth() >= 0.85) ? AllyPlayers() : null,
                       HeroIconString(HeroOf()),
                       <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
                       <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
 
         /* 170/200 - 120/200 */
-        CreateHudText(FilteredArray(AllyPlayers(),
-                      NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6),
+        CreateHudText((NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6) ? AllyPlayers() : null,
                       HeroIconString(HeroOf()),
                       <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
                       <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
 
         /* 120/200 - 70/200*/
-        CreateHudText(FilteredArray(AllyPlayers(),
-                      NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35),
+        CreateHudText((NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35) ? AllyPlayers() : null,
                       HeroIconString(HeroOf()),
                       <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
                       <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
                       Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
 
         /* less than 70/200 */
-        CreateHudText(FilteredArray(AllyPlayers(),
-                      IsAlive() && NormalizedHealth() < 0.35),
+        CreateHudText((IsAlive() && NormalizedHealth() < 0.35) ? AllyPlayers() : null,
                       HeroIconString(HeroOf()),
                       <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
                       <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
