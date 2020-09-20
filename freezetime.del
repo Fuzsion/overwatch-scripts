@@ -1,16 +1,15 @@
 import "macros.del";
 
 // globalvar
-globalvar define TIME_CD = 1;
-globalvar define TIME_DUR = 10;
-globalvar define TELE_CD = 8;
-globalvar define DIST = 6.5;
+globalvar define TIME_DUR = WorkshopSettingInteger("Constants", "Time Stop Duration", 10, 1, 100);
+globalvar define TELE_CD = WorkshopSettingInteger("Constants", "Teleport Cooldown", 8, 0, 60);
+globalvar define TBD_CD = WorkshopSettingInteger("Constants", "TBD Ability Cooldown", 1, 0, 60);
+globalvar define DIST = WorkshopSettingReal("Constants", "Raycast Distance", 6.5, 0, 100);
 globalvar define timeFrozen;
 globalvar define timeDur;
 globalvar define icon;
 
 // playervar
-playervar define timeCD;
 playervar define teleCD;
 playervar define tbdCD;
 playervar define cooldownHud = [];
@@ -23,16 +22,16 @@ playervar define echoHP;
 
 
 // ult: stops time for everyone for 10 seconds
-// ability 1: teleports and launches the user
+// ability 1: teleports then launches the user
 // ability 2: who knows
-// secondary: who fuckin knows
+// secondary: who knows
 
 rule: "Init"
     Player.Echo
     Event.OngoingPlayer
     {
-        SetMaxHealth(player, 0);
-        AddHealthPoolToPlayer(player, HealthType.Shields, 198, true, true);
+        SetMaxHealth(player, 12.5);
+        AddHealthPoolToPlayer(player, HealthType.Shields, 175, true, true);
         echoHP = LastCreatedHealthPool();
         DisallowButton(player, Button.Ultimate);
         DisallowButton(player, Button.Ability1);
@@ -49,7 +48,7 @@ rule: "Init"
         cooldownHud[2] = LastTextID();
     }
 
-rule: "Revert Changes if not Echo"
+rule: "Revert Changes"
     Event.OngoingPlayer
     if (!IsHero(Hero.Echo))
     {
@@ -69,15 +68,16 @@ rule: "Revert Changes if not Echo"
         AllowButton(player, Button.SecondaryFire);
     }
 
+playervar define user;
 rule: "[Time] :: Activate Time Stop"
     Player.Echo
     Event.OngoingPlayer
-    if (IsButtonHeld(player, Button.Ultimate) && UltimateChargePercent() == 100 && IsAlive())
+    if (!timeFrozen && IsButtonHeld(player, Button.Ultimate) && UltimateChargePercent() == 100 && IsAlive())
     {
         timeFrozen = true;
+        user = player;
         SetUltimateCharge(player, 0);
         SetUltimateAbilityEnabled(player, false);
-        StopChasingVariable(timeCD);
         timeDur = TIME_DUR;
         ChaseVariableAtRate(timeDur, 0, 1, RateChaseReevaluation.None);
     }
@@ -88,10 +88,13 @@ rule: "[Time] :: Deactivate Time Stop"
     if (timeFrozen && timeDur == 0)
     {
         timeFrozen = false;
+        user = null;
         SetUltimateAbilityEnabled(player, true);
         StopChasingVariable(timeDur);
-        ChaseVariableAtRate(timeCD, 0, 1, RateChaseReevaluation.None);
     }
+
+// this will not work properly if more than one person is on echo on the same team; need a better fix
+define PlayerArray: RemoveFromArray(all, PlayersOnHero(Hero.Echo, TeamOf(user)));
 
 rule: "[Time] :: Stop"
     Event.OngoingPlayer
@@ -106,27 +109,29 @@ rule: "[Time] :: Stop"
 
         Wait();
 
-        CreateHudText(player, null, null, <" \n\n\n\n\n\n\n\n<0>", icon>, Location.Top, 4, Color.White, Color.White, Color.Red);
+        CreateHudText(player, null, null, <" \n\n\n\n\n\n<0>", icon>, Location.Top, 4, Color.White, Color.White, Color.Red);
         timeStatusIcon[0] = LastTextID();
         CreateHudText(player, null, null, <" \nTime will resume in <0>", RoundToInteger(timeDur, Rounding.Up)>, Location.Top, 5, Color.White, Color.White, Color.Red);
         timeStatusHud[1] = LastTextID();
 
-        SetStatus(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), null, Status.Frozen, 10000);
-        SetStatus(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), null, Status.Unkillable, 10000);
+        SetStatus(PlayerArray, null, Status.Frozen, TIME_DUR);
+        SetStatus(PlayerArray, null, Status.Unkillable, TIME_DUR);
 
-        StartForcingPlayerOutlines(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), all, true, Color.Purple);
+        ForceThrottle(PlayerArray, 0,0,0,0,0,0);
+
+        StartForcingPlayerOutlines(PlayerArray, all, true, Color.Purple);
 
         StartHealingModification(all, all, 0);
         healingMod = LastHealingModificationID();
 
-        SetGravity(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), 0);
+        SetGravity(PlayerArray, 0);
 
-        ApplyImpulse(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), Up(), 0.001);
-        ApplyImpulse(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), Down(), 0.001);
-        ApplyImpulse(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), Left(), 0.001);
-        ApplyImpulse(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), Right(), 0.001);
-        ApplyImpulse(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), Forward(), 0.001);
-        ApplyImpulse(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), Backward(), 0.001);
+        ApplyImpulse(PlayerArray, Up(), 0.001);
+        ApplyImpulse(PlayerArray, Down(), 0.001);
+        ApplyImpulse(PlayerArray, Left(), 0.001);
+        ApplyImpulse(PlayerArray, Right(), 0.001);
+        ApplyImpulse(PlayerArray, Forward(), 0.001);
+        ApplyImpulse(PlayerArray, Backward(), 0.001);
 
         for (define loop; 6; 1)
         {
@@ -141,7 +146,6 @@ rule: "[Time] :: Resume"
     Event.OngoingPlayer
     if (!timeFrozen)
     {
-        icon = "▶";
         UnpauseMatchTime();
 
         DestroyHudText(timeStatusHud[0]);
@@ -151,7 +155,9 @@ rule: "[Time] :: Resume"
 
         Wait();
 
-        CreateHudText(player, null, null, <" \n\n\n\n\n\n\n\n<0>", icon>, Location.Top, 4, Color.White, Color.White, Color.SkyBlue);
+        icon = "▶";
+
+        CreateHudText(player, null, null, <" \n\n\n\n\n\n<0>", icon>, Location.Top, 4, Color.White, Color.White, Color.SkyBlue);
         timeStatusIcon[1] = LastTextID();
         CreateHudText(player, null, null, " \nTime resumed", Location.Top, 5, Color.White, Color.White, Color.SkyBlue);
         timeStatusHud[0] = LastTextID();
@@ -159,11 +165,14 @@ rule: "[Time] :: Resume"
         ClearStatus(all, Status.Frozen);
         ClearStatus(all, Status.Unkillable);
 
-        StopForcingPlayerOutlines(RemoveFromArray(all, PlayersOnHero(Hero.Echo)), all);
+        StopForcingThrottle();
+
+        StopForcingPlayerOutlines(PlayerArray, all);
 
         Wait();
 
-        Kill(FilteredArray(all, Health(Curr()) == 1), PlayersOnHero(Hero.Echo));
+        // kill credit will not work properly if more than one person is on echo on the same team; need a better fix
+        Kill(FilteredArray(all, Health(Curr()) <= 1), PlayersOnHero(Hero.Echo, TeamOf(user)));
 
         StopForcingThrottle();
 
@@ -177,25 +186,9 @@ rule: "[Time] :: Resume"
         DestroyHudText(timeStatusHud[0]);
     }
 
-rule: "[Time] :: Time Stop Knockback"
-    Event.PlayerReceivedKnockback
-    if (timeFrozen)
-    {
-        SetGravity(player != PlayersOnHero(Hero.Echo) ? player : null, 100);
-        WaitIfTrue(1);
-        SetGravity(player != PlayersOnHero(Hero.Echo) ? player : null, 0);
-
-        ApplyImpulse(player != PlayersOnHero(Hero.Echo) ? player : null, Up(), 0.001);
-        ApplyImpulse(player != PlayersOnHero(Hero.Echo) ? player : null, Down(), 0.001);
-        ApplyImpulse(player != PlayersOnHero(Hero.Echo) ? player : null, Left(), 0.001);
-        ApplyImpulse(player != PlayersOnHero(Hero.Echo) ? player : null, Right(), 0.001);
-        ApplyImpulse(player != PlayersOnHero(Hero.Echo) ? player : null, Forward(), 0.001);
-        ApplyImpulse(player != PlayersOnHero(Hero.Echo) ? player : null, Backward(), 0.001);
-    }
-
 define raycast: RayCastHitPosition(EyePosition(), EyePosition() + Facing() * DIST, null, AllDeadPlayers(), false);
 
-rule: "[Tele] :: True"
+rule: "[Tele] :: Activate"
     Player.Echo
     Event.OngoingPlayer
     if (IsButtonHeld(player, Button.Ability1) && IsAlive() && teleCD == 0)
@@ -227,6 +220,8 @@ rule: "[Tele] :: Action"
 
         if (IsButtonHeld(player, Button.Jump))
             ApplyImpulse(player, FacingDirectionOf() + Vector(0, 0.5, 0), 25);
+        else if (IsButtonHeld(player, Button.Crouch))
+            ApplyImpulse(player, FacingDirectionOf() + Vector(0, -0.5, 0), 25);
         else 
             ApplyImpulse(player, FacingDirectionOf(), 25);
 

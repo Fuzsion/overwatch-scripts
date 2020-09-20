@@ -1,0 +1,23 @@
+import "macros.del";
+playervar define vertSpeed;
+
+rule: "hud"
+    Event.OngoingPlayer
+    {
+        CreateHudText(player, null, null, <"vertSpeed: <0>", vertSpeed>, Location.Top, -1, Color.White, Color.White, Color.White);
+        CreateHudText(player, null, null, <"Altitude: <0>", AltitudeOf()>, Location.Top, -1, Color.White, Color.White, Color.White);
+    }
+
+rule: "in air"
+    Event.OngoingPlayer
+    if (IsInAir() && AltitudeOf() < 1)
+    {
+        vertSpeed = VerticalSpeedOf();
+    }
+
+rule: "hit ground"
+    Event.OngoingPlayer
+    if (IsOnGround() && vertSpeed < -10)
+    {
+        Damage(player, null, vertSpeed * -2);
+    }
