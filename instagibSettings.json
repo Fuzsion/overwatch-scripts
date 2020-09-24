@@ -1,0 +1,53 @@
+{
+  "Lobby": {
+    "Allow Players Who Are In Queue": true,
+    "Map Rotation": "After A Game",
+    "Max Spectators": 12,
+    "Return To Lobby": "Never"
+  },
+  "Modes": {
+    "All": {
+      "Game Mode Start": "Immediately",
+      "Hero Limit": "Off",
+      "Respawn As Random Hero": true,
+      "Respawn Time Scalar": 10.0,
+      "Spawn Health Packs": "Disabled"
+    },
+    "Deathmatch": {
+      "Enabled Maps": [
+        "Blizzard World",
+        "Blizzard World (Winter)",
+        "Château Guillard",
+        "Dorado",
+        "Ecopoint: Antarctica",
+        "Ecopoint: Antarctica (Winter)",
+        "Eichenwalde",
+        "Hollywood",
+        "King's Row",
+        "King's Row (Winter)",
+        "Lijiang Control Center",
+        "Lijiang Control Center (Lunar New Year)",
+        "Necropolis",
+        "Paris",
+        "Havana"
+      ]
+    }
+  },
+  "Heroes": {
+    "General": {
+      "Enabled Heroes": [
+        "Mccree"
+      ],
+      "Mccree": {
+        "Combat Roll": false,
+        "Damage Dealt": 500.0,
+        "Damage Received": 500.0,
+        "Flashbang": false,
+        "No Ammunition Requirement": true,
+        "Quick Melee": false,
+        "Secondary Fire": false,
+        "Ultimate Ability (Deadeye)": false
+      }
+    }
+  }
+}
