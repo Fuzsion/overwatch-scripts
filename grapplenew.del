@@ -1,0 +1,64 @@
+globalvar define GrappleRange;
+playervar define IsGrappleable;
+playervar define GrappleTarget;
+playervar define GrappleOffset;
+playervar define GrappleEndpoint;
+playervar define GrappleBeam;
+
+rule: "Grappling hook"
+Event.OngoingPlayer
+if (IsButtonHeld(EventPlayer(), Button.Interact) == true)
+if (IsAlive(EventPlayer()) == true)
+if (HasStatus(EventPlayer(), Status.Hacked) == false)
+if (HasStatus(EventPlayer(), Status.KnockedDown) == false)
+if (HasStatus(EventPlayer(), Status.Asleep) == false)
+if (HasStatus(EventPlayer(), Status.Frozen) == false)
+if (HasStatus(EventPlayer(), Status.Rooted) == false)
+if (HasStatus(EventPlayer(), Status.Stunned) == false)
+{
+    GrappleRange = WorkshopSettingInteger("Grappling Hook", "Initial range (meters)", 25, 5, 300);
+    PlayEffect(AllPlayers(Team.All), PlayEffect.ExplosionSound, Color.White, EventPlayer(), 30);
+    GrappleTarget = RayCastHitPlayer(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + FacingDirectionOf(EventPlayer()) * GrappleRange, AllPlayers(Team.All), FilteredArray(AllPlayers(Team.All), !ArrayElement().IsGrappleable), false);
+    if (EntityExists(GrappleTarget))
+    {
+        GrappleOffset = LocalVectorOf(RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + FacingDirectionOf(EventPlayer()) * GrappleRange, AllPlayers(Team.All), FilteredArray(AllPlayers(Team.All), !ArrayElement().IsGrappleable), false), GrappleTarget, Transformation.RotationAndTranslation);
+    }
+    else
+    {
+        GrappleTarget = RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + FacingDirectionOf(EventPlayer()) * GrappleRange, null, EventPlayer(), false);
+        GrappleOffset = Vector(0, 0, 0);
+    }
+    GrappleEndpoint = EyePosition(EventPlayer()) + Down() * 0.5;
+    CreateBeamEffect(AllPlayers(Team.All), BeamType.GrappleBeam, EventPlayer(), GrappleEndpoint, Color.White, EffectRev.VisibleToPositionAndRadius);
+    GrappleBeam = LastCreatedEntity();
+    if (!EntityExists(GrappleTarget) && DistanceBetween(EyePosition(EventPlayer()), GrappleTarget) >= GrappleRange)
+    {
+        ChaseVariableAtRate(GrappleEndpoint, GrappleTarget, 150, RateChaseReevaluation.DestinationAndRate);
+        Wait(GrappleRange / 150, WaitBehavior.IgnoreCondition);
+        ChaseVariableAtRate(GrappleEndpoint, EyePosition(EventPlayer()) + Down() * 0.5, 150, RateChaseReevaluation.DestinationAndRate);
+        Wait(GrappleRange / 150, WaitBehavior.IgnoreCondition);
+        DestroyEffect(GrappleBeam);
+    }
+    else
+    {
+        ChaseVariableAtRate(GrappleEndpoint, EntityExists(GrappleTarget) ? WorldVectorOf(GrappleOffset, GrappleTarget, LocalVector.RotationAndTranslation) : GrappleTarget, 150, RateChaseReevaluation.DestinationAndRate);
+        PressButton(EventPlayer(), Button.Interact);
+        Wait(DistanceBetween(EventPlayer(), GrappleTarget) / 150, WaitBehavior.IgnoreCondition);
+        PlayEffect(EventPlayer(), PlayEffect.BuffExplosionSound, Color.White, EventPlayer(), 50);
+        StartAccelerating(EventPlayer(), Up(), 10, 60, Relative.ToWorld, AccelerateRev.DirectionRateAndMaxSpeed);
+        while (!IsButtonHeld(EventPlayer(), Button.Interact) && IsAlive(EventPlayer()) && IsInViewAngle(EventPlayer(), GrappleEndpoint, 90) && !IsButtonHeld(EventPlayer(), Button.Crouch) && DistanceBetween(EventPlayer(), GrappleEndpoint) <= WorkshopSettingInteger("Grappling Hook", "Detach range (must be greater than initial range!)", 35, 10, 500) && !(WorkshopSettingToggle("Grappling Hook", "Ability usage interrupts grapple", false) && IsFiringPrimary(EventPlayer()) || IsFiringSecondary(EventPlayer()) || IsUsingAbility1(EventPlayer()) || IsUsingAbility2(EventPlayer()) || IsUsingUltimate(EventPlayer())) && !(HasStatus(EventPlayer(), Status.Hacked) || HasStatus(EventPlayer(), Status.KnockedDown) || HasStatus(EventPlayer(), Status.Asleep) || HasStatus(EventPlayer(), Status.Frozen) || HasStatus(EventPlayer(), Status.Hacked) || HasStatus(EventPlayer(), Status.Stunned)) && true)
+        {
+            ApplyImpulse(EventPlayer(), DirectionTowards(EventPlayer(), GrappleEndpoint), 1, Relative.ToWorld, ContraryMotion.Incorporate);
+            ApplyImpulse(EventPlayer(), FacingDirectionOf(EventPlayer()) + WorldVectorOf(Left(), EventPlayer(), LocalVector.Rotation) * XOf(ThrottleOf(EventPlayer())), 1, Relative.ToWorld, ContraryMotion.Incorporate);
+            Wait(0.048, WaitBehavior.IgnoreCondition);
+        }
+        StopAccelerating(EventPlayer());
+        ChaseVariableAtRate(GrappleEndpoint, EyePosition(EventPlayer()) + Down() * 0.5, 150, RateChaseReevaluation.DestinationAndRate);
+        Wait(DistanceBetween(EventPlayer(), GrappleTarget) / 150, WaitBehavior.IgnoreCondition);
+        PlayEffect(AllPlayers(Team.All), PlayEffect.ExplosionSound, Color.White, EventPlayer(), 30);
+        DestroyEffect(GrappleBeam);
+        Wait(WorkshopSettingReal("Grappling Hook", "Cooldown (seconds)", 3, 0.25, 60), WaitBehavior.IgnoreCondition);
+        SkipIf(!WorkshopSettingToggle("Grappling Hook", "Cooldown notification", true), 1);
+        SmallMessage(EventPlayer(), <"{0} grapple ready", AbilityIconString(Hero.WreckingBall, ButtonValue(Button.SecondaryFire))>);
+    }
+}

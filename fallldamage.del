@@ -10,7 +10,7 @@ rule: "hud"
 
 rule: "in air"
     Event.OngoingPlayer
-    if (IsInAir() && AltitudeOf() < 1)
+    if (IsInAir() && AltitudeOf() < 0.25)
     {
         vertSpeed = VerticalSpeedOf();
     }
