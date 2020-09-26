@@ -29,7 +29,10 @@
         "Lijiang Control Center (Lunar New Year)",
         "Necropolis",
         "Paris",
-        "Havana"
+        "Havana",
+        "Castillo",
+        "Black Forest",
+        "Black Forest (Winter)"
       ]
     }
   },
@@ -49,5 +52,6 @@
         "Ultimate Ability (Deadeye)": false
       }
     }
-  }
+  },
+  "Description": "Instagib | Created by scort#11221"
 }
