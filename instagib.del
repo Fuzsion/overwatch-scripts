@@ -16,7 +16,8 @@ playervar define isChasing;
 
 // primary
 playervar define primaryHit;
-// playervar define primaryStartPos;
+playervar define primaryStartPos;
+playervar define primaryBeam;
 
 // secondary
 playervar define secondaryHit;
@@ -47,7 +48,6 @@ globalvar define GRAPPLE_PULL_SPEED;
 
 // constants :: secondary
 globalvar define SECONDARY_PROJECTILE_SPEED;
-// globalvar define SECONDARY_RADIUS;
 
 // constants: misc
 globalvar define MATCH_TIME_LIMIT;
@@ -65,6 +65,7 @@ globalvar define buffIcon;
 playervar define hudText;
 globalvar define cdText;
 
+// wallbang
 globalvar define spawnWallbang;
 globalvar define spawnWithWallbang;
 globalvar define NUM_WALLBANGS;
@@ -75,7 +76,7 @@ globalvar define WALLBANG_CD;
 playervar define wallbangDur;
 globalvar define WALLBANG_DUR;
 
-
+// extra life
 globalvar define spawnLife;
 globalvar define spawnWithLife;
 globalvar define lifeCD;
@@ -83,6 +84,7 @@ globalvar define LIFE_CD;
 playervar define extraLife;
 playervar define extraLifeIcon;
 
+// ricochet
 globalvar define spawnBounce;
 globalvar define spawnWithBounce;
 globalvar define NUM_BOUNCES;
@@ -92,6 +94,7 @@ playervar define bounceEnabled;
 playervar define bounceDur;
 globalvar define BOUNCE_DUR;
 
+// buckshot
 globalvar define spawnBuckshot;
 globalvar define spawnWithBuckshot;
 globalvar define BUCKSHOT_SPREAD;
@@ -104,8 +107,14 @@ playervar define buckshotEnabled;
 playervar define buckshotDur;
 globalvar define BUCKSHOT_DUR;
 globalvar define spreadDiag;
-globalvar define spreadHoriz;
+globalvar define spreadHori;
 globalvar define randomSpread;
+
+/////////////////////////////////////////////////////////////////////////////////// TODO: ///////////////////////////////////////////////////////////////////////////////////
+//  Buckshot Optimizations (+ Optimize Randomized Spread). Need a new method to calculate spread that doesn't fire 9 different raycasts at once, not sure if possible
+//  Player is killed with buff they will drop that buff with the same remaining time when they die
+//  Optimizations
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 rule: "[Main] :: Initial Global"
     {
@@ -128,16 +137,15 @@ rule: "[Main] :: Initial Global"
         buffsSpawnImmediately = WorkshopSettingToggle("Buff Spawns", "Buffs Spawn Immediately When Match Starts (Off)", false);
         buffsEnabled = WorkshopSettingToggle("Buff Spawns", "Spawn Buffs (On)", true);
 
-        NUM_WALLBANGS = WorkshopSettingInteger("Wallbang Buff Settings", "Wallbang Amount (10)", 10, 2, 100);
+        NUM_WALLBANGS = WorkshopSettingInteger("Wallbang Buff Settings", "Wallbang Amount (5)", 5, 2, 100);
         WALLBANG_CD = WorkshopSettingInteger("Wallbang Buff Settings", "Wallbang Orb Spawn Time (75)", 75, 1, 300);
-        WALLBANG_DUR = WorkshopSettingInteger("Wallbang Buff Settings", "Wallbang Buff Duration (15)", 15, 1, 300);
+        WALLBANG_DUR = WorkshopSettingInteger("Wallbang Buff Settings", "Wallbang Buff Duration (25)", 25, 1, 300);
         spawnWallbang = WorkshopSettingToggle("Wallbang Buff Settings", "Spawn Wallbang Orb (On)", true);
         spawnWithWallbang = WorkshopSettingToggle("Wallbang Buff Settings", "Spawn With Wallbang (Lasts Forever) (Off)", false);
 
         BOUNCE_CD = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Orb Spawn Time (65)", 65, 1, 300);
-        BOUNCE_DUR = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Buff Duration (15)", 15, 1, 300);
-        // set default to 5 and maximum to 64 here once i figure out destroying beam effects
-        NUM_BOUNCES = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Amount (5)", 5, 1, 64);
+        BOUNCE_DUR = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Buff Duration (25)", 25, 1, 300);
+        NUM_BOUNCES = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Amount (4)", 4, 1, 64);
         spawnBounce = WorkshopSettingToggle("Ricochet Buff Settings", "Spawn Ricochet Orb (On)", true);
         spawnWithBounce = WorkshopSettingToggle("Ricochet Buff Settings", "Spawn With Ricochet (Lasts Forever) (Off)", false);
 
@@ -146,7 +154,7 @@ rule: "[Main] :: Initial Global"
         spawnWithLife = WorkshopSettingToggle("Extra Life Buff Settings", "Spawn With Extra Life (Off)", false);
 
         BUCKSHOT_CD = WorkshopSettingInteger("Buckshot Buff Settings", "Buckshot Orb Spawn Time (95)", 95, 1, 300);
-        BUCKSHOT_DUR = WorkshopSettingInteger("Buckshot Buff Settings", "Buckshot Buff Duration (10)", 10, 1, 300);
+        BUCKSHOT_DUR = WorkshopSettingInteger("Buckshot Buff Settings", "Buckshot Buff Duration (20)", 20, 1, 300);
         BUCKSHOT_SPREAD = WorkshopSettingReal("Buckshot Buff Settings", "Buckshot Spread (Lower is Tighter) (3.5)", 3.5, 0.1, 20);
         randomSpread = WorkshopSettingToggle("Buckshot Buff Settings", "Randomized Buckshot Spread (Off)", false);
         spawnBuckshot = WorkshopSettingToggle("Buckshot Buff Settings", "Spawn Buckshot Orb (On)", true);
@@ -164,6 +172,7 @@ rule: "[Main] :: Initial Player Join"
     {
         hudText = [];
         spreeInWorld = [];
+        spreeEffects = [];
     }
 
 rule: "[Main] :: Start Match"
@@ -197,7 +206,7 @@ rule: "[Main] :: Start Match"
             if (!spawnWithBuckshot && spawnBuckshot)
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Ashe, ButtonValue(Button.Ability1))>, null,
                 buckshotCD != 0 ? <"<0>", RoundToInteger(buckshotCD, Rounding.Up)> : EntityExists(buffEffect[3]) ? <"<0>", IconString(Icon.Checkmark)> : "In-Use",
-                Location.Left, 3, Color.Red);
+                Location.Left, 3, Color.Green);
 
             if (!spawnWithLife && spawnLife)
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Mercy, ButtonValue(Button.Ability2))>, null,
@@ -230,18 +239,27 @@ rule: "[Main] :: End Game"
         EnableCompletion();
     }
 
-rule: "[Main] :: Primary wallbangEffect"
+rule: "[Main] :: Primary Effect"
     Event.OngoingPlayer
     if (!wallbangEnabled && !bounceEnabled && !buckshotEnabled && IsFiringPrimary())
     {
+        primaryBeam = [];
         livingEnemies = FilteredArray(EnemyPlayers(), IsAlive(Curr()));
-        // primaryStartPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
+        primaryStartPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
         primaryHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
         
         // PlayEffect(player, PlayEffect.GoodExplosion, Color.Aqua, EyePosition() + Facing() + primaryStartPos, 0.2);
         PlayEffect(player, PlayEffect.GoodExplosion, Color.Aqua, primaryHit, 0.2);
         // PlayEffect(RemoveFromArray(EnemyPlayers(), player), PlayEffect.GoodExplosion, Color.Red, EyePosition() + Facing() + primaryStartPos, 0.2);
         PlayEffect(RemoveFromArray(EnemyPlayers(), player), PlayEffect.GoodExplosion, Color.Red, primaryHit, 0.2);
+        CreateBeamEffect(player, BeamType.BadBeam, EyePosition() + Facing() + primaryStartPos, primaryHit, Color.Aqua, EffectRev.None);
+        primaryBeam[0] = LastCreatedEntity();
+        CreateBeamEffect(RemoveFromArray(EnemyPlayers(), player), BeamType.BadBeam, EyePosition() + Facing() + primaryStartPos, primaryHit, Color.Red, EffectRev.None);
+        primaryBeam[1] = LastCreatedEntity();
+
+        Wait(0.15);
+        DestroyEffect(primaryBeam[0]);
+        DestroyEffect(primaryBeam[1]);
     }
 
 disabled rule: "---------------- Killing Spree Notifs ----------------"{}
@@ -269,6 +287,7 @@ Ludicrous Kill
 
 playervar define lifeKills;
 playervar define spreeInWorld;
+playervar define spreeEffects;
 rule: "[Killspree] :: Record Kills While Alive"
     Event.OnFinalBlow
     {
@@ -280,13 +299,19 @@ rule: "[Killspree] :: Reset Kills on death"
     {
         if (lifeKills > 5)
         {
-            BigMessage(all, !EventWasEnvironment() ? <"<0>'s <1> player killing spree was put to an end by <2>!", Victim(), lifeKills, Attacker()> : 
-                                                       <"<0>'s <1> player killing spree was put to an end by the world!", Victim(), lifeKills>);
+            BigMessage(all, !EventWasEnvironment() ? <"<0>'s <1> player spree was put to an end by <2>!", Victim(), lifeKills, Attacker()> : 
+                                                       <"<0>'s <1> player spree was put to an end by the world!", Victim(), lifeKills>);
         }
 
-        Wait();
+        for (define i = 0; i < 7; i++)
+        {
+            DestroyEffect(spreeEffects[i]);
+        }
+
+        Wait(0.032);
         lifeKills = 0;
         spreeInWorld = [];
+        spreeEffects = [];
     }
 
 rule: "[Killspree] :: 5 Kills"
@@ -296,54 +321,95 @@ rule: "[Killspree] :: 5 Kills"
         BigMessage(all, <"<0> is on a Killing Spree!", player>);
         CreateInWorldText(player, "Killing Spree!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.White);
         spreeInWorld[0] = LastTextID();
-        Wait(1);
+        CreateEffect(all, Effect.Sparkles, Color.White, player, 1, EffectRev.VisibleToPositionAndRadius);
+        spreeEffects[0] = LastCreatedEntity();
+        Wait(2);
         DestroyInWorldText(spreeInWorld[0]);
     }
 
-rule: "[Killspree] :: 10 Kills"
+rule: "[Killspree] :: 8 Kills"
     Event.OnFinalBlow
-    if (lifeKills == 10)
+    if (lifeKills == 8)
     {
+        DestroyEffect(spreeEffects[0]);
         BigMessage(all, <"<0> is on a Rampage!", player>);
         CreateInWorldText(player, "Rampage!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.LimeGreen);
         spreeInWorld[1] = LastTextID();
-        Wait(1);
+        CreateEffect(all, Effect.Sparkles, Color.LimeGreen, player, 1, EffectRev.VisibleToPositionAndRadius);
+        spreeEffects[1] = LastCreatedEntity();
+        Wait(2);
         DestroyInWorldText(spreeInWorld[1]);
     }
 
-rule: "[Killspree] :: 15 Kills"
+rule: "[Killspree] :: 11 Kills"
     Event.OnFinalBlow
-    if (lifeKills == 15)
+    if (lifeKills == 11)
     {
+        DestroyEffect(spreeEffects[1]);
         BigMessage(all, <"<0> is Dominating!", player>);
         CreateInWorldText(player, "Dominating!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Blue);
         spreeInWorld[2] = LastTextID();
-        Wait(1);
+        CreateEffect(all, Effect.Sparkles, Color.Blue, player, 1, EffectRev.VisibleToPositionAndRadius);
+        spreeEffects[2] = LastCreatedEntity();
+        Wait(2);
         DestroyInWorldText(spreeInWorld[2]);
     }
 
-rule: "[Killspree] :: 20 Kills"
+rule: "[Killspree] :: 14 Kills"
     Event.OnFinalBlow
-    if (lifeKills == 20)
+    if (lifeKills == 14)
     {
+        DestroyEffect(spreeEffects[2]);
         BigMessage(all, <"<0> is Unstoppable!", player>);
         CreateInWorldText(player, "Unstoppable!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Purple);
         spreeInWorld[3] = LastTextID();
-        Wait(1);
+        CreateEffect(all, Effect.Sparkles, Color.Purple, player, 1, EffectRev.VisibleToPositionAndRadius);
+        spreeEffects[3] = LastCreatedEntity();
+        Wait(2);
         DestroyInWorldText(spreeInWorld[3]);
     }
 
-rule: "[Killspree] :: 30 Kills"
+rule: "[Killspree] :: 17 Kills"
     Event.OnFinalBlow
-    if (lifeKills == 30)
+    if (lifeKills == 17)
     {
+        DestroyEffect(spreeEffects[3]);
         BigMessage(all, <"<0> is Godlike!", player>);
         CreateInWorldText(player, "Godlike!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Yellow);
         spreeInWorld[4] = LastTextID();
-        Wait(1);
+        CreateEffect(all, Effect.Sparkles, Color.Yellow, player, 1, EffectRev.VisibleToPositionAndRadius);
+        spreeEffects[4] = LastCreatedEntity();
+        Wait(2);
         DestroyInWorldText(spreeInWorld[4]);
     }
 
+rule: "[Killspree] :: 21 Kills"
+    Event.OnFinalBlow
+    if (lifeKills == 21)
+    {
+        DestroyEffect(spreeEffects[4]);
+        BigMessage(all, <"<0> is Divine!", player>);
+        CreateInWorldText(player, "Divine!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Orange);
+        spreeInWorld[5] = LastTextID();
+        CreateEffect(all, Effect.Sparkles, Color.Orange, player, 1, EffectRev.VisibleToPositionAndRadius);
+        spreeEffects[5] = LastCreatedEntity();
+        Wait(2);
+        DestroyInWorldText(spreeInWorld[5]);
+    }
+
+rule: "[Killspree] :: 24 Kills"
+    Event.OnFinalBlow
+    if (lifeKills == 24)
+    {
+        DestroyEffect(spreeEffects[5]);
+        BigMessage(all, <"<0> is Empyreal!", player>);
+        CreateInWorldText(player, "Empyreal!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Red);
+        spreeInWorld[6] = LastTextID();
+        CreateEffect(all, Effect.Sparkles, Color.Red, player, 1, EffectRev.VisibleToPositionAndRadius);
+        spreeEffects[6] = LastCreatedEntity();
+        Wait(2);
+        DestroyInWorldText(spreeInWorld[6]);
+    }
 
 disabled rule: "---------------- Bhop ----------------"{}
 rule: "[Bhop] :: Auto Hop"
@@ -363,7 +429,7 @@ rule: "[Bhop] :: Starting Speed"
 
 rule: "[Bhop] :: If Airborne"
     Event.OngoingPlayer
-    if ((!usingGrapple && IsJumping() && HorizontalSpeedOf() > DEFAULT_START_SPEED / 33.33) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) < 100))
+    if ((!usingGrapple && IsJumping() && HorizontalSpeedOf() > DEFAULT_START_SPEED / 33.33) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) < 40))
     {
         speedAccumInAir = HorizontalSpeedOf();
         Wait(0.05);
@@ -430,11 +496,10 @@ rule: "[Secondary Fire] :: Projectile"
     Event.OngoingPlayer
     if (matchStarted && IsSecondaryHeld() && IsAlive())
     {
-        // todo: projectile will not hit a target if said target does not interrupt the projectile's path, need jacob's help
         livingEnemies = FilteredArray(EnemyPlayers(), IsAlive(Curr()));
-        secondaryStartPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
+        // secondaryStartPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
         secondaryHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
-        secondaryEyePos = EyePosition() + secondaryStartPos;
+        secondaryEyePos = EyePosition()/*  + secondaryStartPos */;
         DestroyEffect(secondaryOrb);
         PlayEffect(all, PlayEffect.RingExplosionSound, Color.White, player, 50);
         // PlayEffect(all, PlayEffect.GoodExplosion, Color.Red, EyePosition() + Facing() + secondaryStartPos, 0.2);
@@ -470,8 +535,8 @@ rule: "[Grapple] :: Grapple Start"
     if (matchStarted && IsAbility2Held() && IsAlive())
     {
         livingEnemies = FilteredArray(EnemyPlayers(), IsAlive(Curr()));
-        grappleHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
-        grappleHitPlayer = RayCastHitPlayer(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player, true);
+        grappleHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 40, livingEnemies, player);
+        grappleHitPlayer = RayCastHitPlayer(EyePosition(), EyePosition() + Facing() * 40, livingEnemies, player, true);
         grappleEyePos = EyePosition();
 
         if (grappleHitPlayer)
@@ -497,12 +562,23 @@ rule: "[Grapple] :: Grapple Start"
         PlayEffect(all, PlayEffect.BuffImpactSound, Color.White, grappleHit, 50);
 
         usingGrapple = true;
+
+        if (DistanceBetween(grappleEyePos, grappleHit) == 40)
+        {
+            Wait(0.25);
+            usingGrapple = false;
+            DestroyEffect(grappleBeamEffect);
+            DestroyEffect(grapplePlayerBeamEffect);
+            DestroyEffect(grappleHitSphere);
+            DestroyEffect(grappleHitPlayerSphere);
+        }
+
         Wait(0.5);
     }
 
 rule: "[Grapple] :: Pull"
     Event.OngoingPlayer
-    if (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) < 100)
+    if (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) < 40)
     {
         ForceThrottle(player, 0, 0.05, 0, 0.05, 0, 0.05);
 
@@ -546,7 +622,7 @@ void WallbangCooldown() globalvar "[Sub] :: Wallbang Cooldown"
         {
             wallbangCD = WALLBANG_CD;
             ChaseVariableAtRate(wallbangCD, 0, 1, RateChaseReevaluation.None);
-            CreateInWorldText(all, <"ㅤ<0>ㅤ", RoundToInteger(wallbangCD, Rounding.Up)>, buffPos[0], 2, Clipping.ClipAgainstSurfaces);
+            CreateInWorldText(all, <"<0>", RoundToInteger(wallbangCD, Rounding.Up)>, buffPos[0], 2, Clipping.ClipAgainstSurfaces);
             cdText[0] = LastTextID();
         }
     }
@@ -557,7 +633,7 @@ void LifeCooldown() globalvar "[Sub] :: Life Cooldown"
         {
             lifeCD = LIFE_CD;
             ChaseVariableAtRate(lifeCD, 0, 1, RateChaseReevaluation.None);
-            CreateInWorldText(all, <"ㅤ<0>ㅤ", RoundToInteger(lifeCD, Rounding.Up)>, buffPos[1], 2, Clipping.ClipAgainstSurfaces);
+            CreateInWorldText(all, <"<0>", RoundToInteger(lifeCD, Rounding.Up)>, buffPos[1], 2, Clipping.ClipAgainstSurfaces);
             cdText[1] = LastTextID();
         }
     }
@@ -568,7 +644,7 @@ void BounceCooldown() globalvar "[Sub] :: Bounce Cooldown"
         {
             bounceCD = BOUNCE_CD;
             ChaseVariableAtRate(bounceCD, 0, 1, RateChaseReevaluation.None);
-            CreateInWorldText(all, <"ㅤ<0>ㅤ", RoundToInteger(bounceCD, Rounding.Up)>, buffPos[2], 2, Clipping.ClipAgainstSurfaces);
+            CreateInWorldText(all, <"<0>", RoundToInteger(bounceCD, Rounding.Up)>, buffPos[2], 2, Clipping.ClipAgainstSurfaces);
             cdText[2] = LastTextID();
         }
     }
@@ -579,7 +655,7 @@ void BuckshotCooldown() globalvar "[Sub] :: Buckshot Cooldown"
         {
             buckshotCD = BUCKSHOT_CD;
             ChaseVariableAtRate(buckshotCD, 0, 1, RateChaseReevaluation.None);
-            CreateInWorldText(all, <"ㅤ<0>ㅤ", RoundToInteger(buckshotCD, Rounding.Up)>, buffPos[3], 2, Clipping.ClipAgainstSurfaces);
+            CreateInWorldText(all, <"<0>", RoundToInteger(buckshotCD, Rounding.Up)>, buffPos[3], 2, Clipping.ClipAgainstSurfaces);
             cdText[3] = LastTextID();
         }
     }
@@ -593,6 +669,7 @@ rule: "[Buff] :: Locations Switch"
         [3]: buckshot
         */
 
+        # i do not recommend opening the large action in-game
         validBuffMap = false;
         switch (true)
         {
@@ -605,10 +682,10 @@ rule: "[Buff] :: Locations Switch"
                 break;
             case (buffsEnabled && CurrentMap() == Map.Blizzard_World || CurrentMap() == Map.Blizzard_World_Winter):
                 validBuffMap = true;
-                buffPos[0] = Vector(-35.96, 0.79, 64.69);
-                buffPos[1] = Vector(-71.64, 2.75, 155.42);
-                buffPos[2] = Vector(-79.53, 1.25, 63.92);
-                buffPos[3] = Vector(-37.84, 0.79, 100.31);
+                buffPos[0] = Vector(-32.50, 0.61, 73.15);
+                buffPos[1] = Vector(-67.55, 1.75, 138.74);
+                buffPos[2] = Vector(-77.28, 5.88, 66.15);
+                buffPos[3] = Vector(-54.50, 0.61, 110.20);
                 break;
             case (buffsEnabled && CurrentMap() == Map.Chateau_Guillard || CurrentMap() == Map.Chateau_Guillard_Halloween):
                 validBuffMap = true;
@@ -682,10 +759,10 @@ rule: "[Buff] :: Locations Switch"
                 break;
             case (buffsEnabled && CurrentMap() == Map.Castillo):
                 validBuffMap = true;
-                buffPos[0] = Vector(-117.96, 43.27, 48.71);
+                buffPos[0] = Vector(-106.18, 40.56, 43.20);
                 buffPos[1] = Vector(-74.82, 33.00, 52.93);
                 buffPos[2] = Vector(-128.20, 35.38, 63.40);
-                buffPos[3] = Vector(-113.15, 43.27, 73.02);
+                buffPos[3] = Vector(-100.35, 40.56, 73.75);
                 break;
             case (buffsEnabled && CurrentMap() == Map.Black_Forest || CurrentMap() == Map.Black_Forest_Winter):
                 validBuffMap = true;
@@ -933,23 +1010,21 @@ playervar define hitPosPlayerBounces;
 playervar define eyePos;
 playervar define facing;
 
-playervar define raycastHitEffect;
-playervar define bounceEffects;
-playervar define bounceEffect;
+// playervar define bounceEffects;
+// playervar define bounceEffect;
 rule: "[Buff] :: Ricochet : Action"
     Event.OngoingPlayer
     if (bounceEnabled && IsFiringPrimary())
     {
         # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector
-        raycastHitEffect = [];
-        bounceEffects = [];
-        bounceEffect = [];
         normals = [];
         hitPos = [];
         hitPosPlayer = [];
         ricochets = [];
         hitPosBounces = [];
         hitPosPlayerBounces = [];
+        define bounceEffects = [];
+        define bounceEffect = [];
 
         for (define loop = 0; loop < NUM_BOUNCES; loop++)
         {
@@ -985,7 +1060,7 @@ rule: "[Buff] :: Ricochet : Action"
             Damage(hitPosPlayerBounces[loop], player, 10000);
         }
 
-        Wait(0.25);
+        Wait(0.15);
         for (define i = 0; i < NUM_BOUNCES; i++)
         {
             DestroyEffect(bounceEffect[i]);
@@ -996,8 +1071,8 @@ rule: "[Buff] :: Ricochet : Action"
 rule: "[Buff] :: Buckshot : Create Orb"
     if (validBuffMap && !spawnWithBuckshot && spawnBuckshot && buckshotCD == 0 && (matchStarted || buffsSpawnImmediately))
     {
-        PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Red, buffPos[3], 1);
-        CreateEffect(all, Effect.Orb, Color.Red, buffPos[3], 2);
+        PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Green, buffPos[3], 1);
+        CreateEffect(all, Effect.Orb, Color.Green, buffPos[3], 2);
         buffEffect[3] = LastCreatedEntity();
 
         CreateInWorldText(all, AbilityIconString(Hero.Ashe, ButtonValue(Button.Ability1)), buffPos[3], 2, Clipping.ClipAgainstSurfaces);
@@ -1021,8 +1096,8 @@ rule: "[Buff] :: Buckshot : Collect"
             DestroyEffect(buffEffect[3]);
 
             // pickup effects
-            PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Red, buffPos[3], 1);
-            PlayEffect(all, PlayEffect.BuffExplosionSound, Color.Red, buffPos[3], 200);
+            PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Green, buffPos[3], 1);
+            PlayEffect(all, PlayEffect.BuffExplosionSound, Color.Green, buffPos[3], 200);
 
             // start timer in hud
             buckshotDur = BUCKSHOT_DUR;
@@ -1035,7 +1110,7 @@ rule: "[Buff] :: Buckshot : Collect"
             SmallMessage(player, "Your bullets spread like a shotgun!");
 
             // create effect
-            CreateEffect(all, Effect.GoodAura, Color.Red, player, 0.75, EffectRev.VisibleToPositionAndRadius);
+            CreateEffect(all, Effect.GoodAura, Color.Green, player, 0.75, EffectRev.VisibleToPositionAndRadius);
             buckshotBuffEffect = LastCreatedEntity();
 
             // sound when buff is about to run out
@@ -1062,8 +1137,8 @@ rule: "[Buff] :: Buckshot : Collect"
         }
     }
 
-globalvar define randomizedSpreadHori;
-globalvar define randomizedSpreadDiag;
+playervar define randomizedSpreadHori;
+playervar define randomizedSpreadDiag;
 rule: "[Buff] :: Buckshot : Action"
     Event.OngoingPlayer
     if (buckshotEnabled && IsFiringPrimary())
@@ -1071,12 +1146,14 @@ rule: "[Buff] :: Buckshot : Action"
         // todo: PAIN PAIN PAIN PAIN MAKE THIS NOT FIRE 8000000 RAYCASTS SCORT PLEASE
         buckshotHitPos = [];
         buckshotHitPlayer = [];
-        // define gunPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
+        livingEnemies = FilteredArray(EnemyPlayers(), IsAlive(Curr()));
+        define gunPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
+        define buckshotBeam = [];
+        define centerBeam;
         
         spreadDiag = BUCKSHOT_SPREAD - (BUCKSHOT_SPREAD * 0.33);
-        spreadHoriz = BUCKSHOT_SPREAD;
+        spreadHori = BUCKSHOT_SPREAD;
 
-        // i have no idea if these loops are performant, my guess is no
         if (randomSpread)
         {
             randomizedSpreadHori = [];
@@ -1084,12 +1161,12 @@ rule: "[Buff] :: Buckshot : Action"
 
             for (define hori = 0; hori < 4; hori++)
             {
-                randomizedSpreadHori[hori] = RandomReal(0.1, spreadHoriz + 1.5);
+                randomizedSpreadHori[hori] = RandomReal(spreadHori / 5, spreadHori + 1.5);
             }
 
             for (define diag = 0; diag < 4; diag++)
             {
-                randomizedSpreadDiag[diag] = RandomReal(0.1, spreadDiag + 1.5);
+                randomizedSpreadDiag[diag] = RandomReal(spreadHori / 5, spreadDiag + 1.5);
             }
         }
 
@@ -1213,12 +1290,12 @@ rule: "[Buff] :: Buckshot : Action"
         {
             buckshotHitPos[4] = RayCastHitPosition(EyePosition(), EyePosition() + 
             WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadHoriz) 
+            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadHori) 
             * 100, AllLivingPlayers(), player, false)
 
             buckshotHitPlayer[4] = RayCastHitPlayer(EyePosition(), EyePosition() + 
             WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadHoriz) 
+            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadHori) 
             * 100, AllLivingPlayers(), player, false)
         }
         else
@@ -1241,12 +1318,12 @@ rule: "[Buff] :: Buckshot : Action"
         {
             buckshotHitPos[5] = RayCastHitPosition(EyePosition(), EyePosition() + 
             WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadHoriz) 
+            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadHori) 
             * 100, AllLivingPlayers(), player, false)
 
             buckshotHitPlayer[5] = RayCastHitPlayer(EyePosition(), EyePosition() + 
             WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadHoriz) 
+            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadHori) 
             * 100, AllLivingPlayers(), player, false)
         }
         else
@@ -1268,12 +1345,12 @@ rule: "[Buff] :: Buckshot : Action"
         if (!randomSpread)
         {
             buckshotHitPos[6] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(spreadHoriz) * 100, 0, 0), player, LocalVector.Rotation) + 
+            WorldVectorOf(Vector(TangentFromDegrees(spreadHori) * 100, 0, 0), player, LocalVector.Rotation) + 
             DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
             * 100, AllLivingPlayers(), player, false)
 
             buckshotHitPlayer[6] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(spreadHoriz) * 100, 0, 0), player, LocalVector.Rotation) + 
+            WorldVectorOf(Vector(TangentFromDegrees(spreadHori) * 100, 0, 0), player, LocalVector.Rotation) + 
             DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
             * 100, AllLivingPlayers(), player, false)
         }
@@ -1296,12 +1373,12 @@ rule: "[Buff] :: Buckshot : Action"
         if (!randomSpread)
         {
             buckshotHitPos[7] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-spreadHoriz) * 100, 0, 0), player, LocalVector.Rotation) + 
+            WorldVectorOf(Vector(TangentFromDegrees(-spreadHori) * 100, 0, 0), player, LocalVector.Rotation) + 
             DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
             * 100, AllLivingPlayers(), player, false)
 
             buckshotHitPlayer[7] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-spreadHoriz) * 100, 0, 0), player, LocalVector.Rotation) + 
+            WorldVectorOf(Vector(TangentFromDegrees(-spreadHori) * 100, 0, 0), player, LocalVector.Rotation) + 
             DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
             * 100, AllLivingPlayers(), player, false)
         }
@@ -1325,56 +1402,53 @@ rule: "[Buff] :: Buckshot : Action"
 
         /* -------------------------------------------------------------------------------------------- */
 
-        // PlayEffect(all, PlayEffect.GoodExplosion, Color.Red, EyePosition() + Facing() + gunPos, 0.2); // muzzle flash
-        PlayEffect(all, PlayEffect.GoodExplosion, Color.Red, buckshotCenter, 0.2);
+        // PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, EyePosition() + Facing() + gunPos, 0.2); // muzzle flash
+        PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, buckshotCenter, 0.2);
+        CreateBeamEffect(all, BeamType.BadBeam, EyePosition() + Facing() + gunPos, buckshotCenter, Color.Green, EffectRev.None);
+        centerBeam = LastCreatedEntity();
 
-        for (define i; 8; 1)
+        for (define pellets = 0; pellets < 8; pellets++)
         {
-            Damage(buckshotHitPlayer[i], player, 10000);
-            PlayEffect(all, PlayEffect.GoodExplosion, Color.Red, buckshotHitPos[i], 0.2);
+            Damage(buckshotHitPlayer[pellets], player, 10000);
+            PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, buckshotHitPos[pellets], 0.2);
+            CreateBeamEffect(all, BeamType.BadBeam, EyePosition() + Facing() + gunPos, buckshotHitPos[pellets], Color.Green, EffectRev.None);
+            buckshotBeam[pellets] = LastCreatedEntity();
+        }
+
+        Wait(0.15);
+        DestroyEffect(centerBeam);
+        for (define beams = 0; beams < 8; beams++)
+        {
+            DestroyEffect(buckshotBeam[beams]);
         }
     }
 
 
-rule: "[Debug] :: Position"
-    Event.OngoingPlayer
-    {
-        CreateHudText(player, null, null, PositionOf(), Location.Top, 10);
-    }
+// rule: "[Debug] :: Position"
+//     Event.OngoingPlayer
+//     if (player == host)
+//     {
+//         CreateHudText(player, null, null, PositionOf(), Location.Top, 10);
+//     }
 
-rule: "[Debug] :: Bots"
-    Event.OngoingPlayer
-    if (player == host && IsInteractHeld() && !IsCrouchHeld())
-    {
-        CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
-    }
+// rule: "[Debug] :: Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsInteractHeld() && !IsCrouchHeld())
+//     {
+//         CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+//     }
 
-rule: "[Debug] :: Destroy Bots & Destroy All Effects"
-    Event.OngoingPlayer
-    if (player == host && IsCrouchHeld() && IsInteractHeld())
-    {
-        DestroyAllDummyBots();
-        DestroyAllEffects();
-        Wait();
+// rule: "[Degug] :: Bots Hold Left Click"
+//     Event.OngoingPlayer
+//     if (IsDummyBot())
+//     {
+//         StartHoldingButton(player, Button.PrimaryFire);
+//     }
 
-        if (validBuffMap && !spawnWithWallbang && spawnWallbang && wallbangCD == 0)
-        {
-            CreateEffect(all, Effect.Orb, Color.Yellow, buffPos[0], 2);
-            buffEffect[0] = LastCreatedEntity();
-        }
-        if (validBuffMap && !spawnWithLife && spawnLife && lifeCD == 0)
-        {
-            CreateEffect(all, Effect.Orb, Color.SkyBlue, buffPos[1], 2);
-            buffEffect[1] = LastCreatedEntity();
-        }
-        if (validBuffMap && !spawnWithBounce && spawnBounce && bounceCD == 0)
-        {
-            CreateEffect(all, Effect.Orb, Color.Purple, buffPos[2], 2);
-            buffEffect[2] = LastCreatedEntity();
-        }
-        if (validBuffMap && !spawnWithBuckshot && spawnBuckshot && buckshotCD == 0)
-        {
-            CreateEffect(all, Effect.Orb, Color.Red, buffPos[3], 2);
-            buffEffect[3] = LastCreatedEntity();
-        }
-    }
+// rule: "[Debug] :: Destroy Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsCrouchHeld() && IsInteractHeld())
+//     {
+//         DestroyAllDummyBots();
+
+//     }
