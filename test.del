@@ -1,7 +1,1 @@
 import "macros.del";
-
-rule: "asgdjfg"
-    Event.OngoingPlayer
-    {
-        CreateHudText(player, null, null, PositionOf(), Location.Top, -1);
-    }
