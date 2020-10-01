@@ -299,7 +299,7 @@ rule: "[Main] :: Player Spawned"
 rule: "[Main] :: Speedometer"
     Event.OngoingPlayer
     {
-        CreateHudText(player, null, null, <" \n<0> M/S\n<1>% Modifier", HorizontalSpeedOf(), RoundToInteger(bhopSpeed - DEFAULT_START_SPEED, Rounding.Up)>, Location.Left, 6);
+        CreateHudText(player, null, null, <" \n<0> M/S\n<1>% Modifier", HorizontalSpeedOf(), RoundToInteger(bhopSpeed - DEFAULT_START_SPEED, Rounding.Up)>, Location.Left, 15);
     }
 
 rule: "[Main] :: End Game"
@@ -360,6 +360,8 @@ rule: "[Killspree] :: Reset Kills on death"
     Event.OnDeath
     {
         SmallMessage(player, <"<0> player kill spree!", lifeKills>);
+        DestroyHudText(killsHud);
+
         if (lifeKills > 5)
         {
             BigMessage(all, !EventWasEnvironment() ? <"<0>'s <1> player spree was ended by <2>!", Victim(), lifeKills, Attacker()> : 
@@ -1625,27 +1627,27 @@ rule: "[Buff] :: Extra Life : Remove"
 //         Kill();
 //     }
 
-rule: "[Debug] :: Position"
-    Event.OngoingPlayer
-    if (player == host)
-    {
-        CreateHudText(player, null, null, PositionOf(), Location.Top, 10);
-    }
+// rule: "[Debug] :: Position"
+//     Event.OngoingPlayer
+//     if (player == host)
+//     {
+//         CreateHudText(player, null, null, PositionOf(), Location.Top, 10);
+//     }
 
-rule: "[Debug] :: Bots"
-    Event.OngoingPlayer
-    if (player == host && IsInteractHeld() && !IsCrouchHeld())
-    {
-        CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
-    }
+// rule: "[Debug] :: Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsInteractHeld() && !IsCrouchHeld())
+//     {
+//         CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+//     }
 
-rule: "[Debug] :: Destroy Bots"
-    Event.OngoingPlayer
-    if (player == host && IsCrouchHeld() && IsInteractHeld())
-    {
-        DestroyAllDummyBots();
+// rule: "[Debug] :: Destroy Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsCrouchHeld() && IsInteractHeld())
+//     {
+//         DestroyAllDummyBots();
 
-    }
+//     }
 
 // rule: "[Degug] :: Bots Hold Left Click"
 //     Event.OngoingPlayer
