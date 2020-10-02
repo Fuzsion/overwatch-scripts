@@ -67,6 +67,8 @@ playervar define canDodge;
 globalvar define buffsEnabled;
 globalvar define buffsSpawnImmediately;
 // global
+globalvar define weaponBuffArray;
+globalvar define randomBuffs;
 globalvar define validBuffMap;
 globalvar define buffEffect;
 globalvar define buffPos;
@@ -74,6 +76,11 @@ globalvar define buffIcon;
 globalvar define cdText;
 // player
 playervar define hudText;
+playervar define lifeKills;
+playervar define spreeInWorld;
+playervar define spreeEffects;
+playervar define spreeHud;
+playervar define killsHud;
 
 //// wallbang ////
 
@@ -156,26 +163,32 @@ globalvar define spawnWithLife;
 // global :: constants
 globalvar define LIFE_CD;
 // global
+globalvar define canPickupLife;
 globalvar define lifeCD;
 // player
 playervar define extraLife;
 playervar define extraLifeIcon;
 
-/////////////////////////////////////////////////////////////////////////////// TODO + Notes: ///////////////////////////////////////////////////////////////////////////////
-//  Fix buff cooldown in-world to disappear upon player leaving
-//  Buckshot Optimizations + Optimize Randomized Spread. Need a new method to calculate spread that doesn't fire 9 different raycasts at once, not sure if possible
-//  Drop whichever buff(s) the player has upon death (orb(s) will only be up for 20 seconds, then will disappear to use the normal cooldown at its map determined spot)
-//  Optimizations
-//  Option for extra lives to "stack"
-//  New buff: Wallbang, ricochet, and buckshot properties; will work on this once I figure out more efficient buckshot spread
-//  Randomize weapon buffs in map locations each round
+/////////////////////////////////////////////////////////////////////////////// todo + notes: ///////////////////////////////////////////////////////////////////////////////
+//  organize code (i probably wont do this lets be honest)
+//  general optimizations
+//  fix buff cooldown in-world text disappearing upon player leaving, internal timer doesnt break, only the in-world text
+//  new method to calculate shotgun spread that doesnt fire 9 different raycasts at once, not sure how to do this
+//  randomized shotgun spread optimizations
+//  drop whichever buff(s) the player has upon death (orb(s) will only be up for 20 seconds, then will disappear then use the normal cooldown at its map determined spot)
+//  option for extra lives to "stack"
+//  new buff: wallbang and ricochet properties all within shotgun pellets; will work on this once i figure out a more efficient spread
+//  randomize weapon buff map locations upon match start
 //
-//  EntityExists() is very slow, takes at least 3 seconds to update; this is on Overwatch's end and there isnt much I can do to counteract this.
+//  notes:
+//  EntityExists() is very slow with effects, takes at least 3 seconds to update; this is on overwatchs end. dont use it
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+disabled rule: "---------------- Main ----------------"{}
 
 rule: "[Main] :: Initial Global"
     {
-        // DisableInspectorRecording();
+        DisableInspectorRecording();
         DisableCompletion();
         DisableAnnouncer();
 
@@ -202,7 +215,7 @@ rule: "[Main] :: Initial Global"
         spawnWithWallbang = WorkshopSettingToggle("Wallbang Buff Settings", "Spawn With Wallbang (Lasts Forever) (Off)", false);
 
         RICOCHET_CD = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Orb Spawn Time (55)", 55, 1, 300);
-        RICOCHET_DUR = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Buff Duration (25)", 25, 1, 300);
+        RICOCHET_DUR = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Buff Duration (30)", 30, 1, 300);
         NUM_RICOCHETS = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Amount (4)", 4, 1, 64);
         spawnRicochet = WorkshopSettingToggle("Ricochet Buff Settings", "Spawn Ricochet Orb (On)", true);
         spawnWithRicochet = WorkshopSettingToggle("Ricochet Buff Settings", "Spawn With Ricochet (Lasts Forever) (Off)", false);
@@ -217,13 +230,12 @@ rule: "[Main] :: Initial Global"
         LIFE_CD = WorkshopSettingInteger("Extra Life Buff Settings", "Extra Life Orb Spawn Time (140)", 140, 1, 400);
         spawnLife = WorkshopSettingToggle("Extra Life Buff Settings", "Spawn Extra Life Orb (On)", true);
         spawnWithLife = WorkshopSettingToggle("Extra Life Buff Settings", "Spawn With Extra Life (Off)", false);
-
-        SECONDARY_PROJECTILE_SPEED = WorkshopSettingInteger("Secondary Fire", "Secondary Projectile Speed (110)", 110, 10, 500);
         // SECONDARY_RADIUS = WorkshopSettingReal("Secondary Fire", "Secondary Explosion Radius (4.5)", 4.5, 2, 10);
 
-        MATCH_TIME_LIMIT = WorkshopSettingInteger("Misc", "Match Time (Minutes) (20)", 20, 1, 60) * 60;
-        GRAPPLE_PULL_SPEED = WorkshopSettingReal("Misc", "Grapple Pull Speed (3.5)", 3.5, 0.5, 10);
-        DODGE_FORCE = WorkshopSettingReal("Misc", "Dodge Force (14)", 14, 1, 100);
+        MATCH_TIME_LIMIT = WorkshopSettingInteger("Miscellaneous", "Match Time (Minutes) (20)", 20, 1, 60) * 60;
+        GRAPPLE_PULL_SPEED = WorkshopSettingReal("Miscellaneous", "Grapple Pull Speed (3.5)", 3.5, 0.5, 10);
+        SECONDARY_PROJECTILE_SPEED = WorkshopSettingInteger("Miscellaneous", "Secondary Projectile Speed (110)", 110, 10, 500);
+        DODGE_FORCE = WorkshopSettingReal("Miscellaneous", "Dodge Force (14)", 14, 1, 100);
     }
 
 rule: "[Main] :: Player Join"
@@ -235,6 +247,8 @@ rule: "[Main] :: Player Join"
         hudText = [];
         spreeInWorld = [];
         spreeEffects = [];
+        # no idea if this will actually do anything, no harm in adding it though
+        PreloadHero(player, Hero.Mccree);
     }
 
 rule: "[Main] :: Start Match"
@@ -253,21 +267,21 @@ rule: "[Main] :: Start Match"
             LifeCooldown();
         }
 
-        if (buffsEnabled)
+        if (buffsEnabled && validBuffMap)
         {
             if (!spawnWithWallbang && spawnWallbang)
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Baptiste, ButtonValue(Button.Ultimate))>, null, 
-                wallbangCD != 0 ? <"<0>", RoundToInteger(wallbangCD, Rounding.Up)> : EntityExists(buffEffect[0]) ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", wallbangUser>, 
+                wallbangCD != 0 ? <"<0>", RoundToInteger(wallbangCD, Rounding.Up)> : canPickupWallbang ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", wallbangUser>, 
                 Location.Left, 1, Color.Yellow);
             
             if (!spawnWithRicochet && spawnRicochet)
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Winston, ButtonValue(Button.Ability1))>, null,
-                ricochetCD != 0 ? <"<0>", RoundToInteger(ricochetCD, Rounding.Up)> : EntityExists(buffEffect[1]) ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", ricochetUser>,
+                ricochetCD != 0 ? <"<0>", RoundToInteger(ricochetCD, Rounding.Up)> : canPickupRicochet ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", ricochetUser>,
                 Location.Left, 2, Color.Purple);
 
             if (!spawnWithBuckshot && spawnBuckshot)
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Ashe, ButtonValue(Button.Ability1))>, null,
-                buckshotCD != 0 ? <"<0>", RoundToInteger(buckshotCD, Rounding.Up)> : EntityExists(buffEffect[2]) ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", buckshotUser>,
+                buckshotCD != 0 ? <"<0>", RoundToInteger(buckshotCD, Rounding.Up)> : canPickupBuckshot ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", buckshotUser>,
                 Location.Left, 3, Color.Green);
 
             if (!spawnWithLife && spawnLife)
@@ -334,22 +348,6 @@ rule: "[Main] :: Primary Effect"
 
 disabled rule: "---------------- Killing Spree Notifs ----------------"{}
 
-/* 
-Multi Kills (todo):
-Double Kill
-Triple Kill
-Multi Kill
-Mega Kill
-Ultra Kill
-M-M-M-Monster Kill
-Ludicrous Kill
-*/
-
-playervar define lifeKills;
-playervar define spreeInWorld;
-playervar define spreeEffects;
-playervar define spreeHud;
-playervar define killsHud;
 rule: "[Killspree] :: Record Kills While Alive"
     Event.OnFinalBlow
     {
@@ -359,13 +357,13 @@ rule: "[Killspree] :: Record Kills While Alive"
 rule: "[Killspree] :: Reset Kills on death"
     Event.OnDeath
     {
-        SmallMessage(player, <"<0> player kill spree!", lifeKills>);
         DestroyHudText(killsHud);
 
         if (lifeKills > 5)
         {
             BigMessage(all, !EventWasEnvironment() ? <"<0>'s <1> player spree was ended by <2>!", Victim(), lifeKills, Attacker()> : 
                                                        <"<0>'s <1> player spree was ended by the world!", Victim(), lifeKills>);
+            SmallMessage(player, <"<0> player kill spree!", lifeKills>);
         }
 
         for (define i = 0; i < 7; i++)
@@ -391,9 +389,7 @@ rule: "[Killspree] :: 5 Kills"
         spreeInWorld[0] = LastTextID();
         CreateEffect(all, Effect.Sparkles, Color.White, player, 1, EffectRev.VisibleToPositionAndRadius);
         spreeEffects[0] = LastCreatedEntity();
-        CreateHudText(player, null, null, <" \n<0> Kill Spree", lifeKills>, Location.Left, 9, Color.White, Color.White, Color.White);
-        killsHud = LastTextID();
-        CreateHudText(player, null, null, "Killing Spree", Location.Left, 10, Color.White, Color.White, Color.White);
+        CreateHudText(player, null, <" \n<0> Kill Spree", lifeKills>, "Killing Spree", Location.Left, 10, Color.White, Color.White, Color.White);
         spreeHud[0] = LastTextID();
         Wait(2);
         DestroyInWorldText(spreeInWorld[0]);
@@ -410,7 +406,7 @@ rule: "[Killspree] :: 8 Kills"
         spreeInWorld[1] = LastTextID();
         CreateEffect(all, Effect.Sparkles, Color.LimeGreen, player, 1, EffectRev.VisibleToPositionAndRadius);
         spreeEffects[1] = LastCreatedEntity();
-        CreateHudText(player, null, null, "Rampage", Location.Left, 10, Color.White, Color.White, Color.LimeGreen);
+        CreateHudText(player, null, <" \n<0> Kill Spree", lifeKills>, "Rampage", Location.Left, 10, Color.White, Color.White, Color.LimeGreen);
         spreeHud[1] = LastTextID();
         Wait(2);
         DestroyInWorldText(spreeInWorld[1]);
@@ -427,7 +423,7 @@ rule: "[Killspree] :: 11 Kills"
         spreeInWorld[2] = LastTextID();
         CreateEffect(all, Effect.Sparkles, Color.Blue, player, 1, EffectRev.VisibleToPositionAndRadius);
         spreeEffects[2] = LastCreatedEntity();
-        CreateHudText(player, null, null, "Dominating", Location.Left, 10, Color.White, Color.White, Color.Blue);
+        CreateHudText(player, null, <" \n<0> Kill Spree", lifeKills>, "Dominating", Location.Left, 10, Color.White, Color.White, Color.Blue);
         spreeHud[2] = LastTextID();
         Wait(2);
         DestroyInWorldText(spreeInWorld[2]);
@@ -444,7 +440,7 @@ rule: "[Killspree] :: 14 Kills"
         spreeInWorld[3] = LastTextID();
         CreateEffect(all, Effect.Sparkles, Color.Purple, player, 1, EffectRev.VisibleToPositionAndRadius);
         spreeEffects[3] = LastCreatedEntity();
-        CreateHudText(player, null, null, "Unstoppable", Location.Left, 10, Color.White, Color.White, Color.Purple);
+        CreateHudText(player, null, <" \n<0> Kill Spree", lifeKills>, "Unstoppable", Location.Left, 10, Color.White, Color.White, Color.Purple);
         spreeHud[3] = LastTextID();
         Wait(2);
         DestroyInWorldText(spreeInWorld[3]);
@@ -461,7 +457,7 @@ rule: "[Killspree] :: 17 Kills"
         spreeInWorld[4] = LastTextID();
         CreateEffect(all, Effect.Sparkles, Color.Yellow, player, 1, EffectRev.VisibleToPositionAndRadius);
         spreeEffects[4] = LastCreatedEntity();
-        CreateHudText(player, null, null, "Godlike", Location.Left, 10, Color.White, Color.White, Color.Yellow);
+        CreateHudText(player, null, <" \n<0> Kill Spree", lifeKills>, "Godlike", Location.Left, 10, Color.White, Color.White, Color.Yellow);
         spreeHud[4] = LastTextID();
         Wait(2);
         DestroyInWorldText(spreeInWorld[4]);
@@ -478,7 +474,7 @@ rule: "[Killspree] :: 21 Kills"
         spreeInWorld[5] = LastTextID();
         CreateEffect(all, Effect.Sparkles, Color.Orange, player, 1, EffectRev.VisibleToPositionAndRadius);
         spreeEffects[5] = LastCreatedEntity();
-        CreateHudText(player, null, null, "Divine", Location.Left, 10, Color.White, Color.White, Color.Orange);
+        CreateHudText(player, null, <" \n<0> Kill Spree", lifeKills>, "Divine", Location.Left, 10, Color.White, Color.White, Color.Orange);
         spreeHud[5] = LastTextID();
         Wait(2);
         DestroyInWorldText(spreeInWorld[5]);
@@ -495,7 +491,7 @@ rule: "[Killspree] :: 24 Kills"
         spreeInWorld[6] = LastTextID();
         CreateEffect(all, Effect.Sparkles, Color.Red, player, 1, EffectRev.VisibleToPositionAndRadius);
         spreeEffects[6] = LastCreatedEntity();
-        CreateHudText(player, null, null, "Empyreal", Location.Left, 10, Color.White, Color.White, Color.Red);
+        CreateHudText(player, null, <" \n<0> Kill Spree", lifeKills>, "Empyreal", Location.Left, 10, Color.White, Color.White, Color.Red);
         spreeHud[6] = LastTextID();
         Wait(2);
         DestroyInWorldText(spreeInWorld[6]);
@@ -545,16 +541,6 @@ rule: "[Bhop] :: Update isChasing"
         StopChasingVariable(bhopSpeed);
         isChasing = false;
     }
-
-// rule: "[Bhop] :: Reset speed if turning too fast"
-//     Event.OngoingPlayer
-//     if (HorizontalSpeedOf() < speedAccumInAir - 0.45)
-//     {
-//         StopChasingVariable(bhopSpeed);
-//         isChasing = false;
-//         bhopSpeed = DEFAULT_START_SPEED;
-//         SetMoveSpeed(player, bhopSpeed);
-//     }
 
 rule: "[Bhop] :: Stop chasing if too slow"
     Event.OngoingPlayer
@@ -626,7 +612,8 @@ rule: "[Secondary Fire] :: Projectile"
         secondaryOrb = LastCreatedEntity();
         ChaseVariableAtRate(secondaryEyePos, secondaryHit, SECONDARY_PROJECTILE_SPEED, RateChaseReevaluation.DestinationAndRate);
 
-        Wait(0.5);
+        Wait(0.75);
+        LoopIf(IsSecondaryHeld());
     }
 
 rule: "[Secondary Fire] :: Impulse"
@@ -699,7 +686,8 @@ rule: "[Grapple] :: Grapple Start"
             PlayEffect(all, PlayEffect.BuffImpactSound, Color.White, player, 100);
         }
 
-        Wait(0.5);
+        WaitIfTrue(0.5);
+        LoopIf(IsAbility2Held() && DistanceBetween(grappleEyePos, grappleHit) == 40);
     }
 
 rule: "[Grapple] :: Pull"
@@ -786,7 +774,6 @@ void LifeCooldown() globalvar "[Sub] :: Life Cooldown"
         }
     }
 
-
 rule: "[Buff] :: Player With Buff Doesn't Exist"
     Event.OnPlayerLeave
     {
@@ -822,107 +809,102 @@ rule: "[Buff] :: Map Locations"
         [3]: extra 'life'
         */
 
-        /* 
-        map redo list: 
-        havana
-        */
-
         # i do not recommend opening the large action in-game
         validBuffMap = false;
-        switch (true)
+        switch (buffsEnabled)
         {
-            case (buffsEnabled && CurrentMap() == Map.Workshop_Chamber || CurrentMap() == Map.Workshop_Expanse || CurrentMap() == Map.Workshop_Expanse_Night || CurrentMap() == Map.Workshop_Island || CurrentMap() == Map.Workshop_Island_Night):
+            case (CurrentMap() == Map.Workshop_Chamber || CurrentMap() == Map.Workshop_Expanse || CurrentMap() == Map.Workshop_Expanse_Night || CurrentMap() == Map.Workshop_Island || CurrentMap() == Map.Workshop_Island_Night):
                 validBuffMap = true;
                 buffPos[0] = Vector(0, 1, 2);
                 buffPos[1] = Vector(0, 1, -2);
                 buffPos[2] = Vector(0, 1, -6);
                 buffPos[3] = Vector(0, 1, 6);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Blizzard_World || CurrentMap() == Map.Blizzard_World_Winter):
+            case (CurrentMap() == Map.Blizzard_World || CurrentMap() == Map.Blizzard_World_Winter):
                 validBuffMap = true;
                 buffPos[0] = Vector(-32.50, 0.61, 73.15);
                 buffPos[1] = Vector(-77.28, 5.88, 66.15);
                 buffPos[2] = Vector(-54.50, 0.61, 110.20);
                 buffPos[3] = Vector(-67.55, 1.75, 138.74);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Chateau_Guillard || CurrentMap() == Map.Chateau_Guillard_Halloween):
+            case (CurrentMap() == Map.Chateau_Guillard || CurrentMap() == Map.Chateau_Guillard_Halloween):
                 validBuffMap = true;
                 buffPos[0] = Vector(206.31, 9.03, 101.90);
                 buffPos[1] = Vector(206.31, 9.00, 61.91);
                 buffPos[2] = Vector(180.60, 10, 101.93);
                 buffPos[3] = Vector(206.19, 1, 77.96);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Dorado):
+            case (CurrentMap() == Map.Dorado):
                 validBuffMap = true;
                 buffPos[0] = Vector(115.66, 8.73, -7.08);
-                buffPos[1] = Vector(64.44, 15.01, 25.15);
+                buffPos[1] = Vector(85.30, 13.75, 29.84);
                 buffPos[2] = Vector(98.04, 19.01, 15.26);
                 buffPos[3] = Vector(131.27, 12.05, 26.12);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Ecopoint_Antarctica || CurrentMap() == Map.Ecopoint_Antarctica_Winter):
+            case (CurrentMap() == Map.Ecopoint_Antarctica || CurrentMap() == Map.Ecopoint_Antarctica_Winter):
                 validBuffMap = true;
                 buffPos[0] = Vector(1.66, 12.63, -25.00);
                 buffPos[1] = Vector(-19.50, 13.00, 0.00);
                 buffPos[2] = Vector(1.66, 12.63, 25.00);
                 buffPos[3] = Vector(20.50, 10.00, 0.00);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Eichenwalde || CurrentMap() == Map.Eichenwalde_Halloween):
+            case (CurrentMap() == Map.Eichenwalde || CurrentMap() == Map.Eichenwalde_Halloween):
                 validBuffMap = true;
                 buffPos[0] = Vector(55.70, 22.00, -67.84);
                 buffPos[1] = Vector(58.33, 5.72, -90.39);
                 buffPos[2] = Vector(76.03, 11.69, -109.66);
                 buffPos[3] = Vector(88.13, 13.67, -67.39);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Hollywood || CurrentMap() == Map.Hollywood_Halloween):
+            case (CurrentMap() == Map.Hollywood || CurrentMap() == Map.Hollywood_Halloween):
                 validBuffMap = true;
                 buffPos[0] = Vector(-11.91, 2.73, -74.64);
                 buffPos[1] = Vector(-4.09, 2.60, -15.87);
                 buffPos[2] = Vector(20.67, 2.60, -51.82);
                 buffPos[3] = Vector(7.87, 13.90, -48.38);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Kings_Row || CurrentMap() == Map.Kings_Row_Winter):
+            case (CurrentMap() == Map.Kings_Row || CurrentMap() == Map.Kings_Row_Winter):
                 validBuffMap = true;
                 buffPos[0] = Vector(-49.46, 1.00, 2.69);
                 buffPos[1] = Vector(-31.19, 10.00, -13.40);
                 buffPos[2] = Vector(-93.67, 8.50, -29.38);
-                buffPos[3] = Vector(-69.64, 1.50, -35.48);
+                buffPos[3] = Vector(-48.85, 9.12, -37.62);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Lijiang_Control_Center || CurrentMap() == Map.Lijiang_Control_Center_Lunar):
+            case (CurrentMap() == Map.Lijiang_Control_Center || CurrentMap() == Map.Lijiang_Control_Center_Lunar):
                 validBuffMap = true;
                 buffPos[0] = Vector(-26.80, 268.00, 308.00);
                 buffPos[1] = Vector(0.00, 271.00, 323.00);
                 buffPos[2] = Vector(26.80, 268.00, 308.00);
                 buffPos[3] = Vector(0.00, 271.00, 267.50);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Necropolis):
+            case (CurrentMap() == Map.Necropolis):
                 validBuffMap = true;
                 buffPos[0] = Vector(1.68, 12.70, 17.25);
                 buffPos[1] = Vector(-21.05, 13.71, 0);
                 buffPos[2] = Vector(1.80, 12.70, -16.41);
                 buffPos[3] = Vector(8.50, 2.01, 0.00);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Paris):
+            case (CurrentMap() == Map.Paris):
                 validBuffMap = true;
                 buffPos[0] = Vector(-104.10, 16.00, -100.65);
                 buffPos[1] = Vector(-109.18, 11.00, -60.60);
                 buffPos[2] = Vector(-57.19, 14.00, -82.00);
                 buffPos[3] = Vector(-73.39, 11.02, -38.23);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Havana):
+            case (CurrentMap() == Map.Havana):
                 validBuffMap = true;
-                buffPos[0] = Vector(0.00, 7.00, -79.23);
-                buffPos[1] = Vector(32.09, 5.00, -97.45);
-                buffPos[2] = Vector(64.20, 5.00, -65.68);
+                buffPos[0] = Vector(9.50, 7.00, -79.23);
+                buffPos[1] = Vector(37.64, 11.00, -94.23);
+                buffPos[2] = Vector(27.92, 13.00, -61.96);
                 buffPos[3] = Vector(64.50, 13.00, -83.33);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Castillo):
+            case (CurrentMap() == Map.Castillo):
                 validBuffMap = true;
                 buffPos[0] = Vector(-106.18, 40.56, 43.20);
                 buffPos[1] = Vector(-128.20, 35.38, 63.40);
                 buffPos[2] = Vector(-100.35, 40.56, 73.75);
                 buffPos[3] = Vector(-74.82, 33.00, 52.93);
                 break;
-            case (buffsEnabled && CurrentMap() == Map.Black_Forest || CurrentMap() == Map.Black_Forest_Winter):
+            case (CurrentMap() == Map.Black_Forest || CurrentMap() == Map.Black_Forest_Winter):
                 validBuffMap = true;
                 buffPos[0] = Vector(16.79, 12.44, 29.48);
                 buffPos[1] = Vector(4.66, 18.28, 5.00);
@@ -937,20 +919,21 @@ disabled rule: "---------------- Wallbang ----------------"{}
 rule: "[Buff] :: Wallbang : Create Orb"
     if (validBuffMap && !spawnWithWallbang && spawnWallbang && wallbangCD == 0 && (matchStarted || buffsSpawnImmediately))
     {
-        DestroyInWorldText(cdText[0]);
-        
+        canPickupWallbang = true;
+
         CreateEffect(all, Effect.Orb, Color.Yellow, buffPos[0], 2);
         buffEffect[0] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Yellow, buffPos[0], 1);
 
         CreateInWorldText(all, AbilityIconString(Hero.Baptiste, ButtonValue(Button.Ultimate)), buffPos[0], 2, Clipping.ClipAgainstSurfaces);
         buffIcon[0] = LastTextID();
-        canPickupWallbang = true;
+
+        DestroyInWorldText(cdText[0]);
     }
 
 rule: "[Buff] :: Wallbang : Collect"
     Event.OngoingPlayer
-    if ((matchStarted && canPickupWallbang && EntityExists(buffEffect[0]) && DistanceBetween(buffPos[0], player) < 2.5 && HasSpawned() && IsAlive()) || spawnWithWallbang)
+    if ((matchStarted && canPickupWallbang && DistanceBetween(buffPos[0], player) < 2.5 && HasSpawned() && IsAlive()) || spawnWithWallbang)
     {
         canPickupWallbang = false;
         wallbangEnabled = true;
@@ -1051,20 +1034,21 @@ disabled rule: "---------------- Ricochet ----------------"{}
 rule: "[Buff] :: Ricochet : Create Orb"
     if (validBuffMap && !spawnWithRicochet && spawnRicochet && ricochetCD == 0 && (matchStarted || buffsSpawnImmediately))
     {
-        DestroyInWorldText(cdText[1]);
+        canPickupRicochet = true;
 
         CreateEffect(all, Effect.Orb, Color.Purple, buffPos[1], 2);
         buffEffect[1] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Purple, buffPos[1], 1);
+
         CreateInWorldText(all, AbilityIconString(Hero.Winston, ButtonValue(Button.Ability1)), buffPos[1], 2, Clipping.ClipAgainstSurfaces);
         buffIcon[1] = LastTextID();
+
         DestroyInWorldText(cdText[1]);
-        canPickupRicochet = true;
     }
 
 rule: "[Buff] :: Ricochet : Collect"
     Event.OngoingPlayer
-    if ((matchStarted && canPickupRicochet && EntityExists(buffEffect[1]) && DistanceBetween(buffPos[1], player) < 2.5 && HasSpawned() && IsAlive()) || spawnWithRicochet)
+    if ((matchStarted && canPickupRicochet && DistanceBetween(buffPos[1], player) < 2.5 && HasSpawned() && IsAlive()) || spawnWithRicochet)
     {
         canPickupRicochet = false;
         ricochetEnabled = true;
@@ -1190,7 +1174,7 @@ disabled rule: "---------------- Buckshot ----------------"{}
 rule: "[Buff] :: Buckshot : Create Orb"
     if (validBuffMap && !spawnWithBuckshot && spawnBuckshot && buckshotCD == 0 && (matchStarted || buffsSpawnImmediately))
     {
-        DestroyInWorldText(cdText[2]);
+        canPickupBuckshot = true;
 
         CreateEffect(all, Effect.Orb, Color.Green, buffPos[2], 2);
         buffEffect[2] = LastCreatedEntity();
@@ -1200,12 +1184,11 @@ rule: "[Buff] :: Buckshot : Create Orb"
         buffIcon[2] = LastTextID();
 
         DestroyInWorldText(cdText[2]);
-        canPickupBuckshot = true;
     }
 
 rule: "[Buff] :: Buckshot : Collect"
     Event.OngoingPlayer
-    if ((matchStarted && canPickupBuckshot && EntityExists(buffEffect[2]) && DistanceBetween(buffPos[2], player) < 2.5 && HasSpawned() && IsAlive()) || spawnWithBuckshot)
+    if ((matchStarted && canPickupBuckshot && DistanceBetween(buffPos[2], player) < 2.5 && HasSpawned() && IsAlive()) || spawnWithBuckshot)
     {
         canPickupBuckshot = false;
         buckshotEnabled = true;
@@ -1273,264 +1256,218 @@ rule: "[Buff] :: Buckshot : Action"
     Event.OngoingPlayer
     if (buckshotEnabled && IsFiringPrimary())
     {
-        // todo: PAIN PAIN PAIN PAIN MAKE THIS NOT FIRE 8000000 RAYCASTS SCORT PLEASE
         buckshotHitPos = [];
         buckshotHitPlayer = [];
         livingEnemies = FilteredArray(EnemyPlayers(), IsAlive(Curr()));
         define gunPos = WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
         define buckshotBeam = [];
         define centerBeam;
-        
+
         spreadDiag = BUCKSHOT_SPREAD - (BUCKSHOT_SPREAD * 0.33);
         spreadHori = BUCKSHOT_SPREAD;
 
-        if (randomSpread)
+        if (!randomSpread)
+        {
+            // hitpos
+            {
+                // lower left
+                buckshotHitPos[0] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(spreadDiag) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadDiag) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // upper left
+                buckshotHitPos[1] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(spreadDiag) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadDiag) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // lower right
+                buckshotHitPos[2] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-spreadDiag) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadDiag) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // upper right
+                buckshotHitPos[3] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-spreadDiag) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadDiag) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // lower mid
+                buckshotHitPos[4] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadHori) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // upper mid
+                buckshotHitPos[5] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadHori) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // mid left
+                buckshotHitPos[6] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(spreadHori) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // mid right
+                buckshotHitPos[7] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-spreadHori) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
+                * 100, AllLivingPlayers(), player, false);
+            }
+            // player
+            {
+                buckshotHitPlayer[0] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(spreadDiag) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadDiag) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[1] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(spreadDiag) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadDiag) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[2] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-spreadDiag) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadDiag) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[3] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-spreadDiag) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadDiag) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[4] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadHori) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[5] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadHori) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[6] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(spreadHori) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[7] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-spreadHori) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
+                * 100, AllLivingPlayers(), player, false);
+            }
+        }
+        else
         {
             randomizedSpreadHori = [];
             randomizedSpreadDiag = [];
 
-            for (define hori = 0; hori < 4; hori++)
+            for (define i = 0; i < 4; i++)
             {
-                randomizedSpreadHori[hori] = RandomReal(spreadHori / 5, spreadHori + 1.5);
+                randomizedSpreadHori[i] = RandomReal(spreadHori / 5, spreadHori + 1.5);
+                randomizedSpreadDiag[i] = RandomReal(spreadDiag / 5, spreadDiag + 1.5);
             }
 
-            for (define diag = 0; diag < 4; diag++)
+            // hitpos
             {
-                randomizedSpreadDiag[diag] = RandomReal(spreadHori / 5, spreadDiag + 1.5);
+                // lower left
+                buckshotHitPos[0] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadDiag[0]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadDiag[0]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // upper left
+                buckshotHitPos[1] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadDiag[1]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadDiag[1]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // lower right
+                buckshotHitPos[2] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadDiag[2]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadDiag[2]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // upper right
+                buckshotHitPos[3] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadDiag[3]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadDiag[3]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // lower mid
+                buckshotHitPos[4] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadHori[0]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // upper mid
+                buckshotHitPos[5] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadHori[1]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // mid left
+                buckshotHitPos[6] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadHori[2]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
+                * 100, AllLivingPlayers(), player, false);
+
+                // mid right
+                buckshotHitPos[7] = RayCastHitPosition(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadHori[3]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
+                * 100, AllLivingPlayers(), player, false);
+            }
+            // player
+            {
+                buckshotHitPlayer[0] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadDiag[0]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadDiag[0]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[1] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadDiag[1]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadDiag[1]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[2] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadDiag[2]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadDiag[2]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[3] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadDiag[3]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadDiag[3]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[4] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadHori[0]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[5] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadHori[1]) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[6] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadHori[2]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
+                * 100, AllLivingPlayers(), player, false);
+
+                buckshotHitPlayer[7] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+                WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadHori[3]) * 100, 0, 0), player) + 
+                DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
+                * 100, AllLivingPlayers(), player, false);
             }
         }
-
-        /* ----------------------------------- diagonals ----------------------------------- */
-
-        // lower left
-        if (!randomSpread)
-        {
-            buckshotHitPos[0] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(spreadDiag) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadDiag) 
-            * 100, AllLivingPlayers(), player, false);
-
-            buckshotHitPlayer[0] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(spreadDiag) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadDiag) 
-            * 100, AllLivingPlayers(), player, false);
-        }
-        else
-        {
-            buckshotHitPos[0] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadDiag[0]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadDiag[0]) 
-            * 100, AllLivingPlayers(), player, false);
-
-            buckshotHitPlayer[0] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadDiag[0]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadDiag[0]) 
-            * 100, AllLivingPlayers(), player, false);
-        }
-
-        /* --------------------------------------------------------------------------------- */
-
-        // upper left
-        if (!randomSpread)
-        {
-            buckshotHitPos[1] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(spreadDiag) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadDiag) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[1] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(spreadDiag) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadDiag) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        else 
-        {
-            buckshotHitPos[1] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadDiag[1]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadDiag[1]) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[1] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadDiag[1]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadDiag[1]) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-
-        /* --------------------------------------------------------------------------------- */
-
-        // lower right
-        if (!randomSpread)
-        {
-            buckshotHitPos[2] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-spreadDiag) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadDiag) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[2] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-spreadDiag) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadDiag) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        else
-        {
-            buckshotHitPos[2] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadDiag[2]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadDiag[2]) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[2] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadDiag[2]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadDiag[2]) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        
-
-        /* --------------------------------------------------------------------------------- */
-
-        // upper right
-        if (!randomSpread)
-        {
-            buckshotHitPos[3] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-spreadDiag) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadDiag) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[3] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-spreadDiag) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadDiag) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        else
-        {
-            buckshotHitPos[3] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadDiag[3]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadDiag[3]) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[3] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadDiag[3]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadDiag[3]) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-
-        /* --------------------------- verticals and horizontals --------------------------- */
-
-        // lower mid
-        if (!randomSpread)
-        {
-            buckshotHitPos[4] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadHori) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[4] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + spreadHori) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        else
-        {
-            buckshotHitPos[4] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadHori[0]) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[4] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + randomizedSpreadHori[0]) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        
-        /* --------------------------------------------------------------------------------- */
-
-        // upper mid
-        if (!randomSpread)
-        {
-            buckshotHitPos[5] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadHori) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[5] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -spreadHori) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        else
-        {
-            buckshotHitPos[5] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadHori[1]) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[5] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + -randomizedSpreadHori[1]) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-
-        /* --------------------------------------------------------------------------------- */
-
-        // mid left
-        if (!randomSpread)
-        {
-            buckshotHitPos[6] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(spreadHori) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[6] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(spreadHori) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        else 
-        {
-            buckshotHitPos[6] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadHori[2]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[6] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(randomizedSpreadHori[2]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-
-        /* --------------------------------------------------------------------------------- */
-
-        // mid right
-        if (!randomSpread)
-        {
-            buckshotHitPos[7] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-spreadHori) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[7] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-spreadHori) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-        else
-        {
-            buckshotHitPos[7] = RayCastHitPosition(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadHori[3]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
-            * 100, AllLivingPlayers(), player, false)
-
-            buckshotHitPlayer[7] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-            WorldVectorOf(Vector(TangentFromDegrees(-randomizedSpreadHori[3]) * 100, 0, 0), player, LocalVector.Rotation) + 
-            DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + 0) 
-            * 100, AllLivingPlayers(), player, false)
-        }
-
-        /* -------------------------------------------------------------------------------------------- */
 
         // center
         buckshotCenter = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
-
-        /* -------------------------------------------------------------------------------------------- */
 
         // PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, EyePosition() + Facing() + gunPos, 0.2); // muzzle flash
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, buckshotCenter, 0.2);
@@ -1559,20 +1496,23 @@ disabled rule: "---------------- Extra Life ----------------"{}
 rule: "[Buff] :: Extra Life : Create Orb"
     if (validBuffMap && !spawnWithLife && spawnLife && lifeCD == 0 && (matchStarted || buffsSpawnImmediately))
     {
-
+        canPickupLife = true;
 
         CreateEffect(all, Effect.Orb, Color.SkyBlue, buffPos[3], 2);
         buffEffect[3] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.SkyBlue, buffPos[3], 1);
+
         CreateInWorldText(all, AbilityIconString(Hero.Mercy, ButtonValue(Button.Ability2)), buffPos[3], 2, Clipping.ClipAgainstSurfaces);
         buffIcon[3] = LastTextID();
+
         DestroyInWorldText(cdText[3]);
     }
 
 rule: "[Buff] :: Extra Life : Collect"
     Event.OngoingPlayer
-    if ((matchStarted && !extraLife && EntityExists(buffEffect[3]) && DistanceBetween(buffPos[3], player) < 2.5 && HasSpawned() && IsAlive()) || (spawnWithLife && IsAlive()))
+    if ((matchStarted && !extraLife && canPickupLife && DistanceBetween(buffPos[3], player) < 2.5 && HasSpawned() && IsAlive()) || (spawnWithLife && IsAlive()))
     {
+        canPickupLife = false;
         extraLife = true;
 
         SetStatus(player, null, Status.Unkillable, 10000);
@@ -1646,7 +1586,6 @@ rule: "[Buff] :: Extra Life : Remove"
 //     if (player == host && IsCrouchHeld() && IsInteractHeld())
 //     {
 //         DestroyAllDummyBots();
-
 //     }
 
 // rule: "[Degug] :: Bots Hold Left Click"

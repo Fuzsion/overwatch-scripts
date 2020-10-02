@@ -16,23 +16,18 @@
     "Deathmatch": {
       "Enabled Maps": [
         "Blizzard World",
-        "Blizzard World (Winter)",
         "Château Guillard",
         "Dorado",
         "Ecopoint: Antarctica",
-        "Ecopoint: Antarctica (Winter)",
         "Eichenwalde",
         "Hollywood",
         "King's Row",
-        "King's Row (Winter)",
         "Lijiang Control Center",
-        "Lijiang Control Center (Lunar New Year)",
         "Necropolis",
         "Paris",
         "Havana",
         "Castillo",
-        "Black Forest",
-        "Black Forest (Winter)"
+        "Black Forest"
       ]
     }
   },
