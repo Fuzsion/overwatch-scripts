@@ -1,11 +1,3 @@
-//////////////////////////////////////////////////
-//////////////////////////////////////////////////
-///// this code is an absolute fucking mess. /////
-////////////// please no judge <3 ////////////////
-//////////////////////////////////////////////////
-//////////////////////////////////////////////////
-
-
 import "macros.del";
 import "instagibSettings.json";
 
@@ -39,7 +31,6 @@ playervar define grappleHitPlayerSphere;
 playervar define livingEnemies;
 
 // constants :: bhop
-globalvar define DEFAULT_START_SPEED;
 globalvar define BHOP_MAX_SPEED;
 globalvar define BHOP_SPEED_RATE;
 
@@ -60,8 +51,9 @@ globalvar define DODGE_FORCE;
 playervar define throttleOf;
 playervar define canDodge;
 
-
-//// buffs ////
+/////////////////////
+/////// buffs ///////
+/////////////////////
 
 // global :: workshop settings
 globalvar define buffsEnabled;
@@ -168,9 +160,10 @@ globalvar define lifeCD;
 // player
 playervar define extraLife;
 playervar define extraLifeIcon;
+playervar define lifeBuffEffect;
 
 /////////////////////////////////////////////////////////////////////////////// todo + notes: ///////////////////////////////////////////////////////////////////////////////
-//  organize code (i probably wont do this lets be honest)
+//  todo:
 //  general optimizations
 //  fix buff cooldown in-world text disappearing upon player leaving, internal timer doesnt break, only the in-world text
 //  new method to calculate shotgun spread that doesnt fire 9 different raycasts at once, not sure how to do this
@@ -179,9 +172,10 @@ playervar define extraLifeIcon;
 //  option for extra lives to "stack"
 //  new buff: wallbang and ricochet properties all within shotgun pellets; will work on this once i figure out a more efficient spread
 //  randomize weapon buff map locations upon match start
+//  improve secondary fire
 //
 //  notes:
-//  EntityExists() is very slow with effects, takes at least 3 seconds to update; this is on overwatchs end. dont use it
+//  dont use EntityExists() with effects
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 disabled rule: "---------------- Main ----------------"{}
@@ -201,54 +195,54 @@ rule: "[Main] :: Initial Global"
 
         matchStarted = false;
 
-        DEFAULT_START_SPEED = WorkshopSettingInteger("BHop", "Starting Speed (100)", 100, 25, 300);
-        BHOP_MAX_SPEED = WorkshopSettingInteger("BHop", "Maximum Speed Possible From Hops (320)", 320, 25, 10000);
-        BHOP_SPEED_RATE = WorkshopSettingReal("BHop", "Speed gain rate (12.5)", 12.5, 1, 100);
+        BHOP_MAX_SPEED = WorkshopSettingInteger("BHop", "​Maximum Speed Possible From Hops (320)", 320, 25, 10000);
+        BHOP_SPEED_RATE = WorkshopSettingReal("BHop", "​​Speed gain rate (12.5)", 12.5, 1, 100);
 
-        buffsSpawnImmediately = WorkshopSettingToggle("Buff General", "Buffs Spawn Immediately When Match Starts (Off)", false);
-        buffsEnabled = WorkshopSettingToggle("Buff General", "Spawn Buffs (On)", true);
+        buffsSpawnImmediately = WorkshopSettingToggle("Buff General", "​Buffs Spawn Immediately When Match Starts (Off)", false);
+        buffsEnabled = WorkshopSettingToggle("Buff General", "​​Spawn Buffs (On)", true);
 
-        NUM_WALLBANGS = WorkshopSettingInteger("Wallbang Buff Settings", "Wallbang Amount (5)", 5, 2, 100);
-        WALLBANG_CD = WorkshopSettingInteger("Wallbang Buff Settings", "Wallbang Orb Spawn Time (65)", 65, 1, 300);
-        WALLBANG_DUR = WorkshopSettingInteger("Wallbang Buff Settings", "Wallbang Buff Duration (25)", 25, 1, 300);
-        spawnWallbang = WorkshopSettingToggle("Wallbang Buff Settings", "Spawn Wallbang Orb (On)", true);
-        spawnWithWallbang = WorkshopSettingToggle("Wallbang Buff Settings", "Spawn With Wallbang (Lasts Forever) (Off)", false);
+        NUM_WALLBANGS = WorkshopSettingInteger("Wallbang Buff Settings", "​Wallbang Amount (5)", 5, 2, 100);
+        WALLBANG_CD = WorkshopSettingInteger("Wallbang Buff Settings", "​​Wallbang Orb Spawn Time (65)", 65, 1, 300);
+        WALLBANG_DUR = WorkshopSettingInteger("Wallbang Buff Settings", "​​​Wallbang Buff Duration (25)", 25, 1, 300);
+        spawnWallbang = WorkshopSettingToggle("Wallbang Buff Settings", "​​​​Spawn Wallbang Orb (On)", true);
+        spawnWithWallbang = WorkshopSettingToggle("Wallbang Buff Settings", "​​​​​Spawn With Wallbang (Lasts Forever) (Off)", false);
 
-        RICOCHET_CD = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Orb Spawn Time (55)", 55, 1, 300);
-        RICOCHET_DUR = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Buff Duration (30)", 30, 1, 300);
-        NUM_RICOCHETS = WorkshopSettingInteger("Ricochet Buff Settings", "Ricochet Amount (4)", 4, 1, 64);
-        spawnRicochet = WorkshopSettingToggle("Ricochet Buff Settings", "Spawn Ricochet Orb (On)", true);
-        spawnWithRicochet = WorkshopSettingToggle("Ricochet Buff Settings", "Spawn With Ricochet (Lasts Forever) (Off)", false);
+        RICOCHET_CD = WorkshopSettingInteger("Ricochet Buff Settings", "​Ricochet Orb Spawn Time (55)", 55, 1, 300);
+        RICOCHET_DUR = WorkshopSettingInteger("Ricochet Buff Settings", "​​Ricochet Buff Duration (30)", 30, 1, 300);
+        NUM_RICOCHETS = WorkshopSettingInteger("Ricochet Buff Settings", "​​​Ricochet Amount (4)", 4, 1, 64);
+        spawnRicochet = WorkshopSettingToggle("Ricochet Buff Settings", "​​​​Spawn Ricochet Orb (On)", true);
+        spawnWithRicochet = WorkshopSettingToggle("Ricochet Buff Settings", "​​​​​Spawn With Ricochet (Lasts Forever) (Off)", false);
 
-        BUCKSHOT_CD = WorkshopSettingInteger("Buckshot Buff Settings", "Buckshot Orb Spawn Time (85)", 85, 1, 300);
-        BUCKSHOT_DUR = WorkshopSettingInteger("Buckshot Buff Settings", "Buckshot Buff Duration (20)", 20, 1, 300);
-        BUCKSHOT_SPREAD = WorkshopSettingReal("Buckshot Buff Settings", "Buckshot Spread (Lower is Tighter) (3.5)", 3.5, 0.1, 20);
-        randomSpread = WorkshopSettingToggle("Buckshot Buff Settings", "Randomized Buckshot Spread (Off)", false);
-        spawnBuckshot = WorkshopSettingToggle("Buckshot Buff Settings", "Spawn Buckshot Orb (On)", true);
-        spawnWithBuckshot = WorkshopSettingToggle("Buckshot Buff Settings", "Spawn With Buckshot (Lasts Forever) (Off)", false);
+        BUCKSHOT_CD = WorkshopSettingInteger("Buckshot Buff Settings", "​Buckshot Orb Spawn Time (85)", 85, 1, 300);
+        BUCKSHOT_DUR = WorkshopSettingInteger("Buckshot Buff Settings", "​​Buckshot Buff Duration (20)", 20, 1, 300);
+        BUCKSHOT_SPREAD = WorkshopSettingReal("Buckshot Buff Settings", "​​​Buckshot Spread (Lower is Tighter) (3.5)", 3.5, 0.1, 20);
+        randomSpread = WorkshopSettingToggle("Buckshot Buff Settings", "​​​​Randomized Buckshot Spread (Off)", false);
+        spawnBuckshot = WorkshopSettingToggle("Buckshot Buff Settings", "​​​​​Spawn Buckshot Orb (On)", true);
+        spawnWithBuckshot = WorkshopSettingToggle("Buckshot Buff Settings", "​​​​​Spawn With Buckshot (Lasts Forever) (Off)", false);
 
-        LIFE_CD = WorkshopSettingInteger("Extra Life Buff Settings", "Extra Life Orb Spawn Time (140)", 140, 1, 400);
-        spawnLife = WorkshopSettingToggle("Extra Life Buff Settings", "Spawn Extra Life Orb (On)", true);
-        spawnWithLife = WorkshopSettingToggle("Extra Life Buff Settings", "Spawn With Extra Life (Off)", false);
-        // SECONDARY_RADIUS = WorkshopSettingReal("Secondary Fire", "Secondary Explosion Radius (4.5)", 4.5, 2, 10);
+        LIFE_CD = WorkshopSettingInteger("Extra Life Buff Settings", "​Extra Life Orb Spawn Time (140)", 140, 1, 400);
+        spawnLife = WorkshopSettingToggle("Extra Life Buff Settings", "​​Spawn Extra Life Orb (On)", true);
+        spawnWithLife = WorkshopSettingToggle("Extra Life Buff Settings", "​​​Spawn With Extra Life (Off)", false);
 
-        MATCH_TIME_LIMIT = WorkshopSettingInteger("Miscellaneous", "Match Time (Minutes) (20)", 20, 1, 60) * 60;
-        GRAPPLE_PULL_SPEED = WorkshopSettingReal("Miscellaneous", "Grapple Pull Speed (3.5)", 3.5, 0.5, 10);
-        SECONDARY_PROJECTILE_SPEED = WorkshopSettingInteger("Miscellaneous", "Secondary Projectile Speed (110)", 110, 10, 500);
-        DODGE_FORCE = WorkshopSettingReal("Miscellaneous", "Dodge Force (14)", 14, 1, 100);
+        MATCH_TIME_LIMIT = WorkshopSettingInteger("Miscellaneous", "​Match Time (Minutes) (20)", 20, 1, 60) * 60;
+        GRAPPLE_PULL_SPEED = WorkshopSettingReal("Miscellaneous", "​​Grapple Pull Speed (3.5)", 3.5, 0.5, 10);
+        SECONDARY_PROJECTILE_SPEED = WorkshopSettingInteger("Miscellaneous", "​​​Secondary Projectile Speed (110)", 110, 10, 500);
+        DODGE_FORCE = WorkshopSettingReal("Miscellaneous", "​​​​​Dodge Force (14)", 14, 1, 100);
     }
 
 rule: "[Main] :: Player Join"
     Event.OnPlayerJoin
     {
+        DisallowButton(player, Button.Ability1);
+        DisallowButton(player, Button.Ability2);
         wallbangDur = WALLBANG_DUR;
         ricochetDur = RICOCHET_DUR;
         buckshotDur = BUCKSHOT_DUR;
         hudText = [];
         spreeInWorld = [];
         spreeEffects = [];
-        # no idea if this will actually do anything, no harm in adding it though
-        PreloadHero(player, Hero.Mccree);
+
+        PreloadHero(player, Hero.Mccree); // no idea if this will actually do anything
     }
 
 rule: "[Main] :: Start Match"
@@ -291,29 +285,27 @@ rule: "[Main] :: Start Match"
         }
     }
 
-rule: "[Main] :: Player Spawned"
-    Event.OngoingPlayer
-    if (HasSpawned() && matchStarted)
-    {
-        SmallMessage(player, "Welcome!")
-        Wait(3);
-        SmallMessage(player, <"Holding down <0> will let you gain speed by bunny hopping", InputBindingString(ButtonValue(Button.Jump))>);
-        Wait(3);
-        SmallMessage(player, <"Press <0> to throw out a grappling hook to pull you towards a surface or to pull players towards you", InputBindingString(ButtonValue(Button.Ability2))>);
-        Wait(3);
-        SmallMessage(player, <"Press <0> to fire an orb that knocks players back, including yourself allowing for extra mobility", InputBindingString(ButtonValue(Button.SecondaryFire))>);
-        Wait(3);
-        SmallMessage(player, <"Press <0> to dodge in any direction", InputBindingString(ButtonValue(Button.Ability1))>);
-        Wait(3);
-        SmallMessage(player, "Buffs are littered thorughout the map that give you special changes to your weapon");
-        Wait(3);
-        SmallMessage(player, "Happy Fragging!");
-    }
+// rule: "[Main] :: Player Spawned"
+//     Event.OngoingPlayer
+//     if (HasSpawned() && matchStarted)
+//     {
+//         SmallMessage(player, "Welcome!")
+//         Wait(3);
+//         SmallMessage(player, <"Holding down <0> will let you gain speed by bunny hopping", InputBindingString(ButtonValue(Button.Jump))>);
+//         Wait(3);
+//         SmallMessage(player, <"Press <0> to throw out a grappling hook to pull you towards a surface or to pull players towards you", InputBindingString(ButtonValue(Button.Ability2))>);
+//         Wait(3);
+//         SmallMessage(player, <"Press <0> to fire an orb that knocks players back, including yourself allowing for extra mobility", InputBindingString(ButtonValue(Button.SecondaryFire))>);
+//         Wait(3);
+//         SmallMessage(player, <"Press <0> to dodge in any direction", InputBindingString(ButtonValue(Button.Ability1))>);
+//         Wait(3);
+//         SmallMessage(player, "Buffs are littered thorughout the map that give you special changes to your weapon");
+//     }
 
 rule: "[Main] :: Speedometer"
     Event.OngoingPlayer
     {
-        CreateHudText(player, null, null, <" \n<0> M/S\n<1>% Modifier", HorizontalSpeedOf(), RoundToInteger(bhopSpeed - DEFAULT_START_SPEED, Rounding.Up)>, Location.Left, 15);
+        CreateHudText(player, null, null, <" \n<0> M/S\n<1>% Modifier", HorizontalSpeedOf(), RoundToInteger(bhopSpeed - 100, Rounding.Up)>, Location.Left, 15);
     }
 
 rule: "[Main] :: End Game"
@@ -498,6 +490,7 @@ rule: "[Killspree] :: 24 Kills"
     }
 
 disabled rule: "---------------- Bhop ----------------"{}
+
 rule: "[Bhop] :: Auto Hop"
     Event.OngoingPlayer
     if (IsOnGround() && IsJumpHeld())
@@ -510,12 +503,12 @@ rule: "[Bhop] :: Auto Hop"
 rule: "[Bhop] :: Starting Speed"
     Event.OngoingPlayer
     {
-        bhopSpeed = DEFAULT_START_SPEED;
+        bhopSpeed = 100;
     }
 
 rule: "[Bhop] :: If Airborne"
     Event.OngoingPlayer
-    if ((!usingGrapple && IsJumping() && HorizontalSpeedOf() > DEFAULT_START_SPEED / 33.33) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) < 40))
+    if ((!usingGrapple && IsJumping() && HorizontalSpeedOf() > 5.13) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) < 40))
     {
         speedAccumInAir = HorizontalSpeedOf();
         Wait(0.05);
@@ -536,7 +529,7 @@ rule: "[Bhop] :: Update Speed"
 
 rule: "[Bhop] :: Update isChasing"
     Event.OngoingPlayer
-    if (isChasing && bhopSpeed == BHOP_MAX_SPEED || bhopSpeed == DEFAULT_START_SPEED)
+    if (isChasing && bhopSpeed == BHOP_MAX_SPEED || bhopSpeed == 100)
     {
         StopChasingVariable(bhopSpeed);
         isChasing = false;
@@ -544,11 +537,11 @@ rule: "[Bhop] :: Update isChasing"
 
 rule: "[Bhop] :: Stop chasing if too slow"
     Event.OngoingPlayer
-    if (!usingGrapple && (isChasing || bhopSpeed == BHOP_MAX_SPEED) && HorizontalSpeedOf() < DEFAULT_START_SPEED / 22.2)
+    if (!usingGrapple && (isChasing || bhopSpeed == BHOP_MAX_SPEED) && HorizontalSpeedOf() < 5.13)
     {
         StopChasingVariable(bhopSpeed);
         isChasing = false;
-        bhopSpeed = DEFAULT_START_SPEED;
+        bhopSpeed = 100;
         SetMoveSpeed(player, bhopSpeed);
         Wait(0.032);
         LoopIfConditionIsTrue();
@@ -556,12 +549,12 @@ rule: "[Bhop] :: Stop chasing if too slow"
 
 rule: "[Bhop] :: Stop if player is on ground"
     Event.OngoingPlayer
-    if ((IsOnGround() && !usingGrapple) && (bhopSpeed > DEFAULT_START_SPEED))
+    if ((IsOnGround() && !usingGrapple) && (bhopSpeed > 100))
     {
         WaitIfTrue(0.2);
         StopChasingVariable(bhopSpeed);
-        bhopSpeed = DEFAULT_START_SPEED;
-        // ChaseVariableAtRate(bhopSpeed, DEFAULT_START_SPEED, 325, RateChaseReevaluation.DestinationAndRate);
+        bhopSpeed = 100;
+        // ChaseVariableAtRate(bhopSpeed, 100, 325, RateChaseReevaluation.DestinationAndRate);
         // isChasing = true;
         SetMoveSpeed(player, bhopSpeed);
     }
@@ -579,7 +572,7 @@ rule: "[Dodge] :: Action"
 
         ApplyImpulse(player, throttleOf, DODGE_FORCE, Relative.ToPlayer, ContraryMotion.Cancel);
 
-        if (bhopSpeed < DEFAULT_START_SPEED + 20)
+        if (bhopSpeed < 100 + 20)
             bhopSpeed += BHOP_SPEED_RATE * 3;
 
         canDodge = false;
@@ -867,7 +860,7 @@ rule: "[Buff] :: Map Locations"
                 buffPos[0] = Vector(-49.46, 1.00, 2.69);
                 buffPos[1] = Vector(-31.19, 10.00, -13.40);
                 buffPos[2] = Vector(-93.67, 8.50, -29.38);
-                buffPos[3] = Vector(-48.85, 9.12, -37.62);
+                buffPos[3] = Vector(-48.85, 10.12, -37.62);
                 break;
             case (CurrentMap() == Map.Lijiang_Control_Center || CurrentMap() == Map.Lijiang_Control_Center_Lunar):
                 validBuffMap = true;
@@ -955,7 +948,7 @@ rule: "[Buff] :: Wallbang : Collect"
             ChaseVariableAtRate(wallbangDur, 0, 1, RateChaseReevaluation.None)
 
             // toasts
-            CreateHudText(player, null, null, <"<1> Wallbang: <0> <1>", RoundToInteger(wallbangDur, Rounding.Up), AbilityIconString(Hero.Baptiste, ButtonValue(Button.Ultimate))>, Location.Top, 2);
+            CreateHudText(player, null, null, <" \n<1> Wallbang: <0> <1>", RoundToInteger(wallbangDur, Rounding.Up), AbilityIconString(Hero.Baptiste, ButtonValue(Button.Ultimate))>, Location.Top, 2);
             hudText[0] = LastTextID();
             SmallMessage(player, "Your bullets go through walls!");
             BigMessage(player, "Wallbang");
@@ -974,7 +967,7 @@ rule: "[Buff] :: Wallbang : Collect"
         }
         else
         {
-            CreateHudText(player, null, null, <"<0> Wallbang: Forever <0>", AbilityIconString(Hero.Baptiste, ButtonValue(Button.Ultimate))>, Location.Top, 1);
+            CreateHudText(player, null, null, <" \n<0> Wallbang: Forever <0>", AbilityIconString(Hero.Baptiste, ButtonValue(Button.Ultimate))>, Location.Top, 1);
             hudText[0] = LastTextID();
         }
     }
@@ -1070,7 +1063,7 @@ rule: "[Buff] :: Ricochet : Collect"
             ChaseVariableAtRate(ricochetDur, 0, 1, RateChaseReevaluation.None)
 
             // toasts
-            CreateHudText(player, null, null, <"<1> Ricochet Bullets: <0> <1>", RoundToInteger(ricochetDur, Rounding.Up), AbilityIconString(Hero.Winston, ButtonValue(Button.Ability1))>, Location.Top, 3);
+            CreateHudText(player, null, null, <" \n<1> Ricochet Bullets: <0> <1>", RoundToInteger(ricochetDur, Rounding.Up), AbilityIconString(Hero.Winston, ButtonValue(Button.Ability1))>, Location.Top, 3);
             hudText[1] = LastTextID();
             SmallMessage(player, "Your bullets ricochet off walls!");
             BigMessage(player, "Ricochet Bullets");
@@ -1089,7 +1082,7 @@ rule: "[Buff] :: Ricochet : Collect"
         }
         else
         {
-            CreateHudText(player, null, null, <"<0> Ricochet Bullets: Forever <0>", AbilityIconString(Hero.Winston, ButtonValue(Button.Ability1))>, Location.Top, 2);
+            CreateHudText(player, null, null, <" \n<0> Ricochet Bullets: Forever <0>", AbilityIconString(Hero.Winston, ButtonValue(Button.Ability1))>, Location.Top, 2);
             hudText[1] = LastTextID();
         }
     }
@@ -1210,7 +1203,7 @@ rule: "[Buff] :: Buckshot : Collect"
             ChaseVariableAtRate(buckshotDur, 0, 1, RateChaseReevaluation.DestinationAndRate)
         
             // toasts
-            CreateHudText(player, null, null, <"<1> Buckshot: <0> <1>", RoundToInteger(buckshotDur, Rounding.Up), AbilityIconString(Hero.Ashe, ButtonValue(Button.Ability1))>, Location.Top, 4);
+            CreateHudText(player, null, null, <" \n<1> Buckshot: <0> <1>", RoundToInteger(buckshotDur, Rounding.Up), AbilityIconString(Hero.Ashe, ButtonValue(Button.Ability1))>, Location.Top, 4);
             hudText[2] = LastTextID();
             BigMessage(player, "Buckshot");
             SmallMessage(player, "Your bullets spread like a shotgun!");
@@ -1229,7 +1222,7 @@ rule: "[Buff] :: Buckshot : Collect"
         }
         else
         {
-            CreateHudText(player, null, null, <"<0> Buckshot: Forever <0>", AbilityIconString(Hero.Ashe, ButtonValue(Button.Ability1))>, Location.Top, 3);
+            CreateHudText(player, null, null, <" \n<0> Buckshot: Forever <0>", AbilityIconString(Hero.Ashe, ButtonValue(Button.Ability1))>, Location.Top, 3);
             hudText[2] = LastTextID();
         }
     }
@@ -1256,6 +1249,7 @@ rule: "[Buff] :: Buckshot : Action"
     Event.OngoingPlayer
     if (buckshotEnabled && IsFiringPrimary())
     {
+        // todo: new method to calculate spread that doesnt fire 9 different raycasts at once
         buckshotHitPos = [];
         buckshotHitPlayer = [];
         livingEnemies = FilteredArray(EnemyPlayers(), IsAlive(Curr()));
@@ -1265,6 +1259,9 @@ rule: "[Buff] :: Buckshot : Action"
 
         spreadDiag = BUCKSHOT_SPREAD - (BUCKSHOT_SPREAD * 0.33);
         spreadHori = BUCKSHOT_SPREAD;
+
+        // center
+        buckshotCenter = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
 
         if (!randomSpread)
         {
@@ -1466,17 +1463,16 @@ rule: "[Buff] :: Buckshot : Action"
             }
         }
 
-        // center
-        buckshotCenter = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, livingEnemies, player);
-
         // PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, EyePosition() + Facing() + gunPos, 0.2); // muzzle flash
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, buckshotCenter, 0.2);
+
         CreateBeamEffect(all, BeamType.BadBeam, EyePosition() + Facing() + gunPos, buckshotCenter, Color.Green, EffectRev.None);
         centerBeam = LastCreatedEntity();
 
         for (define pellets = 0; pellets < 8; pellets++)
         {
             Damage(buckshotHitPlayer[pellets], player, 10000);
+
             PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, buckshotHitPos[pellets], 0.2);
             CreateBeamEffect(all, BeamType.BadBeam, EyePosition() + Facing() + gunPos, buckshotHitPos[pellets], Color.Green, EffectRev.None);
             buckshotBeam[pellets] = LastCreatedEntity();
@@ -1489,7 +1485,6 @@ rule: "[Buff] :: Buckshot : Action"
             DestroyEffect(buckshotBeam[beams]);
         }
     }
-
 
 disabled rule: "---------------- Extra Life ----------------"{}
 
@@ -1529,7 +1524,7 @@ rule: "[Buff] :: Extra Life : Collect"
             PlayEffect(all, PlayEffect.BuffExplosionSound, Color.SkyBlue, buffPos[3], 200);
 
             // toasts
-            SmallMessage(player, "Extra life");
+            SmallMessage(player, "Extra Life");
             BigMessage(player, "Extra Life");
 
             // start in world cooldown
@@ -1537,12 +1532,16 @@ rule: "[Buff] :: Extra Life : Collect"
         }
 
         // hud text
-        CreateHudText(player, null, null, <"<0> Extra Life <0>", AbilityIconString(Hero.Mercy, ButtonValue(Button.Ability2))>, Location.Top, 1);
+        CreateHudText(player, null, null, <" \n<0> Extra Life <0>", AbilityIconString(Hero.Mercy, ButtonValue(Button.Ability2))>, Location.Top, 1);
         hudText[3] = LastTextID();
 
         // create icon above player
-        CreateInWorldText(all, AbilityIconString(Hero.Mercy, ButtonValue(Button.Ability2)), player, 1, Clipping.ClipAgainstSurfaces, InworldTextRev.VisibleToPositionAndString);
+        CreateInWorldText(all, AbilityIconString(Hero.Mercy, ButtonValue(Button.Ability2)), player, 2, Clipping.ClipAgainstSurfaces, InworldTextRev.VisibleToPositionAndString);
         extraLifeIcon = LastTextID();
+
+        // create effect
+        CreateEffect(all, Effect.BadAura, Color.SkyBlue, player, 0.75, EffectRev.VisibleToPositionAndRadius);
+        lifeBuffEffect = LastCreatedEntity();
     }
 
 rule: "[Buff] :: Extra Life : Remove"
@@ -1550,13 +1549,17 @@ rule: "[Buff] :: Extra Life : Remove"
     if (extraLife && (Health() == 1 || (IsDead() && !spawnWithLife)))
     {
         extraLife = false;
+
         ClearStatus(player, Status.Unkillable);
+
         SmallMessage(player, "Extra life used");
         PlayEffect(player, PlayEffect.DebuffImpactSound, Color.White, player, 200);
+
         DestroyInWorldText(extraLifeIcon);
+        DestroyEffect(lifeBuffEffect);
         DestroyHudText(hudText[3]);
 
-        Wait(0.5);
+        Wait(1);
         SetPlayerHealth(player, MaxHealth());
     }
 

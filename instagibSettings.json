@@ -37,10 +37,8 @@
         "Mccree"
       ],
       "Mccree": {
-        "Combat Roll": false,
         "Damage Dealt": 500.0,
         "Damage Received": 500.0,
-        "Flashbang": false,
         "No Ammunition Requirement": true,
         "Quick Melee": false,
         "Secondary Fire": false,
