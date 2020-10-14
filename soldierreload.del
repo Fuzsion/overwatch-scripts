@@ -1,0 +1,41 @@
+import "macros.del";
+playervar define reloadChase;
+globalvar define RELOAD_TIME;
+
+rule: "init"
+    {
+        RELOAD_TIME = WorkshopSettingReal("Setting", "Reload Time While Sprinting", 1.55, 1.55, 10);
+    }
+
+rule: "sprinting"
+    Event.OngoingPlayer
+    Player.Soldier76
+    if (IsUsingAbility1() && Ammo() < MaxAmmo())
+    {
+        reloadChase = RELOAD_TIME;
+        ChaseVariableAtRate(reloadChase, 0, 1, RateChaseReevaluation.DestinationAndRate);
+    }
+
+rule: "sprint no more"
+    Event.OngoingPlayer
+    Player.Soldier76
+    if (!IsUsingAbility1())
+    {
+        StopChasingVariable(reloadChase);
+        reloadChase = RELOAD_TIME;
+    }
+
+rule: "reload"
+    Event.OngoingPlayer
+    Player.Soldier76
+    if (reloadChase == 0)
+    {
+        SetAmmo(player, 0, MaxAmmo());
+    }
+
+rule: "reload hud"
+    Event.OngoingPlayer
+    Player.Soldier76
+    {
+        CreateHudText(player, null, null, <"Time until reload: <0>", reloadChase != 0 ? reloadChase : "Reloaded">, Location.Top, 5);
+    }
