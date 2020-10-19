@@ -1,0 +1,76 @@
+import "scortFFASettings.json";
+import "macros.del";
+
+globalvar define MATCH_TIME;
+globalvar define healOnKill;
+globalvar define nerfedHeal;
+playervar define killStreak;
+rule: "Created by scort#12211 | Feel free to edit, modify, host your own lobby, whatever; but please don't take credit for the original, that's just mean :(" 
+{
+    # Additionally, I am planning to add more content that doesn't take away from the original game.
+    Skip();
+}
+
+rule: "Initial Global"
+    {
+        MATCH_TIME = WorkshopSettingInteger("Settings", "​Match Time (Minutes) (60)", 60, 1, 60) * 60;
+        healOnKill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true);
+        nerfedHeal = WorkshopSettingToggle("Heal On Kill", "Nerf Heal by 50%", true);
+        SetMatchTime(10);
+    }
+
+rule: "Initial Player Join"
+    Event.OnPlayerJoin
+    {
+        killStreak = 0;
+    }
+
+rule: "Set Match Time"
+    if (IsGameInProgress())
+    {
+        SetMatchTime(MATCH_TIME);
+        DisableCompletion();
+    }
+
+rule: "HUD Text"
+    Event.OngoingPlayer
+    {
+        CreateHudText(killStreak >= 3 ? player : null, HeroIconString(HeroOf()), <"<0> (You)", player>, <"Kill Streak: <0>", killStreak>, Location.Left, 1, Color.SkyBlue);
+        CreateHudText(killStreak >= 3 ? RemoveFromArray(all, player) : null, HeroIconString(HeroOf()), player, <"Kill Streak: <0>", killStreak>, Location.Left, 2, Color.Red);
+    }
+
+rule: "Update Kills"
+    Event.OnFinalBlow
+    if (!IsDead(Attacker()))
+    {
+        killStreak++;
+    }
+
+rule: "Reset Kills"
+    Event.OnDeath
+    {
+        killStreak = 0;
+    }
+
+rule: "Heal On Kill"
+    Event.OnFinalBlow
+    if (healOnKill && !IsDuplicating(Attacker()) && Health(Attacker()) < MaxHealth(Attacker()))
+    {
+        if (nerfedHeal)
+            Heal(Attacker(), null, MaxHealth(Victim()) / 2);
+        else
+            Heal(Attacker(), null, MaxHealth(Victim()));
+    }
+
+rule: "End Game"
+    if (MatchTime() == 0)
+    {
+        EnableCompletion();
+    }
+
+rule: "Force Respawn"
+    Event.OngoingPlayer
+    if (IsButtonHeld(player, Button.Jump) && IsDead())
+    {
+        Respawn();
+    }
