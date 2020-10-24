@@ -37,6 +37,9 @@
         "Widowmaker",
         "Zenyatta"
       ],
+      "Mccree": {
+        "Secondary Fire": false
+      },
       "Baptiste": {
         "Immortality Field": false
       },
@@ -48,13 +51,13 @@
         "Experimental Barrier": false
       },
       "Sombra": {
-          "Hack": false,
-          "Ultimate Ability (EMP)": false
+        "Hack": false,
+        "Ultimate Ability (EMP)": false
       },
       "Bastion": {
           "Reconfigure": false
       }
     }
   },
-  "Description": " Tryhard FFA | Code: BKRXY\n Created by scort#11221 | 10/18/2020\n Immanust we miss you bro"
+  "Description": "Tryhard FFA | Code: BKRXY | Created by scort#11221 | 10/20/2020 | Immanust we miss you bro"
 }

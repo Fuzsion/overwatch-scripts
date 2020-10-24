@@ -4,18 +4,22 @@ import "macros.del";
 globalvar define MATCH_TIME;
 globalvar define healOnKill;
 globalvar define nerfedHeal;
+globalvar define HEAL_PERC;
+globalvar define matchStarted;
 playervar define killStreak;
-rule: "Created by scort#12211 | Feel free to edit, modify, host your own lobby, whatever; but please don't take credit for the original, that's just mean :(" 
-{
-    # Additionally, I am planning to add more content that doesn't take away from the original game.
-    Skip();
-}
+playervar define totalKills;
+playervar define damageIn;
+playervar define damageOut;
+
+rule: "Created by scort#12211 | Feel free to edit, modify, host your own lobby, whatever; but please don't take credit for the original, that's just mean :(" {}
 
 rule: "Initial Global"
     {
-        MATCH_TIME = WorkshopSettingInteger("Settings", "​Match Time (Minutes) (60)", 60, 1, 60) * 60;
-        healOnKill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true);
-        nerfedHeal = WorkshopSettingToggle("Heal On Kill", "Nerf Heal by 50%", true);
+        matchStarted = false;
+        MATCH_TIME = WorkshopSettingInteger("Match Time", "​Match Time (Minutes)", 60, 1, 60, 1) * 60;
+        healOnKill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 2);
+        nerfedHeal = WorkshopSettingToggle("Heal On Kill", "Nerf Heal", true, 3);
+        HEAL_PERC = WorkshopSettingInteger("Heal On Kill", "​Heal Percentage", 50, 1, 100, 4) / 100;
         SetMatchTime(10);
     }
 
@@ -25,9 +29,17 @@ rule: "Initial Player Join"
         killStreak = 0;
     }
 
+rule: "scort Join"
+    Event.OngoingPlayer
+    if (<"<0>", player> == "scort" && HasSpawned() && matchStarted)
+    {
+        SmallMessage(all, "scort joined, say hi :)");
+    }
+
 rule: "Set Match Time"
     if (IsGameInProgress())
     {
+        matchStarted = true;
         SetMatchTime(MATCH_TIME);
         DisableCompletion();
     }
@@ -35,15 +47,39 @@ rule: "Set Match Time"
 rule: "HUD Text"
     Event.OngoingPlayer
     {
-        CreateHudText(killStreak >= 3 ? player : null, HeroIconString(HeroOf()), <"<0> (You)", player>, <"Kill Streak: <0>", killStreak>, Location.Left, 1, Color.SkyBlue);
-        CreateHudText(killStreak >= 3 ? RemoveFromArray(all, player) : null, HeroIconString(HeroOf()), player, <"Kill Streak: <0>", killStreak>, Location.Left, 2, Color.Red);
+        // streak self
+        CreateHudText(killStreak >= 5 ? player : null, HeroIconString(HeroOf()), <"<0> (You)", player>, <"Streak: <0>", killStreak>, Location.Left, 1, Color.SkyBlue, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+
+        // streak enemies
+        CreateHudText(killStreak >= 5 ? RemoveFromArray(all, player) : null, HeroIconString(HeroOf()), player, <"Streak: <0>", killStreak>, Location.Left, 2, Color.Red, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+
+        // damage
+        CreateHudText(player, null, null, <"Damage Done: <0>\nDamage Taken: <1>", damageOut, damageIn>, Location.Top, 2, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+    
+        // specs
+        CreateHudText(null, HeroIconString(HeroOf()), <"<0> | <1> kills | <2> streak", player, totalKills, killStreak>, <"Damage Done: <0> | Damage Taken: <1>", damageOut, damageIn>, Location.Left, SlotOf(), Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleAlways);
     }
 
 rule: "Update Kills"
     Event.OnFinalBlow
-    if (!IsDead(Attacker()))
     {
-        killStreak++;
+        if (IsAlive(Attacker()))
+            killStreak++;
+
+        totalKills++;
+    }
+
+rule: "Update damageOut"
+    Event.OnDamageDealt
+    if (Victim() != player)
+    {
+        damageOut += RoundToInteger(EventDamage(), Rounding.Nearest);
+    }
+
+rule: "Update damageIn"
+    Event.OnDamageTaken
+    {
+        damageIn += RoundToInteger(EventDamage(), Rounding.Nearest);
     }
 
 rule: "Reset Kills"
@@ -57,7 +93,7 @@ rule: "Heal On Kill"
     if (healOnKill && !IsDuplicating(Attacker()) && Health(Attacker()) < MaxHealth(Attacker()))
     {
         if (nerfedHeal)
-            Heal(Attacker(), null, MaxHealth(Victim()) / 2);
+            Heal(Attacker(), null, HEAL_PERC * MaxHealth(Victim()));
         else
             Heal(Attacker(), null, MaxHealth(Victim()));
     }
@@ -74,3 +110,24 @@ rule: "Force Respawn"
     {
         Respawn();
     }
+
+// rule: "[Debug] :: Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsInteractHeld() && !IsCrouchHeld())
+//     {
+//         CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+//     }
+
+// rule: "[Debug] :: Destroy Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsCrouchHeld() && IsInteractHeld())
+//     {
+//         DestroyAllDummyBots();
+//     }
+
+// rule: "[Debug] :: Destroy Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsCrouchHeld())
+//     {
+//         Damage(player, null, 10);
+//     }
