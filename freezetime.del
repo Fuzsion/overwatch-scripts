@@ -1,10 +1,10 @@
 import "macros.del";
 
 // globalvar
-globalvar define TIME_DUR = WorkshopSettingInteger("Constants", "Time Stop Duration", 10, 1, 100);
-globalvar define TELE_CD = WorkshopSettingInteger("Constants", "Teleport Cooldown", 8, 0, 60);
-globalvar define TBD_CD = WorkshopSettingInteger("Constants", "TBD Ability Cooldown", 1, 0, 60);
-globalvar define DIST = WorkshopSettingReal("Constants", "Raycast Distance", 6.5, 0, 100);
+globalvar define TIME_DUR = WorkshopSettingInteger("Constants", "Time Stop Duration", 10, 1, 100, 1);
+globalvar define TELE_CD = WorkshopSettingInteger("Constants", "Teleport Cooldown", 8, 0, 60, 2);
+globalvar define TBD_CD = WorkshopSettingInteger("Constants", "TBD Ability Cooldown", 1, 0, 60, 3);
+globalvar define DIST = WorkshopSettingReal("Constants", "Raycast Distance", 6.5, 0, 100, 4);
 globalvar define timeFrozen;
 globalvar define timeDur;
 globalvar define icon;
@@ -38,13 +38,13 @@ rule: "Init"
         DisallowButton(player, Button.Ability2);
         DisallowButton(player, Button.SecondaryFire);
 
-        CreateHudText(player, null, null, <"<0>", UltimateChargePercent() == 100 ? <" \n<0> Time Stop [<2>]:  <1>", AbilityIconString(Hero.Sigma, ButtonValue(Button.Ability1)), IconString(Icon.Checkmark), InputBindingString(ButtonValue(Button.Ultimate))> : <" \n<0> Time Stop [<2>]: <1>%", AbilityIconString(Hero.Sigma, ButtonValue(Button.Ability1)), UltimateChargePercent(), InputBindingString(ButtonValue(Button.Ultimate))>>, Location.Top, 1, Color.White, Color.White, Color.White);
+        CreateHudText(player, null, null, <"<0>", UltimateChargePercent() == 100 ? <" \n<0> Time Stop [<2>]:  <1>", AbilityIconString(Hero.Sigma, Button.Ability1), IconString(Icon.Checkmark), InputBindingString(Button.Ultimate)> : <" \n<0> Time Stop [<2>]: <1>%", AbilityIconString(Hero.Sigma, Button.Ability1), UltimateChargePercent(), InputBindingString(Button.Ultimate)>>, Location.Top, 1, Color.White, Color.White, Color.White);
         cooldownHud[0] = LastTextID();
 
-        CreateHudText(player, null, null, <"<0>", teleCD == 0 ? <"<0> Teleport [<2>]:  <1>", AbilityIconString(Hero.Zarya, ButtonValue(Button.Ability2)), IconString(Icon.Checkmark), InputBindingString(ButtonValue(Button.Ability1))> : <"<0> Teleport [<2>]: <1>", AbilityIconString(Hero.Zarya, ButtonValue(Button.Ability2)), RoundToInteger(teleCD, Rounding.Up), InputBindingString(ButtonValue(Button.Ability1))>>, Location.Top, 2, Color.White, Color.White, Color.White);
+        CreateHudText(player, null, null, <"<0>", teleCD == 0 ? <"<0> Teleport [<2>]:  <1>", AbilityIconString(Hero.Zarya, Button.Ability2), IconString(Icon.Checkmark), InputBindingString(Button.Ability1)> : <"<0> Teleport [<2>]: <1>", AbilityIconString(Hero.Zarya, Button.Ability2), RoundToInteger(teleCD, Rounding.Up), InputBindingString(Button.Ability1)>>, Location.Top, 2, Color.White, Color.White, Color.White);
         cooldownHud[1] = LastTextID();
 
-        CreateHudText(player, null, null, <"<0>", tbdCD == 0 ? <"<0> tbd [<2>]:  <1>", AbilityIconString(Hero.Tracer, ButtonValue(Button.Ultimate)), IconString(Icon.Checkmark), InputBindingString(ButtonValue(Button.Ability2))> : <"<0> tbd [<2>]: <1>", AbilityIconString(Hero.Tracer, ButtonValue(Button.Ultimate)), RoundToInteger(tbdCD, Rounding.Up), InputBindingString(ButtonValue(Button.Ability2))>>, Location.Top, 3, Color.White, Color.White, Color.White);
+        CreateHudText(player, null, null, <"<0>", tbdCD == 0 ? <"<0> tbd [<2>]:  <1>", AbilityIconString(Hero.Tracer, Button.Ultimate), IconString(Icon.Checkmark), InputBindingString(Button.Ability2)> : <"<0> tbd [<2>]: <1>", AbilityIconString(Hero.Tracer, Button.Ultimate), RoundToInteger(tbdCD, Rounding.Up), InputBindingString(Button.Ability2)>>, Location.Top, 3, Color.White, Color.White, Color.White);
         cooldownHud[2] = LastTextID();
     }
 
