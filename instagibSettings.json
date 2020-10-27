@@ -11,7 +11,6 @@
       "Game Mode Start": "Immediately",
       "Allow Hero Switching": false,
       "Hero Limit": "Off",
-      "Respawn Time Scalar": 10.0,
       "Spawn Health Packs": "Disabled"
     },
     "Deathmatch": {
@@ -47,5 +46,5 @@
       }
     }
   },
-  "Description": "Instagib v1.8.0 | Created by scort#11221 | 10/13/20\n- Hold down Jump to gain speed by bunny hopping\n- Press Secondary Fire (Right Click) to fire a knockback orb to displace enemies or to give yourself more mobility\n-Press Ability 1 (Shift) to dodge in any direction\n- Press Ability 2 (E) to throw out a grappling hook to attach to walls or pull players\n- Buffs are littered throughout the map that change your weapon drastically"
+  "Description": "Instagib v1.8.1 | Created by scort#11221 | 10/27/20\n- Hold down Jump to gain speed by bunny hopping\n- Press Secondary Fire (Right Click) to fire a knockback orb to displace enemies or to give yourself more mobility\n- Press Ability 1 (Shift) to dodge in any direction\n- Press Ability 2 (E) to throw out a grappling hook to attach to walls or pull players\n- Buffs are littered throughout the map that change your weapon drastically"
 }
