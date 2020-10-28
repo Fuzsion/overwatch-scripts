@@ -36,6 +36,7 @@ globalvar define BHOP_SPEED_RATE;
 
 // constants :: grapple
 globalvar define GRAPPLE_PULL_SPEED;
+globalvar define GRAPPLE_RANGE;
 
 // constants :: secondary
 globalvar define SECONDARY_PROJECTILE_SPEED;
@@ -126,7 +127,6 @@ playervar define facing;
 // global :: workshop settings
 globalvar define spawnBuckshot;
 globalvar define spawnWithBuckshot;
-// globalvar define randomSpread;
 globalvar define buckshotDbg;
 // global :: constants
 globalvar define BUCKSHOT_SPREAD;
@@ -148,8 +148,6 @@ playervar define bDbgBeam;
 // logic
 globalvar define spreadDiag;
 globalvar define spreadHori;
-// playervar define randomizedSpreadHori;
-// playervar define randomizedSpreadDiag;
 
 //// extra life ////
 
@@ -175,14 +173,12 @@ option for extra lives to "stack"
 new buff: wallbang and ricochet properties all within shotgun pellets; will work on this once i figure out a more efficient spread
 randomize weapon buff map locations upon match start
 
-random world events: lasts for 30 seconds, and has a 2 minute cooldown
+random world events: lasts for 30 seconds, has a 2 minute cooldown
 
-faster fire rate (not sure how i'll do this)
 low grav
 wallhacks
 explosive secondary
-melee enabled
-ratz mode (everyone is 25% scale)
+ratz mode (everyone is 35% scale)
 
 notes:
 dont use EntityExists() with effects
@@ -192,6 +188,7 @@ disabled rule: "---------------- Main ----------------"{}
 
 rule: "[Main] :: Initial Global"
     {
+        LogToInspector("Match not started yet");
         DisableInspectorRecording();
         DisableCompletion();
         DisableAnnouncer();
@@ -213,8 +210,9 @@ rule: "[Main] :: Initial Global"
         teleEnabled = WorkshopSettingToggle("General", "​​Spawn Teleporters (On)", true, 3);
         MATCH_TIME_LIMIT = WorkshopSettingInteger("General", "​Match Time (Minutes) (20)", 20, 1, 60, 4) * 60;
         GRAPPLE_PULL_SPEED = WorkshopSettingReal("General", "​​Grapple Pull Speed (3.5)", 3.5, 0.5, 10, 5);
-        SECONDARY_PROJECTILE_SPEED = WorkshopSettingInteger("General", "​​​Secondary Projectile Speed (110)", 110, 10, 500, 6);
-        DODGE_FORCE = WorkshopSettingReal("General", "​​​​​Dodge Force (14)", 14, 1, 100, 7);
+        GRAPPLE_RANGE = WorkshopSettingReal("General", "​​Grapple Range (40)", 40, 3.5, 100, 6);
+        SECONDARY_PROJECTILE_SPEED = WorkshopSettingInteger("General", "​​​Secondary Projectile Speed (90)", 90, 10, 500, 7);
+        DODGE_FORCE = WorkshopSettingReal("General", "​​​​​Dodge Force (14)", 14, 1, 100, 8);
 
         BHOP_MAX_SPEED = WorkshopSettingInteger("BHop", "​Maximum Speed Possible From Hops (100 = no speed bonus) (320)", 320, 100, 10000, 1);
         BHOP_SPEED_RATE = WorkshopSettingReal("BHop", "​​Speed gain rate (12.5)", 12.5, 1, 100, 2);
@@ -234,9 +232,8 @@ rule: "[Main] :: Initial Global"
         BUCKSHOT_CD = WorkshopSettingInteger("Buckshot", "​Buckshot Spawn Time (85)", 85, 1, 500, 1);
         BUCKSHOT_DUR = WorkshopSettingInteger("Buckshot", "​​Buckshot Duration (20)", 20, 1, 500, 2);
         BUCKSHOT_SPREAD = WorkshopSettingReal("Buckshot", "​​​Buckshot Spread (Lower is Tighter) (3.5)", 3.5, 0.1, 20, 2);
-        // randomSpread = WorkshopSettingToggle("Buckshot", "​​​​Randomized Buckshot Spread (Off)", false, 3);
-        spawnBuckshot = WorkshopSettingToggle("Buckshot", "​​​​​Spawn Buckshot (On)", true, 4);
-        spawnWithBuckshot = WorkshopSettingToggle("Buckshot", "​​​​​Spawn With Buckshot (Lasts Forever) (Off)", false, 5);
+        spawnBuckshot = WorkshopSettingToggle("Buckshot", "​​​​​Spawn Buckshot (On)", true, 3);
+        spawnWithBuckshot = WorkshopSettingToggle("Buckshot", "​​​​​Spawn With Buckshot (Lasts Forever) (Off)", false, 4);
 
         LIFE_CD = WorkshopSettingInteger("Extra Life", "​Extra Life Spawn Time (140)", 140, 1, 500, 1);
         spawnLife = WorkshopSettingToggle("Extra Life", "​​Spawn Extra Life (On)", true, 2);
@@ -282,6 +279,7 @@ rule: "[Main] :: Player Join"
 rule: "[Main] :: Start Match"
     if (!matchStarted && !IsWaitingForPlayers() && CountOf(AllLivingPlayers()) > 0)
     {
+        LogToInspector("Match Started");
         SetMatchTime(10);
         Wait(10.5);
         SetMatchTime(MATCH_TIME_LIMIT);
@@ -299,24 +297,33 @@ rule: "[Main] :: Start Match"
         if (buffsEnabled && validMap)
         {
             if (!spawnWithWallbang && spawnWallbang)
+            {
+                CreateEffect(all, Effect.Ring, Color.Yellow, buffPos[0] - Vector(0, 1, 0), 0.4);
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Baptiste, Button.Ultimate)>, null, 
                 wallbangCD != 0 ? <"<0>", RoundToInteger(wallbangCD, Rounding.Up)> : canPickupWallbang ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", wallbangUser>, 
                 Location.Left, 1, Color.Yellow);
-            
+            }
             if (!spawnWithRicochet && spawnRicochet)
+            {
+                CreateEffect(all, Effect.Ring, Color.Violet, buffPos[1] - Vector(0, 1, 0), 0.4);
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Winston, Button.Ability1)>, null,
                 ricochetCD != 0 ? <"<0>", RoundToInteger(ricochetCD, Rounding.Up)> : canPickupRicochet ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", ricochetUser>,
-                Location.Left, 2, Color.Violet);
-
+                Location.Left, 2, Color.Purple);
+            }
             if (!spawnWithBuckshot && spawnBuckshot)
+            {
+                CreateEffect(all, Effect.Ring, Color.Green, buffPos[2] - Vector(0, 1, 0), 0.4);
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Ashe, Button.Ability1)>, null,
                 buckshotCD != 0 ? <"<0>", RoundToInteger(buckshotCD, Rounding.Up)> : canPickupBuckshot ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", buckshotUser>,
                 Location.Left, 3, Color.Green);
-
+            }
             if (!spawnWithLife && spawnLife)
+            {
+                CreateEffect(all, Effect.Ring, Color.SkyBlue, buffPos[3] - Vector(0, 1, 0), 0.4);
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Mercy, Button.Ability2)>, null, 
                 lifeCD != 0 ? <"<0>", RoundToInteger(lifeCD, Rounding.Up)> : <"<0>", IconString(Icon.Checkmark)>, 
                 Location.Left, 4, Color.SkyBlue);
+            }
 
             // if (!spawnWithRedeemer && spawnRedeemer)
             // {
@@ -352,11 +359,11 @@ rule: "[Main] :: Force Respawn"
         Respawn();
     }
 
-rule: "[Main] :: Speedometer"
+rule: "[Main] :: Speedometer & Accuracy HUD Text"
     Event.OngoingPlayer
     if (BHOP_MAX_SPEED > 100)
     {
-        CreateHudText(player, null, null, <" \n<0> M/S\n<1>% Modifier", HorizontalSpeedOf(), RoundToInteger(bhopSpeed - 100, Rounding.Up)>, Location.Left, 10);
+        CreateHudText(player, null, null, <" \n<0> M/S\n<1>% Modifier\n \nAccuracy: <2>%", HorizontalSpeedOf(), RoundToInteger(bhopSpeed - 100, Rounding.Up), RoundToInteger(PlayerStat(player, PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, Location.Left, 10);
     }
 
 rule: "[Main] :: End Game"
@@ -482,11 +489,11 @@ rule: "[Killspree] :: Unstoppable"
         DestroyEffect(spreeEffects[2]);
         DestroyHudText(spreeHud[2]);
         BigMessage(all, <"<0> is Unstoppable!", player>);
-        CreateInWorldText(player, "Unstoppable!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Violet);
+        CreateInWorldText(player, "Unstoppable!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Purple);
         spreeInWorld[3] = LastTextID();
         CreateEffect(all, Effect.Sparkles, Color.Violet, player, 1, EffectRev.VisibleToPositionAndRadius);
         spreeEffects[3] = LastCreatedEntity();
-        CreateHudText(player, null, <" \n<0> Kills", lifeKills>, "Unstoppable", Location.Left, 15, Color.White, Color.White, Color.Violet);
+        CreateHudText(player, null, <" \n<0> Kills", lifeKills>, "Unstoppable", Location.Left, 15, Color.White, Color.White, Color.Purple);
         spreeHud[3] = LastTextID();
         Wait(2);
         DestroyInWorldText(spreeInWorld[3]);
@@ -562,7 +569,7 @@ rule: "[Bhop] :: Starting Speed"
 
 rule: "[Bhop] :: If Airborne"
     Event.OngoingPlayer
-    if ((!usingGrapple && IsJumping() && HorizontalSpeedOf() > 5.14) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) < 40))
+    if ((!usingGrapple && IsJumping() && HorizontalSpeedOf() > 5.14) || (usingGrapple && IsInAir() && DistanceBetween(grappleEyePos, grappleHit) < GRAPPLE_RANGE))
     {
         speedAccumInAir = HorizontalSpeedOf();
         Wait(0.05);
@@ -591,7 +598,7 @@ rule: "[Bhop] :: Update isChasing"
 
 rule: "[Bhop] :: Stop chasing if too slow"
     Event.OngoingPlayer
-    if (!usingGrapple && (isChasing || bhopSpeed == BHOP_MAX_SPEED) && HorizontalSpeedOf() < 5.14)
+    if (!usingGrapple && !usingTele && (isChasing || bhopSpeed == BHOP_MAX_SPEED) && HorizontalSpeedOf() < 5.14)
     {
         StopChasingVariable(bhopSpeed);
         isChasing = false;
@@ -696,55 +703,57 @@ disabled rule: "---------------- Grapple ----------------"{}
 playervar define grappleBeam;
 playervar define grappleSphere;
 
-void GrapppleSub() playervar "[Sub] :: End Grapple"
-{
-    usingGrapple = false;
-    StopForcingThrottle();
-    DestroyEffect(grappleSphere[0]);
-    DestroyEffect(grappleSphere[1]);
-    DestroyEffect(grappleBeam[0]);
-    DestroyEffect(grappleBeam[1]);
-}
+void EndGrapple() playervar "[Sub] :: End Grapple"
+    {
+        usingGrapple = false;
+        StopForcingThrottle();
+        DestroyEffect(grappleSphere);
+        DestroyEffect(grappleBeam);
+        grappleHitPlayer = null;
+    }
 
 rule: "[Grapple] :: Grapple Start"
     Event.OngoingPlayer
     if (matchStarted && IsAbility2Held() && IsAlive())
     {
-        grappleSphere = [];
-        grappleBeam = [];
-        grappleHit = RayCastHitPosition(EyePosition(), UpdateEveryFrame(EyePosition() + Facing() * 40), AllLivingPlayers(), player);
-        grappleHitPlayer = RayCastHitPlayer(EyePosition(), UpdateEveryFrame(EyePosition() + Facing() * 40), AllLivingPlayers(), player, true);
+        grappleHit = RayCastHitPosition(EyePosition(), UpdateEveryFrame(EyePosition() + Facing() * GRAPPLE_RANGE), AllLivingPlayers(), player);
+        grappleHitPlayer = RayCastHitPlayer(EyePosition(), UpdateEveryFrame(EyePosition() + Facing() * GRAPPLE_RANGE), AllLivingPlayers(), player, true);
         grappleEyePos = EyePosition();
 
         if (grappleHitPlayer)
         {
             CreateBeamEffect(all, BeamType.GrappleBeam, player, grappleHitPlayer, Color.Yellow, EffectRev.VisibleToPositionAndRadius);
-            grappleBeam[0] = LastCreatedEntity();
+            grappleBeam = LastCreatedEntity();
             
-            if (DistanceBetween(grappleEyePos, grappleHit) != 40)
+            if (DistanceBetween(grappleEyePos, grappleHit) != GRAPPLE_RANGE)
             {
                 CreateEffect(all, Effect.Sphere, Color.Yellow, grappleHitPlayer, 0.2);
-                grappleSphere[0] = LastCreatedEntity();
+                grappleSphere = LastCreatedEntity();
             }
         }
         else 
         {
             CreateBeamEffect(all, BeamType.GrappleBeam, player, grappleHit, Color.Yellow, EffectRev.VisibleToPositionAndRadius);
-            grappleBeam[0] = LastCreatedEntity();
+            grappleBeam = LastCreatedEntity();
             
-            if (DistanceBetween(grappleEyePos, grappleHit) != 40)
+            if (DistanceBetween(grappleEyePos, grappleHit) != GRAPPLE_RANGE)
             {
                 CreateEffect(all, Effect.Sphere, Color.Yellow, grappleHit, 0.2);
-                grappleSphere[0] = LastCreatedEntity();
+                grappleSphere = LastCreatedEntity();
             }
         }
 
         usingGrapple = true;
 
-        if (DistanceBetween(grappleEyePos, grappleHit) == 40)
+        if (DistanceBetween(grappleEyePos, grappleHit) == GRAPPLE_RANGE)
         {
             Wait(0.25);
-            GrapppleSub();
+            EndGrapple();
+        }
+        else if (DistanceBetween(player, grappleHit) < 3)
+        {
+            Wait(0.25);
+            EndGrapple();
         }
         else
         {
@@ -754,12 +763,12 @@ rule: "[Grapple] :: Grapple Start"
         }
 
         Wait(0.5);
-        LoopIf(IsAbility2Held() && IsAlive() && DistanceBetween(grappleEyePos, grappleHit) == 40);
+        LoopIf(IsAbility2Held() && IsAlive() && DistanceBetween(grappleEyePos, grappleHit) == GRAPPLE_RANGE);
     }
 
 rule: "[Grapple] :: Pull"
     Event.OngoingPlayer
-    if (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) < 40)
+    if (usingGrapple && DistanceBetween(grappleEyePos, grappleHit) < GRAPPLE_RANGE)
     {
         ForceThrottle(player, 0, 0.05, 0, 0.05, 0, 0.05);
 
@@ -774,24 +783,59 @@ rule: "[Grapple] :: Pull"
         LoopIfConditionIsTrue();
     }
 
-rule: "[Grapple] :: Grapple End"
+rule: "[Grapple] :: Grapple End Ability 2"
     Event.OngoingPlayer
-    if ((!IsAbility2Held()) || 
-    (IsDead()) || 
-    (IsDead(grappleHitPlayer)) || 
-    (DistanceBetween(player, grappleHit) < 2) ||
-    (!IsInLineOfSight(player, grappleHitPlayer)) || 
-    (!IsInViewAngle(player, grappleHitPlayer, 105)) || 
-    (usingTele))
+    if (!IsAbility2Held())
     {
-        GrapppleSub();
+        EndGrapple();
     }
 
-rule: "[Grapple] :: !usingGrapple"
-    Event.OngoingPlayer
-    if (!usingGrapple)
+rule: "[Grapple] :: Grapple End On Death"
+    Event.OnDeath
     {
-        GrapppleSub();
+        EndGrapple();
+    }
+
+rule: "[Grapple] :: Grapple End Grappled Player Dead"
+    Event.OngoingPlayer
+    if (IsDead(grappleHitPlayer))
+    {
+        EndGrapple();
+    }
+
+rule: "[Grapple] :: Grapple End Grappled Player Too Close"
+    Event.OngoingPlayer
+    if (DistanceBetween(player, grappleHitPlayer) < 3)
+    {
+        EndGrapple();
+    }
+
+rule: "[Grapple] :: Grapple End Too Close"
+    Event.OngoingPlayer
+    if (DistanceBetween(player, grappleHit) < 3)
+    {
+        EndGrapple();
+    }
+
+rule: "[Grapple] :: Grapple End Out of LOS"
+    Event.OngoingPlayer
+    if (!IsInLineOfSight(player, grappleHitPlayer))
+    {
+        EndGrapple();
+    }
+
+rule: "[Grapple] :: Grapple End Grappled Player out of sight"
+    Event.OngoingPlayer
+    if (!IsInViewAngle(player, grappleHitPlayer, 105))
+    {
+        EndGrapple();
+    }
+
+rule: "[Grapple] :: Grapple End Using Teleporter"
+    Event.OngoingPlayer
+    if (usingTele)
+    {
+        EndGrapple();
     }
 
 // rule: "[Grapple] :: On Death: Destroy Effects"
@@ -806,67 +850,6 @@ rule: "[Grapple] :: !usingGrapple"
 //     }
 
 disabled rule: "---------------- Buff + Tele ----------------"{}
-
-globalvar define wallbangPBar;
-globalvar define ricochetPBar;
-globalvar define buckshotPBar;
-globalvar define lifePBar;
-
-void WallbangCooldown() "[Sub] :: Wallbang Cooldown" 
-    {
-        if (!spawnWithWallbang && spawnWallbang)
-        {
-            wallbangCD = WALLBANG_CD;
-            wallbangPBar = 0;
-            // CreateInWorldText(all, <"<0>", RoundToInteger(wallbangCD, Rounding.Up)>, buffPos[0], 2, Clipping.ClipAgainstSurfaces);
-            CreateProgressBarInWorldText(all, wallbangPBar, null, buffPos[0], 0.5, Clipping.ClipAgainstSurfaces, Color.Yellow, Color.White);
-            cdText[0] = LastTextID();
-            ChaseVariableAtRate(wallbangCD, 0, 1, RateChaseReevaluation.None);
-            ChaseVariableOverTime(wallbangPBar, 100, WALLBANG_CD, TimeChaseReevaluation.None);
-        }
-    }
-
-void RicochetCooldown() "[Sub] :: Ricochet Cooldown"
-    {
-        if (!spawnWithRicochet && spawnRicochet)
-        {
-            ricochetCD = RICOCHET_CD;
-            ricochetPBar = 0;
-            // CreateInWorldText(all, <"<0>", RoundToInteger(ricochetCD, Rounding.Up)>, buffPos[1], 2, Clipping.ClipAgainstSurfaces);
-            CreateProgressBarInWorldText(all, ricochetPBar, null, buffPos[1], 0.5, Clipping.ClipAgainstSurfaces, Color.Violet, Color.White);
-            cdText[1] = LastTextID();
-            ChaseVariableAtRate(ricochetCD, 0, 1, RateChaseReevaluation.None);
-            ChaseVariableOverTime(ricochetPBar, 100, RICOCHET_CD, TimeChaseReevaluation.None);
-        }
-    }
-
-void BuckshotCooldown() "[Sub] :: Buckshot Cooldown"
-    {
-        if (!spawnWithBuckshot && spawnBuckshot)
-        {
-            buckshotCD = BUCKSHOT_CD;
-            buckshotPBar = 0;
-            // CreateInWorldText(all, <"<0>", RoundToInteger(buckshotCD, Rounding.Up)>, buffPos[2], 2, Clipping.ClipAgainstSurfaces);
-            CreateProgressBarInWorldText(all, buckshotPBar, null, buffPos[2], 0.5, Clipping.ClipAgainstSurfaces, Color.Green, Color.White);
-            cdText[2] = LastTextID();
-            ChaseVariableAtRate(buckshotCD, 0, 1, RateChaseReevaluation.None);
-            ChaseVariableOverTime(buckshotPBar, 100, BUCKSHOT_CD, TimeChaseReevaluation.None);
-        }
-    }
-
-void LifeCooldown() "[Sub] :: Life Cooldown"
-    {
-        if (!spawnWithLife && spawnLife)
-        {
-            lifeCD = LIFE_CD;
-            lifePBar = 0;
-            // CreateInWorldText(all, <"<0>", RoundToInteger(lifeCD, Rounding.Up)>, buffPos[3], 2, Clipping.ClipAgainstSurfaces);
-            CreateProgressBarInWorldText(all, lifePBar, null, buffPos[3], 0.5, Clipping.ClipAgainstSurfaces, Color.Blue, Color.White);
-            cdText[3] = LastTextID();
-            ChaseVariableAtRate(lifeCD, 0, 1, RateChaseReevaluation.None);
-            ChaseVariableOverTime(lifePBar, 100, LIFE_CD, TimeChaseReevaluation.None);
-        }
-    }
 
 // void RedeemerCooldown() "[Sub] :: Redeemer Cooldown"
 //     {
@@ -924,12 +907,12 @@ rule: "[Buff + Tele] :: Map Locations"
                 
                 telePos[0] = Vector(29.09, 11, 4.97);
                 teleFacing[0] = Vector(-1, 0, 0);
-                telePos[1] = Vector(9.55, 14.50, 1.41);
-                teleFacing[1] = Vector(-0.74, 0, 0.68);
-                telePos[2] = Vector(-12.64, 15.44, -15.71);
-                teleFacing[2] = Vector(0.5, 0, -0.85);
-                telePos[3] = Vector(-8.9, 15, 31.67);
-                teleFacing[3] = Vector(-0.47, 0, -0.77);
+                telePos[1] = Vector(-31.25, 14.96, 5.00);
+                teleFacing[1] = Vector(1, 0, 0);
+                telePos[2] = Vector(35.92, 14, -26.70);
+                teleFacing[2] = Vector(-0.85, 0, 0.52);
+                telePos[3] = Vector(37.47, 14, 37.26);
+                teleFacing[3] = Vector(-0.87, 0, -0.50);
                 break;
             case (CurrentMap() == Map.Blizzard_World || CurrentMap() == Map.Blizzard_World_Winter):
                 validMap = true;
@@ -979,8 +962,8 @@ rule: "[Buff + Tele] :: Map Locations"
                 teleFacing[1] = Vector(0, 0, 1);
                 telePos[2] = Vector(165.76, 7, 81.01);
                 teleFacing[2] = Vector(1, 0, 0);
-                telePos[3] = Vector(210.63, 10, 110.38);
-                teleFacing[3] = Vector(-1, 0, 0);
+                telePos[3] = Vector(206.26, 2, 84.50);
+                teleFacing[3] = Vector(0, 0, -1);
                 break;
             case (CurrentMap() == Map.Dorado):
                 validMap = true;
@@ -1143,6 +1126,7 @@ rule: "[Buff] :: Player With Buff Doesn't Exist"
     {
         if ((!EntityExists(wallbangUser) && !EntityExists(buffEffect[0]) && wallbangUser != null) && !spawnWithWallbang)
         {
+            LogToInspector("wallbangUser no longer exists, starting cooldown");
             wallbangUser.wallbangEnabled = false;
             wallbangUser.wallbangDur = 0;
             Wait(1);
@@ -1151,6 +1135,7 @@ rule: "[Buff] :: Player With Buff Doesn't Exist"
 
         if ((!EntityExists(ricochetUser) && !EntityExists(buffEffect[1]) && ricochetUser != null) && !spawnWithRicochet)
         {
+            LogToInspector("riochetUser no longer exists, starting cooldown");
             ricochetUser.ricochetEnabled = false;
             ricochetUser.ricochetDur = 0;
             Wait(1);
@@ -1159,6 +1144,7 @@ rule: "[Buff] :: Player With Buff Doesn't Exist"
 
         if ((!EntityExists(buckshotUser) && !EntityExists(buffEffect[2]) && buckshotUser != null) && !spawnWithBuckshot)
         {
+            LogToInspector("buckshotUser no longer exists, starting cooldown");
             buckshotUser.buckshotEnabled = false;
             buckshotUser.buckshotDur = 0;
             Wait(1);
@@ -1178,6 +1164,31 @@ globalvar define telePos;
 globalvar define teleFacing;
 playervar define usingTele;
 playervar define teleThrottle;
+
+void TeleImpulse() playervar "[Sub] :: Teleporter Impulse"
+    {
+        SetGravity(player, 0);
+
+        ApplyImpulse(player, Up(), 0.001);
+        ApplyImpulse(player, Down(), 0.001);
+        ApplyImpulse(player, Forward(), 0.001);
+        ApplyImpulse(player, Backward(), 0.001);
+        ApplyImpulse(player, Left(), 0.001);
+        ApplyImpulse(player, Right(), 0.001);
+
+        teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
+
+        if (ThrottleOf() == Vector(XOf(ThrottleOf()), 0, -1))
+            teleThrottle = Vector(0, 0.25, 1);
+
+        Wait(0.08);
+        SetGravity(player, 100);
+        ApplyImpulse(player, teleThrottle, 20, Relative.ToPlayer, ContraryMotion.Cancel);
+
+        Wait(1.5);
+        usingTele = false;
+    }
+
 rule: "[Tele] :: Create Tele Effects"
     if (validMap && matchStarted && teleEnabled)
     {
@@ -1198,16 +1209,7 @@ rule: "[Tele] :: 0 to 1"
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Violet, player, 1);
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Violet, telePos[0], 3);
 
-        teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
-
-        if (ThrottleOf() == ThrottleOf() + Vector(0, 0, -1))
-            teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
-
-        Wait(0.064);
-        ApplyImpulse(player, teleThrottle, 20, Relative.ToPlayer, ContraryMotion.Cancel);
-
-        Wait(1.5);
-        usingTele = false;
+        TeleImpulse();
     }
 
 rule: "[Tele] :: 1 to 0"
@@ -1221,16 +1223,7 @@ rule: "[Tele] :: 1 to 0"
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Violet, player, 1);
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Violet, telePos[1], 3);
 
-        teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
-
-        if (ThrottleOf() == ThrottleOf() + Vector(0, 0, -1))
-            teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
-
-        Wait(0.064);
-        ApplyImpulse(player, teleThrottle, 20, Relative.ToPlayer, ContraryMotion.Cancel);
-
-        Wait(1.5);
-        usingTele = false;
+        TeleImpulse();
     }
 
 rule: "[Tele] :: 2 to 3"
@@ -1244,16 +1237,7 @@ rule: "[Tele] :: 2 to 3"
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Violet, player, 1);
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Violet, telePos[2], 3);
 
-        teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
-
-        if (ThrottleOf() == ThrottleOf() + Vector(0, 0, -1))
-            teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
-
-        Wait(0.064);
-        ApplyImpulse(player, teleThrottle, 20, Relative.ToPlayer, ContraryMotion.Cancel);
-        
-        Wait(1.5);
-        usingTele = false;
+        TeleImpulse();
     }
 
 rule: "[Tele] :: 3 to 2"
@@ -1267,18 +1251,102 @@ rule: "[Tele] :: 3 to 2"
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Violet, player, 1);
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Violet, telePos[3], 3);
 
-        teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
-
-        if (ThrottleOf() == ThrottleOf() + Vector(0, 0, -1))
-            teleThrottle = ThrottleOf() + Vector(0, 0.25, 1);
-
-        Wait(0.064);
-        ApplyImpulse(player, teleThrottle, 20, Relative.ToPlayer, ContraryMotion.Cancel);
-        
-        Wait(1.5);
-        usingTele = false;
+        TeleImpulse();
     }
 
+
+globalvar define wallbangPBar;
+globalvar define wallbangSphereSize;
+globalvar define wallbangInProgressEffect;
+globalvar define ricochetPBar;
+globalvar define ricochetSphereSize;
+globalvar define ricochetInProgressEffect;
+globalvar define buckshotPBar;
+globalvar define buckshotSphereSize;
+globalvar define buckshotInProgressEffect;
+globalvar define lifePBar;
+globalvar define lifeSphereSize;
+globalvar define lifeInProgressEffect;
+
+void WallbangCooldown() "[Sub] :: Wallbang Cooldown" 
+    {
+        if (!spawnWithWallbang && spawnWallbang)
+        {
+            LogToInspector("Wallbang Cooldown Started");
+            wallbangCD = WALLBANG_CD;
+            wallbangPBar = 0;
+            wallbangSphereSize = 0;
+            CreateEffect(all, Effect.Sphere, Color.Yellow, buffPos[0], wallbangSphereSize);
+            wallbangInProgressEffect = LastCreatedEntity();
+            CreateProgressBarInWorldText(all, wallbangPBar, null, buffPos[0], 0, Clipping.ClipAgainstSurfaces, Color.Yellow, Color.White);
+            cdText[0] = LastTextID();
+
+            ChaseVariableAtRate(wallbangCD, 0, 1, RateChaseReevaluation.None);
+
+            ChaseVariableOverTime(wallbangPBar, 100, WALLBANG_CD, TimeChaseReevaluation.None);
+            ChaseVariableOverTime(wallbangSphereSize, 0.4, WALLBANG_CD, TimeChaseReevaluation.None);
+        }
+    }
+
+void RicochetCooldown() "[Sub] :: Ricochet Cooldown"
+    {
+        if (!spawnWithRicochet && spawnRicochet)
+        {
+            LogToInspector("Riochet Cooldown Started");
+            ricochetCD = RICOCHET_CD;
+            ricochetPBar = 0;
+            ricochetSphereSize = 0;
+            CreateEffect(all, Effect.Sphere, Color.Violet, buffPos[1], ricochetSphereSize);
+            ricochetInProgressEffect = LastCreatedEntity();
+            CreateProgressBarInWorldText(all, ricochetPBar, null, buffPos[1], 0, Clipping.ClipAgainstSurfaces, Color.Violet, Color.White);
+            cdText[1] = LastTextID();
+
+            ChaseVariableAtRate(ricochetCD, 0, 1, RateChaseReevaluation.None);
+
+            ChaseVariableOverTime(ricochetPBar, 100, RICOCHET_CD, TimeChaseReevaluation.None);
+            ChaseVariableOverTime(ricochetSphereSize, 0.4, RICOCHET_CD, TimeChaseReevaluation.None);
+        }
+    }
+
+void BuckshotCooldown() "[Sub] :: Buckshot Cooldown"
+    {
+        if (!spawnWithBuckshot && spawnBuckshot)
+        {
+            LogToInspector("Buckshot Cooldown Started");
+            buckshotCD = BUCKSHOT_CD;
+            buckshotPBar = 0;
+            buckshotSphereSize = 0;
+            CreateEffect(all, Effect.Sphere, Color.Green, buffPos[2], buckshotSphereSize);
+            buckshotInProgressEffect = LastCreatedEntity();
+            CreateProgressBarInWorldText(all, buckshotPBar, null, buffPos[2], 0, Clipping.ClipAgainstSurfaces, Color.Green, Color.White);
+            cdText[2] = LastTextID();
+
+            ChaseVariableAtRate(buckshotCD, 0, 1, RateChaseReevaluation.None);
+
+            ChaseVariableOverTime(buckshotPBar, 100, BUCKSHOT_CD, TimeChaseReevaluation.None);
+            ChaseVariableOverTime(buckshotSphereSize, 0.4, BUCKSHOT_CD, TimeChaseReevaluation.None);
+        }
+    }
+
+void LifeCooldown() "[Sub] :: Life Cooldown"
+    {
+        if (!spawnWithLife && spawnLife)
+        {
+            LogToInspector("Extra Life Cooldown Started");
+            lifeCD = LIFE_CD;
+            lifePBar = 0;
+            lifeSphereSize = 0;
+            CreateEffect(all, Effect.Sphere, Color.SkyBlue, buffPos[3], lifeSphereSize);
+            lifeInProgressEffect = LastCreatedEntity();
+            CreateProgressBarInWorldText(all, lifePBar, null, buffPos[3], 0, Clipping.ClipAgainstSurfaces, Color.Blue, Color.White);
+            cdText[3] = LastTextID();
+
+            ChaseVariableAtRate(lifeCD, 0, 1, RateChaseReevaluation.None);
+
+            ChaseVariableOverTime(lifePBar, 100, LIFE_CD, TimeChaseReevaluation.None);
+            ChaseVariableOverTime(lifeSphereSize, 0.4, LIFE_CD, TimeChaseReevaluation.None);
+        }
+    }
 
 disabled rule: "---------------- Wallbang ----------------"{}
 
@@ -1286,7 +1354,8 @@ rule: "[Buff] :: Wallbang : Create Orb"
     if (validMap && !spawnWithWallbang && spawnWallbang && wallbangCD == 0 && (matchStarted || buffsSpawnImmediately))
     {
         canPickupWallbang = true;
-
+        LogToInspector("Wallbang Orb Created");
+        DestroyEffect(wallbangInProgressEffect);
         CreateEffect(all, Effect.Orb, Color.Yellow, buffPos[0], 2);
         buffEffect[0] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Yellow, buffPos[0], 1);
@@ -1294,7 +1363,6 @@ rule: "[Buff] :: Wallbang : Create Orb"
         CreateInWorldText(all, AbilityIconString(Hero.Baptiste, Button.Ultimate), buffPos[0], 2, Clipping.ClipAgainstSurfaces);
         buffIcon[0] = LastTextID();
 
-        // DestroyInWorldText(cdText[0]);
         DestroyProgressBarInWorldText(cdText[0]);
     }
 
@@ -1306,10 +1374,11 @@ rule: "[Buff] :: Wallbang : Collect"
         wallbangEnabled = true;
         wallbangUser = player;
 
+        LogToInspector(<"Wallbang Enabled for <0>", wallbangUser>);
+
         if (!spawnWithWallbang)
         {
             // destroy inworld text / icon / orb
-            // DestroyInWorldText(cdText[0]);
             DestroyProgressBarInWorldText(cdText[0]);
             DestroyInWorldText(buffIcon[0]);
             DestroyEffect(buffEffect[0]);
@@ -1352,6 +1421,7 @@ rule: "[Buff] :: Wallbang : Remove"
     if (!spawnWithWallbang && wallbangDur == 0)
     {
         Wait(0.128);
+        LogToInspector(<"Wallbang Disabled for <0>", wallbangUser>);
 
         // destroy hud timer and player effect
         DestroyProgressBarHudText(hudText[0]);
@@ -1410,8 +1480,10 @@ disabled rule: "---------------- Ricochet ----------------"{}
 rule: "[Buff] :: Ricochet : Create Orb"
     if (validMap && !spawnWithRicochet && spawnRicochet && ricochetCD == 0 && (matchStarted || buffsSpawnImmediately))
     {
+        LogToInspector("Ricochet Orb Created");
         canPickupRicochet = true;
 
+        DestroyEffect(ricochetInProgressEffect);
         CreateEffect(all, Effect.Orb, Color.Violet, buffPos[1], 2);
         buffEffect[1] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Violet, buffPos[1], 1);
@@ -1419,7 +1491,6 @@ rule: "[Buff] :: Ricochet : Create Orb"
         CreateInWorldText(all, AbilityIconString(Hero.Winston, Button.Ability1), buffPos[1], 2, Clipping.ClipAgainstSurfaces);
         buffIcon[1] = LastTextID();
 
-        // DestroyInWorldText(cdText[1]);
         DestroyProgressBarInWorldText(cdText[1]);
     }
 
@@ -1431,10 +1502,11 @@ rule: "[Buff] :: Ricochet : Collect"
         ricochetEnabled = true;
         ricochetUser = player;
 
+        LogToInspector(<"Ricochet Enabled for <0>", ricochetUser>);
+
         if (!spawnWithRicochet)
         {
             // destroy inworld text / icon / orb
-            // DestroyInWorldText(cdText[1]);
             DestroyProgressBarInWorldText(cdText[1]);
             DestroyInWorldText(buffIcon[1]);
             DestroyEffect(buffEffect[1]);
@@ -1477,6 +1549,7 @@ rule: "[Buff] :: Ricochet : Remove"
     if (ricochetDur == 0 && !spawnWithRicochet)
     {
         Wait(0.128);
+        LogToInspector(<"Riochet Disabled for <0>", ricochetUser>);
         // destroy hud timer and player effect
         DestroyProgressBarHudText(hudText[1]);
         DestroyEffect(ricochetBuffEffect);
@@ -1566,8 +1639,10 @@ disabled rule: "---------------- Buckshot ----------------"{}
 rule: "[Buff] :: Buckshot : Create Orb"
     if (validMap && !spawnWithBuckshot && spawnBuckshot && buckshotCD == 0 && (matchStarted || buffsSpawnImmediately))
     {
+        LogToInspector("Buckshot Orb Created");
         canPickupBuckshot = true;
 
+        DestroyEffect(buckshotInProgressEffect);
         CreateEffect(all, Effect.Orb, Color.Green, buffPos[2], 2);
         buffEffect[2] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Green, buffPos[2], 1);
@@ -1575,7 +1650,6 @@ rule: "[Buff] :: Buckshot : Create Orb"
         CreateInWorldText(all, AbilityIconString(Hero.Ashe, Button.Ability1), buffPos[2], 2, Clipping.ClipAgainstSurfaces);
         buffIcon[2] = LastTextID();
 
-        // DestroyInWorldText(cdText[2]);
         DestroyProgressBarInWorldText(cdText[2]);
     }
 
@@ -1587,10 +1661,11 @@ rule: "[Buff] :: Buckshot : Collect"
         buckshotEnabled = true;
         buckshotUser = player;
 
+        LogToInspector(<"Buckshot Enabled for <0>", buckshotUser>);
+
         if (!spawnWithBuckshot)
         {
             // destroy inworld text / icon / orb
-            // DestroyInWorldText(cdText[2]);
             DestroyProgressBarInWorldText(cdText[2]);
             DestroyInWorldText(buffIcon[2]);
             DestroyEffect(buffEffect[2]);
@@ -1634,6 +1709,9 @@ rule: "[Buff] :: Buckshot : Remove"
     if (!spawnWithBuckshot && buckshotDur == 0)
     {
         Wait(0.128);
+
+        LogToInspector(<"Buckshot Disabled for <0>", buckshotUser>);
+
         // destroy hud timer and player effect
         DestroyProgressBarHudText(hudText[2]);
         DestroyEffect(buckshotBuffEffect);
@@ -1797,6 +1875,7 @@ rule: "[Buff] :: Extra Life : Create Orb"
     {
         canPickupLife = true;
 
+        DestroyEffect(lifeInProgressEffect);
         CreateEffect(all, Effect.Orb, Color.SkyBlue, buffPos[3], 2);
         buffEffect[3] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.SkyBlue, buffPos[3], 1);
@@ -1804,7 +1883,6 @@ rule: "[Buff] :: Extra Life : Create Orb"
         CreateInWorldText(all, AbilityIconString(Hero.Mercy, Button.Ability2), buffPos[3], 2, Clipping.ClipAgainstSurfaces);
         buffIcon[3] = LastTextID();
 
-        // DestroyInWorldText(cdText[3]);
         DestroyProgressBarInWorldText(cdText[3]);
     }
 
@@ -1837,7 +1915,8 @@ rule: "[Buff] :: Extra Life : Collect"
         }
 
         // hud text
-        CreateHudText(player, null, null, <"<0> Extra Life <0>", AbilityIconString(Hero.Mercy, Button.Ability2)>, Location.Right, 0.2, Color.White, Color.White, Color.SkyBlue);
+        // CreateHudText(player, null, null, <"<0> Extra Life <0>", AbilityIconString(Hero.Mercy, Button.Ability2)>, Location.Right, 0.2, Color.White, Color.White, Color.SkyBlue);
+        CreateProgressBarHudText(player, 100, <"<0> Extra Life <0>", AbilityIconString(Hero.Mercy, Button.Ability2)>, Location.Right, 0.2, Color.SkyBlue, Color.SkyBlue);
         hudText[3] = LastTextID();
 
         // create icon above player
@@ -1865,7 +1944,8 @@ rule: "[Buff] :: Extra Life : Remove"
         
         DestroyInWorldText(extraLifeIcon);
         DestroyEffect(lifeBuffEffect);
-        DestroyHudText(hudText[3]);
+        // DestroyHudText(hudText[3]);
+        DestroyProgressBarHudText(hudText[3]);
 
         Wait(1);
         SetPlayerHealth(player, MaxHealth());
@@ -1995,32 +2075,32 @@ rule: "[Buff] :: Extra Life : Remove"
 //         Kill();
 //     }
 
-// rule: "[Debug] :: Hud Text"
-//     {
-//         CreateHudText(host, null, null, <"Pos: <0>", PositionOf(host)>, Location.Top, 10);
-//         CreateHudText(host, null, null, <"Facing: <0>", FacingDirectionOf(host)>, Location.Top, 10);
-//     }
+rule: "[Debug] :: Hud Text"
+    {
+        CreateHudText(host, null, null, <"Pos: <0>", PositionOf(host)>, Location.Top, 10);
+        CreateHudText(host, null, null, <"Facing: <0>", FacingDirectionOf(host)>, Location.Top, 10);
+    }
 
-// rule: "[Debug] :: Bots"
-//     Event.OngoingPlayer
-//     if (player == host && IsInteractHeld() && !IsCrouchHeld())
-//     {
-//         CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
-//     }
+rule: "[Debug] :: Bots"
+    Event.OngoingPlayer
+    if (player == host && IsInteractHeld() && !IsCrouchHeld())
+    {
+        CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+    }
 
-// rule: "[Debug] :: Destroy Bots"
-//     Event.OngoingPlayer
-//     if (player == host && IsCrouchHeld() && IsInteractHeld())
-//     {
-//         DestroyAllDummyBots();
-//     }
+rule: "[Debug] :: Destroy Bots"
+    Event.OngoingPlayer
+    if (player == host && IsCrouchHeld() && IsInteractHeld())
+    {
+        DestroyAllDummyBots();
+    }
 
-// rule: "[Debug] :: Show OW Spawn Points"
-//     if (matchStarted)
-//     {
-//         for (define i = 0; i < CountOf(SpawnPoints()); i++)
-//             CreateEffect(all, Effect.LightShaft, Color.White, SpawnPoints()[i], 1, EffectRev.None);
-//     }
+rule: "[Debug] :: Show OW Spawn Points"
+    if (matchStarted)
+    {
+        for (define i = 0; i < CountOf(SpawnPoints()); i++)
+            CreateEffect(all, Effect.Ring, Color.White, SpawnPoints()[i], 1, EffectRev.None);
+    }
 
 // rule: "[Degug] :: Bots Hold Left Click"
 //     Event.OngoingPlayer
