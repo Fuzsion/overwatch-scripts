@@ -7,9 +7,6 @@ globalvar define nerfedHeal;
 globalvar define HEAL_PERC;
 globalvar define matchStarted;
 playervar define killStreak;
-playervar define totalKills;
-playervar define damageIn;
-playervar define damageOut;
 
 rule: "Created by scort#12211 | Feel free to edit, modify, host your own lobby, whatever; but please don't take credit for the original, that's just mean :(" {}
 
@@ -48,38 +45,47 @@ rule: "HUD Text"
     Event.OngoingPlayer
     {
         // streak self
-        CreateHudText(killStreak >= 5 ? player : null, HeroIconString(HeroOf()), <"<0> (You)", player>, <"Streak: <0>", killStreak>, Location.Left, 1, Color.SkyBlue, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+        CreateHudText(killStreak >= 5 ? player : null, 
+        HeroIconString(HeroOf()), 
+        <"<0> (You)", player>, 
+        <"Streak: <0>", killStreak>, 
+        Location.Left, 1, Color.SkyBlue, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
 
         // streak enemies
-        CreateHudText(killStreak >= 5 ? RemoveFromArray(all, player) : null, HeroIconString(HeroOf()), player, <"Streak: <0>", killStreak>, Location.Left, 2, Color.Red, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+        CreateHudText(killStreak >= 5 ? RemoveFromArray(all, player) : null, 
+        HeroIconString(HeroOf()), 
+        player, 
+        <"Streak: <0>", 
+        killStreak>, 
+        Location.Left, 2, Color.Red, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
 
         // damage
-        CreateHudText(player, null, null, <"Damage Done: <0>\nDamage Taken: <1>", damageOut, damageIn>, Location.Top, 2, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+        CreateHudText(player, null, null, 
+        <"Damage Done: <0>\nDamage Taken: <1>\nAccuracy: <2>%", 
+        RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
+        RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
+        RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>,
+        Location.Top, 2, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
     
         // specs
-        CreateHudText(null, HeroIconString(HeroOf()), <"<0> | <1> kills | <2> streak", player, totalKills, killStreak>, <"Damage Done: <0> | Damage Taken: <1>", damageOut, damageIn>, Location.Left, SlotOf(), Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleAlways);
+        CreateHudText(null, 
+        HeroIconString(HeroOf()), 
+        <"<0> | <1> kills | <2> streak", 
+        player, 
+        RoundToInteger(PlayerStat(player, PlayerStat.FinalBlows), Rounding.Nearest), 
+        killStreak>, 
+        <"Damage Done: <0> | Damage Taken: <1> | Accuracy: <2>%", 
+        RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
+        RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
+        RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, 
+        Location.Left, SlotOf(), Color.Red, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleAlways);
     }
 
-rule: "Update Kills"
+rule: "Update Killstreak "
     Event.OnFinalBlow
+    if (IsAlive(Attacker()))
     {
-        if (IsAlive(Attacker()))
-            killStreak++;
-
-        totalKills++;
-    }
-
-rule: "Update damageOut"
-    Event.OnDamageDealt
-    if (Victim() != player)
-    {
-        damageOut += RoundToInteger(EventDamage(), Rounding.Nearest);
-    }
-
-rule: "Update damageIn"
-    Event.OnDamageTaken
-    {
-        damageIn += RoundToInteger(EventDamage(), Rounding.Nearest);
+        killStreak++;
     }
 
 rule: "Reset Kills"
@@ -111,21 +117,21 @@ rule: "Force Respawn"
         Respawn();
     }
 
-// rule: "[Debug] :: Bots"
-//     Event.OngoingPlayer
-//     if (player == host && IsInteractHeld() && !IsCrouchHeld())
-//     {
-//         CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
-//     }
+rule: "[Debug] :: Bots"
+    Event.OngoingPlayer
+    if (player == host && IsInteractHeld() && !IsCrouchHeld())
+    {
+        CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+    }
 
-// rule: "[Debug] :: Destroy Bots"
-//     Event.OngoingPlayer
-//     if (player == host && IsCrouchHeld() && IsInteractHeld())
-//     {
-//         DestroyAllDummyBots();
-//     }
+rule: "[Debug] :: Destroy Bots"
+    Event.OngoingPlayer
+    if (player == host && IsCrouchHeld() && IsInteractHeld())
+    {
+        DestroyAllDummyBots();
+    }
 
-// rule: "[Debug] :: Destroy Bots"
+// rule: "[Debug] :: Damage"
 //     Event.OngoingPlayer
 //     if (player == host && IsCrouchHeld())
 //     {
