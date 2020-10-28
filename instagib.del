@@ -1916,7 +1916,7 @@ rule: "[Buff] :: Extra Life : Collect"
 
         // hud text
         // CreateHudText(player, null, null, <"<0> Extra Life <0>", AbilityIconString(Hero.Mercy, Button.Ability2)>, Location.Right, 0.2, Color.White, Color.White, Color.SkyBlue);
-        CreateProgressBarHudText(player, 100, <"<0> Extra Life <0>", AbilityIconString(Hero.Mercy, Button.Ability2)>, Location.Right, 0.2, Color.Blue, Color.SkyBlue);
+        CreateProgressBarHudText(player, 100, <"<0> Extra Life <0>", AbilityIconString(Hero.Mercy, Button.Ability2)>, Location.Right, 0.2, Color.Blue, Color.Blue);
         hudText[3] = LastTextID();
 
         // create icon above player
