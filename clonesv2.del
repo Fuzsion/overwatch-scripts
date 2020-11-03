@@ -57,17 +57,17 @@ rule: "Initial Global"
         DisableAnnouncer();
         playerAmount = [0, 1, 2, 3, 4, 5];
 
-        DISTANCE = WorkshopSettingReal("Options", "1. Teleport Distance (12) (Distance before a bot teleports)", 12, 0, 100);
-        TIMER_DUR = WorkshopSettingReal("Options", "2. In Combat Timer (6) (Time until heal over time starts)", 6, 0, 30);
-        OOS_TIME = WorkshopSettingReal("Options", "3. Out of LOS Teleport Time (0.25)", 0.25, 0, 5);
-        RESPAWN_TIME = WorkshopSettingInteger("Options", "4. Bot Respawn Time (15)", 15, 0, 90);
-        FAILSAFE_TIME = WorkshopSettingReal("Options", "5. Respawn Failsafe time (18.5) (lower than 18 can respawn prematurely in overtime!)", 18.5, 15.1, 30);
-        genjiNerf = WorkshopSettingToggle("Options", "6. Genji Swift Strike Damage Modification (On)", true);
-        GENJI_DAMAGE = WorkshopSettingReal("Options", "6A. Genji Swift Strike Damage Percentage (33.34)", 33.34, 0, 100);
-        healToggle = WorkshopSettingToggle("Options", "7. Heal Over Time out of combat (On)", true);
-        botOutlines = WorkshopSettingToggle("Options", "8. Hide Owned Bot Outlines (On)", true);
+        DISTANCE = WorkshopSettingReal("Options", "Teleport Distance (12) (Distance before a bot teleports)", 12, 0, 100, 1);
+        TIMER_DUR = WorkshopSettingReal("Options", "In Combat Timer (6) (Time until heal over time starts)", 6, 0, 30, 2);
+        OOS_TIME = WorkshopSettingReal("Options", "Out of LOS Teleport Time (0.25)", 0.25, 0, 5, 3);
+        RESPAWN_TIME = WorkshopSettingInteger("Options", "Bot Respawn Time (15)", 15, 0, 90, 4);
+        FAILSAFE_TIME = WorkshopSettingReal("Options", "Respawn Failsafe time (18.5) (lower than 18 can respawn prematurely in overtime!)", 18.5, 15.1, 30, 5);
+        genjiNerf = WorkshopSettingToggle("Options", "Genji Swift Strike Damage Modification (On)", true, 6);
+        GENJI_DAMAGE = WorkshopSettingReal("Options", "Genji Swift Strike Damage Percentage (33.34)", 33.34, 0, 100, 7);
+        healToggle = WorkshopSettingToggle("Options", "Heal Over Time out of combat (On)", true, 8);
+        botOutlines = WorkshopSettingToggle("Options", "Hide Owned Bot Outlines (On)", true, 9);
 
-        CreateHudText(all, null, "ㅤMimiQ | Created by Fuzsion#11545", "ㅤ      Share Code: WRYEP", Location.Right, 0);
+        CreateHudText(all, null, "ㅤMimiq | Created by scort#11221", " v1.0.0 | Share Code: WRYEPㅤ", Location.Right, 0, Color.White, RGBColor(), Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
     }
 
 rule: "Initial Player Join"
@@ -98,7 +98,7 @@ rule: "Disclaimer Text"
         infoText[2] = LastTextID();
         CreateHudText(player, null, "Please tell me about any issues or suggestions you have, either by adding my Btag in the top right or by telling me in-game.", null, Location.Top, 1.4);
         infoText[3] = LastTextID();
-        CreateHudText(player, null, null, <"Press [<1>] or wait <0> s to remove this message", RoundToInteger(infoTimer, Rounding.Up), InputBindingString(ButtonValue(Button.Interact))>, Location.Top, 1.5);
+        CreateHudText(player, null, null, <"Press [<1>] or wait <0> s to remove this message", RoundToInteger(infoTimer, Rounding.Up), InputBindingString(Button.Interact)>, Location.Top, 1.5);
         infoText[4] = LastTextID();
     }
 
@@ -202,9 +202,9 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         closestPlayer = LastOf(SortedArray(closestPlayer, NormalizedHealth(Curr())));
         positionOf = PositionOf(closestPlayer);
         facingDir = FacingDirectionOf(closestPlayer);
-        healthOf = Health(closestPlayer)
+        healthOf = Health(closestPlayer);
         ammoOf[0] = Ammo(closestPlayer, 0);
-        # bap heal clip
+        // bap heal clip
         ammoOf[1] = Ammo(closestPlayer, 1);
         SetFacing(closestPlayer, Facing(), Relative.ToWorld);
         Kill(closestPlayer);
@@ -244,7 +244,7 @@ rule: "[Owner] :: Start healOT"
     Event.OngoingPlayer
     if (healToggle && !IsDummyBot() && timer == 0 && Health() < MaxHealth())
     {
-        # stop timer
+        // stop timer
         timer = 0;
         StopChasingVariable(timer);
         StartHealOverTime(player, null, 10000, 10);
@@ -255,7 +255,7 @@ rule: "[Owner] :: Stop healOT"
     Event.OnDamageTaken
     if (healToggle && !IsDummyBot() && !IsHero(Hero.Mercy))
     {
-        # start timer
+        // start timer
         timer = TIMER_DUR;
         StopChasingVariable(timer);
         ChaseVariableAtRate(timer, 0, 1, RateChaseReevaluation.None);
@@ -423,16 +423,16 @@ rule: "[Bot] :: Alive"
         SetWeapon(player, Weapon(owner));
 
         SetAmmo(player, 0, Ammo(owner, 0));
-        # bap clip
+        // bap clip
         SetAmmo(player, 1, Ammo(owner, 1));
 
-        # GROSS
-        SetAbilityCooldown(player, ButtonValue(Button.PrimaryFire), AbilityCooldown(owner, ButtonValue(Button.PrimaryFire)));
-        SetAbilityCooldown(player, ButtonValue(Button.SecondaryFire), AbilityCooldown(owner, ButtonValue(Button.SecondaryFire)));
-        SetAbilityCooldown(player, ButtonValue(Button.Ability1), AbilityCooldown(owner, ButtonValue(Button.Ability1)));
-        SetAbilityCooldown(player, ButtonValue(Button.Ability2), AbilityCooldown(owner, ButtonValue(Button.Ability2)));
-        SetAbilityCooldown(player, ButtonValue(Button.Jump), AbilityCooldown(owner, ButtonValue(Button.Jump)));
-        SetAbilityCooldown(player, ButtonValue(Button.Crouch), AbilityCooldown(owner, ButtonValue(Button.Crouch)));
+        // GROSS
+        SetAbilityCooldown(player, Button.PrimaryFire, AbilityCooldown(owner, Button.PrimaryFire));
+        SetAbilityCooldown(player, Button.SecondaryFire, AbilityCooldown(owner, Button.SecondaryFire));
+        SetAbilityCooldown(player, Button.Ability1, AbilityCooldown(owner, Button.Ability1));
+        SetAbilityCooldown(player, Button.Ability2, AbilityCooldown(owner, Button.Ability2));
+        SetAbilityCooldown(player, Button.Jump, AbilityCooldown(owner, Button.Jump));
+        SetAbilityCooldown(player, Button.Crouch, AbilityCooldown(owner, Button.Crouch));
     }
 
 rule: "[Bot] :: Dead"
@@ -449,7 +449,7 @@ rule: "[Bot] :: Respawn Time"
     Event.OngoingPlayer
     if (IsDummyBot())
     {
-        SetRespawnMaxTime(player, RESPAWN_TIME)
+        SetRespawnMaxTime(player, RESPAWN_TIME);
     }
 
 rule: "[Bot] :: Incorrect Hero"
@@ -491,7 +491,7 @@ void TeleportBot() playervar "Teleport Sub"
     {
         Teleport(player, owner + WorldVectorOf(Vector(0, 0, -0.5), owner));
 
-        # prevent teleport effects from being played if sombra is in stealth
+        // prevent teleport effects from being played if sombra is in stealth
         AbortIf(IsHero(Hero.Sombra) && IsUsingAbility1());
 
         PlayEffect(EnemyPlayers(), PlayEffect.BadPickupEffect, Color.Red, player, 0.3);
@@ -502,7 +502,7 @@ rule: "[Bot] :: Owner out of range"
     Event.OngoingPlayer
     if (botAlive && IsAlive(owner) && !CCed && DistanceBetween(owner, player) > DISTANCE)
     {
-        TeleportBot()
+        TeleportBot();
     }
 
 rule: "[Bot] :: Owner out of sight"
@@ -510,7 +510,7 @@ rule: "[Bot] :: Owner out of sight"
     if (botAlive && IsAlive(owner) && !CCed && !IsInLineOfSight(owner, player))
     {
         WaitIfTrue(OOS_TIME);
-        TeleportBot()
+        TeleportBot();
     }
 
 disabled rule: "---------------- Input Emulation (IE) ----------------"{}
@@ -525,9 +525,9 @@ rule: "[IE] :: Aim & Movement"
     {
         StartThrottleInDirection(player, WorldVectorOf(ThrottleOf(owner), owner, LocalVector.Rotation), ThrottleOf(owner) != Vector(0,0,0));
 
-        StartFacing(player, DirectionTowards(EyePosition(), 
-        RayCastHitPosition(EyePosition(owner), EyePosition(owner) + FacingDirectionOf(owner) * 100, AllLivingPlayers(OppositeTeamOf(TeamOf(owner))), AllLivingPlayers(TeamOf(owner)), true)), 
-        10000);
+        StartFacing(player, DirectionTowards(EyePosition(),
+        RayCastHitPosition(EyePosition(owner), UpdateEveryFrame(EyePosition(owner) + FacingDirectionOf(owner) * 100), AllLivingPlayers(OppositeTeamOf(TeamOf(owner))), AllLivingPlayers(TeamOf(owner)), true)), 
+        999999999);
     }
 
 rule: "[IE] :: Stop Aim"
@@ -653,7 +653,7 @@ rule: "[IE] :: Released Primary"
         define bots = ownerBots;
         StopHoldingButton(bots, Button.PrimaryFire);
 
-        SetAbilityCooldown(bots, ButtonValue(Button.PrimaryFire), AbilityCooldown(player, ButtonValue(Button.PrimaryFire)));
+        SetAbilityCooldown(bots, Button.PrimaryFire, AbilityCooldown(player, Button.PrimaryFire));
     }
 
 rule: "[IE] :: Released Secondary"
@@ -664,7 +664,7 @@ rule: "[IE] :: Released Secondary"
         StopHoldingButton(bots, Button.SecondaryFire);
 
 
-        SetAbilityCooldown(bots, ButtonValue(Button.SecondaryFire), AbilityCooldown(player, ButtonValue(Button.SecondaryFire)));
+        SetAbilityCooldown(bots, Button.SecondaryFire, AbilityCooldown(player, Button.SecondaryFire));
     }
 
 rule: "[IE] :: Released Ability 1"
@@ -673,7 +673,7 @@ rule: "[IE] :: Released Ability 1"
     {
         define bots = ownerBots;
         StopHoldingButton(bots, Button.Ability1);
-        SetAbilityCooldown(bots, ButtonValue(Button.Ability1), AbilityCooldown(player, ButtonValue(Button.Ability1)));
+        SetAbilityCooldown(bots, Button.Ability1, AbilityCooldown(player, Button.Ability1));
     }
 
 rule: "[IE] :: Released Ability 2"
@@ -682,7 +682,7 @@ rule: "[IE] :: Released Ability 2"
     {
         define bots = ownerBots;
         StopHoldingButton(bots, Button.Ability2);
-        SetAbilityCooldown(bots, ButtonValue(Button.Ability2), AbilityCooldown(player, ButtonValue(Button.Ability2)));
+        SetAbilityCooldown(bots, Button.Ability2, AbilityCooldown(player, Button.Ability2));
     }
 
 rule: "[IE] :: Released Jump"
@@ -691,7 +691,7 @@ rule: "[IE] :: Released Jump"
     {
         define bots = ownerBots;
         StopHoldingButton(bots, Button.Jump);
-        SetAbilityCooldown(bots, ButtonValue(Button.Jump), AbilityCooldown(player, ButtonValue(Button.Jump)));
+        SetAbilityCooldown(bots, Button.Jump, AbilityCooldown(player, Button.Jump));
     }
 
 rule: "[IE] :: Released Crouch"
@@ -700,7 +700,7 @@ rule: "[IE] :: Released Crouch"
     {
         define bots = ownerBots;
         StopHoldingButton(bots, Button.Crouch);
-        SetAbilityCooldown(bots, ButtonValue(Button.Crouch), AbilityCooldown(player, ButtonValue(Button.Crouch)));
+        SetAbilityCooldown(bots, Button.Crouch, AbilityCooldown(player, Button.Crouch));
     }
 
 rule: "[IE] :: Released Melee"
@@ -732,10 +732,10 @@ rule: "[IE] :: Released Ultimate"
 rule: "[IE] :: Primary Cooldown (Brig)"
     Event.OngoingPlayer
     Player.Brigitte
-    if (!IsDummyBot() && !IsFiringPrimary() && IsButtonHeld(player, Button.SecondaryFire) && AbilityCooldown(player, ButtonValue(Button.PrimaryFire)) != 0)
+    if (!IsDummyBot() && !IsFiringPrimary() && IsButtonHeld(player, Button.SecondaryFire) && AbilityCooldown(player, Button.PrimaryFire) != 0)
     {
         define bots = ownerBots;
-        SetAbilityCooldown(bots, ButtonValue(Button.PrimaryFire), AbilityCooldown(player, ButtonValue(Button.PrimaryFire)));
+        SetAbilityCooldown(bots, Button.PrimaryFire, AbilityCooldown(player, Button.PrimaryFire));
     }
 
 rule: "[IE] :: Secondary Cooldown"
@@ -743,7 +743,7 @@ rule: "[IE] :: Secondary Cooldown"
     if (!IsDummyBot() && !IsFiringSecondary())
     {
         define bots = ownerBots;
-        SetAbilityCooldown(bots, ButtonValue(Button.SecondaryFire), AbilityCooldown(player, ButtonValue(Button.SecondaryFire)));
+        SetAbilityCooldown(bots, Button.SecondaryFire, AbilityCooldown(player, Button.SecondaryFire));
     }
 
 rule: "[IE] :: Ability 1 Cooldown"
@@ -751,7 +751,7 @@ rule: "[IE] :: Ability 1 Cooldown"
     if (!IsDummyBot() && !IsUsingAbility1())
     {
         define bots = ownerBots;
-        SetAbilityCooldown(bots, ButtonValue(Button.Ability1), AbilityCooldown(player, ButtonValue(Button.Ability1)));
+        SetAbilityCooldown(bots, Button.Ability1, AbilityCooldown(player, Button.Ability1));
     }
 
 rule: "[IE] :: Ability 2 Cooldown"
@@ -759,7 +759,7 @@ rule: "[IE] :: Ability 2 Cooldown"
     if (!IsDummyBot() && !IsUsingAbility2())
     {
         define bots = ownerBots;
-        SetAbilityCooldown(bots, ButtonValue(Button.Ability2), AbilityCooldown(player, ButtonValue(Button.Ability2)));
+        SetAbilityCooldown(bots, Button.Ability2, AbilityCooldown(player, Button.Ability2));
     }
 
 // there is no Jump or Crouch cooldown rules (for ball/hanzo) because workshop can't detect if those abilities are being used, IsJumping() or IsCrouching() wont work
@@ -835,17 +835,19 @@ rule: "[HUD] :: Stats"
     if (!IsDummyBot())
     {
         Wait(0.25);
-        # this is disgusting
         CreateHudText(player, null, null,
-        <"Kills: <0> | Deaths: <1> \r\n<2>", kills, deaths, 
-        <"DMG Dealt: <0> | DMG Recieved: <1> \r\n<2>", damageDealt, damageRecieved, 
-        <"Heal Dealt: <0> | Heal Recieved: <1> \r\n", healDealt, healRecieved>>>, 
+        <"Kills: <0> | Deaths: <1> \r\nDMG Dealt: <2> | DMG Recieved: <3>\r\nHeal Dealt: <4> | Heal Recieved: <5>", 
+        kills, deaths, damageDealt, damageRecieved, healDealt, healRecieved>, 
         Location.Left, SlotOf(), Color.White, Color.White, Color.White);
     }
 
 define subheader: attacked ? <"<0> Under Attack <0>", IconString(Icon.Warning)> : HeroOf();
 // define subheader: <"<0> | <1>/<2>", AbilityIconString(HeroOf(), ButtonValue(Button.PrimaryFire)), Ammo(player, 0), MaxAmmo(player, 0)>; // why doesnt this shit WORK
 define text: <"<0> HP", RoundToInteger(Health(), Rounding.Nearest)>;
+define healthColor: CustomColor(r, g, 0, 250);
+define percentage: (NormalizedHealth() * 100);
+define r: 256 - (percentage - 50) * 5.12;
+define g: percentage * 5.12;
 
 rule: "[HUD] :: Bot Health"
     Event.OngoingPlayer
@@ -853,50 +855,56 @@ rule: "[HUD] :: Bot Health"
     {
         Wait(0.25);
 
-        # MaxHealth() updates dynamically, using a variable lets me get around this. this will break when echo clones someone or if dva is out of mech
+        // MaxHealth() updates dynamically, using a variable lets me get around this. this will break when echo clones someone or if dva is out of mech
         maxHealth = MaxHealth();
 
-        # overheal
-        CreateHudText((Health() > maxHealth) ? owner : null,
-                      HeroIconString(HeroOf()),
+        // // overheal
+        // CreateHudText((Health() > maxHealth) ? owner : null,
+        //               HeroIconString(HeroOf()),
+        //               subheader,
+        //               text,
+        //               Location.Left, SlotOf(), Color.Blue, Color.White, Color.Blue);
+        
+        CreateHudText(owner, 
+                      IsDead() ? IconString(Icon.Skull) : HeroIconString(HeroOf()),
                       subheader,
-                      text,
-                      Location.Left, SlotOf(), Color.Blue, Color.White, Color.Blue);
+                      IsAlive() ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> : "Dead",
+                      Location.Left, SlotOf(), healthColor, Color.White, healthColor, HudTextRev.VisibleToSortOrderStringAndColor);
 
-        # >= 170/200 (85%)
-        CreateHudText((Health() <= maxHealth && NormalizedHealth() >= 0.85) ? owner : null,
-                      HeroIconString(HeroOf()),
-                      subheader,
-                      text,
-                      Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
+        // // >= 170/200 (85%)
+        // CreateHudText((Health() <= maxHealth && NormalizedHealth() >= 0.85) ? owner : null,
+        //               HeroIconString(HeroOf()),
+        //               subheader,
+        //               text,
+        //               Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
 
-        # 170/200 - 120/200 (85% - 60%)
-        CreateHudText((NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6) ? owner : null,
-                      HeroIconString(HeroOf()),
-                      subheader,
-                      text,
-                      Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
+        // // 170/200 - 120/200 (85% - 60%)
+        // CreateHudText((NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6) ? owner : null,
+        //               HeroIconString(HeroOf()),
+        //               subheader,
+        //               text,
+        //               Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
 
-        # 120/200 - 70/200 (60% - 35%)
-        CreateHudText((NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35) ? owner : null,
-                      HeroIconString(HeroOf()),
-                      subheader,
-                      text,
-                      Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
+        // // 120/200 - 70/200 (60% - 35%)
+        // CreateHudText((NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35) ? owner : null,
+        //               HeroIconString(HeroOf()),
+        //               subheader,
+        //               text,
+        //               Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
 
-        # < 70/200 (35%)
-        CreateHudText((IsAlive() && NormalizedHealth() < 0.35) ? owner : null,
-                      HeroIconString(HeroOf()),
-                      subheader,
-                      text,
-                      Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
+        // // < 70/200 (35%)
+        // CreateHudText((IsAlive() && NormalizedHealth() < 0.35) ? owner : null,
+        //               HeroIconString(HeroOf()),
+        //               subheader,
+        //               text,
+        //               Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
 
-        # dead
-        CreateHudText(IsDead() ? owner : null,
-                      <"<0>", IconString(Icon.Skull)>,
-                      subheader,
-                      "Dead",
-                      Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
+        // // dead
+        // CreateHudText(IsDead() ? owner : null,
+        //               <"<0>", IconString(Icon.Skull)>,
+        //               subheader,
+        //               "Dead",
+        //               Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
     }
 
 disabled rule: "---------------- Hero Specifics (HS) ----------------"{}
@@ -954,7 +962,7 @@ rule: "[HS] :: Echo Flight Fix"
     Player.Echo
     if (IsDummyBot() && IsUsingAbility1(owner))
     {
-        # bug: if moving in a direction echo will gain/lose more distance than intended if i use echos default flight speed (8), bandaid fix for this is to make impulse less intense. not sure how to fix this
+        // bug: if moving in a direction echo will gain/lose more distance than intended if i use echos default flight speed (8), bandaid fix for this is to make impulse less intense. not sure how to fix this
         if (IsButtonHeld(owner, Button.Jump))
             ApplyImpulse(player, Up(), 4.85, Relative.ToWorld);
         else if (IsButtonHeld(owner, Button.Crouch))
@@ -969,7 +977,7 @@ rule: "[HS] :: Mercy Valk Flight Fix"
     Player.Mercy
     if (IsDummyBot() && IsUsingUltimate(owner))
     {
-        # bug: if moving in a direction mercy will gain/lose more distance than intended if i use mercy valk default speed (9), bandaid fix for this is to make the impulse less intense. not sure how to fix this
+        // bug: if moving in a direction mercy will gain/lose more distance than intended if i use mercy valk default speed (9), bandaid fix for this is to make the impulse less intense. not sure how to fix this
         if (IsButtonHeld(owner, Button.Jump))
             ApplyImpulse(player, Up(), 5.35, Relative.ToWorld);
         else if (IsButtonHeld(owner, Button.Crouch))
@@ -984,7 +992,7 @@ rule: "[HS] :: Baptiste Reload Fix"
     Player.Baptiste
     if (IsDummyBot() && (Ammo(player, 0) == 0 || Ammo(player, 1) == 0))
     {
-        # why do i have to do this blizzard
+        // why do i have to do this blizzard
         PressButton(player, Button.Reload);
     }
 
@@ -1023,16 +1031,16 @@ disabled rule: "---------------- Debug ----------------"{}
 rule: "[DBG] :: Workshop Settings"
     {
         dbgArr = [];
-        dbgArr[0] = WorkshopSettingToggle("Debug", "1. Show Bot Aim", false);
-        dbgArr[1] = WorkshopSettingToggle("Debug", "2. HUD", false);
-        dbgArr[2] = WorkshopSettingToggle("Debug", "(Interact) 1. CC All Bots", false);
-        dbgArr[3] = WorkshopSettingToggle("Debug", "(Interact) 2. CC Owner Bots", false);
-        dbgArr[4] = WorkshopSettingToggle("Debug", "(Interact) 3. CC Self", false);
-        dbgArr[5] = WorkshopSettingToggle("Debug", "(Interact) 4. Kill All Bots", false);
-        dbgArr[6] = WorkshopSettingToggle("Debug", "(Interact) 5. Kill Owner Bots", false);
-        dbgArr[7] = WorkshopSettingToggle("Debug", "(Interact) 6. Kill Self", false);
-        dbgArr[8] = WorkshopSettingToggle("Debug", "(Interact) 7. Kill All", false);
-        dbgArr[9] = WorkshopSettingToggle("Debug", "(Interact) 8. Damage Self", false);
+        dbgArr[0] = WorkshopSettingToggle("Debug", "1. Show Bot Aim", false, 1);
+        dbgArr[1] = WorkshopSettingToggle("Debug", "2. HUD", false, 2);
+        dbgArr[2] = WorkshopSettingToggle("Debug", "(Interact) 1. CC All Bots", false, 3);
+        dbgArr[3] = WorkshopSettingToggle("Debug", "(Interact) 2. CC Owner Bots", false, 4);
+        dbgArr[4] = WorkshopSettingToggle("Debug", "(Interact) 3. CC Self", false, 5);
+        dbgArr[5] = WorkshopSettingToggle("Debug", "(Interact) 4. Kill All Bots", false, 6);
+        dbgArr[6] = WorkshopSettingToggle("Debug", "(Interact) 5. Kill Owner Bots", false, 7);
+        dbgArr[7] = WorkshopSettingToggle("Debug", "(Interact) 6. Kill Self", false, 8);
+        dbgArr[8] = WorkshopSettingToggle("Debug", "(Interact) 7. Kill All", false, 9);
+        dbgArr[9] = WorkshopSettingToggle("Debug", "(Interact) 8. Damage Self", false, 10);
     }
 
 rule: "[DBG] :: Inspector Toggle"
