@@ -2,9 +2,14 @@ import "scortFFASettings.json";
 import "macros.del";
 
 globalvar define MATCH_TIME;
+globalvar define RGBCYCLE;
+globalvar define playerStats;
+globalvar define killStreakHud;
+globalvar define specPlayerStats;
 globalvar define healOnKill;
 globalvar define nerfedHeal;
-globalvar define HEAL_PERC;
+globalvar define s_heal;
+globalvar define heal;
 globalvar define matchStarted;
 playervar define killStreak;
 
@@ -12,11 +17,15 @@ rule: "Created by scort#12211 | Feel free to edit, modify, host your own lobby, 
 
 rule: "Initial Global"
     {
-        matchStarted = false;
-        MATCH_TIME = WorkshopSettingInteger("Match Time", "​Match Time (Minutes)", 60, 1, 60, 1) * 60;
+        MATCH_TIME = WorkshopSettingInteger("Settings", "​Match Time (Minutes)", 60, 1, 60, 1) * 60;
         healOnKill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 2);
-        nerfedHeal = WorkshopSettingToggle("Heal On Kill", "Nerf Heal", true, 3);
-        HEAL_PERC = WorkshopSettingInteger("Heal On Kill", "​Heal Percentage", 50, 1, 100, 4) / 100;
+        s_heal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (ex. killing a 200hp hero would heal 100hp if set to 50%)", 1, ["25%", "50%", "75%", "100%"], 4) / 100;
+        heal = (s_heal + 1) * 25;
+
+        killStreakHud = WorkshopSettingToggle("HUD Text", "Show Kill Streaks", true, 1);
+        specPlayerStats = WorkshopSettingToggle("HUD Text", "Show Player Stats for spectators", true, 2);
+        RGBCYCLE = WorkshopSettingInteger("HUD Text", "​RGB Cycle Speed", 150, 1, 1000, 3);
+
         SetMatchTime(10);
     }
 
@@ -36,7 +45,6 @@ rule: "scort Join"
 rule: "Set Match Time"
     if (IsGameInProgress())
     {
-        matchStarted = true;
         SetMatchTime(MATCH_TIME);
         DisableCompletion();
     }
@@ -44,41 +52,52 @@ rule: "Set Match Time"
 rule: "HUD Text"
     Event.OngoingPlayer
     {
-        // streak self
-        CreateHudText(killStreak >= 5 ? player : null, 
-        HeroIconString(HeroOf()), 
-        <"<0> (You)", player>, 
-        <"Streak: <0>", killStreak>, 
-        Location.Left, 1, Color.SkyBlue, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+        if (killStreakHud)
+        {
+            // streak self
+            CreateHudText(killStreak >= 5 ? player : null, 
+            HeroIconString(HeroOf()), 
+            <"<0> (You)", player>, <"Streak: <0>", killStreak>, 
+            Location.Left, 0, CustomColor(128 + 127 * CosineFromDegrees(Time() * RGBCYCLE),
+                                                    128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 120),
+                                                    128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 240), 
+                                                    250), Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
 
-        // streak enemies
-        CreateHudText(killStreak >= 5 ? RemoveFromArray(all, player) : null, 
-        HeroIconString(HeroOf()), 
-        player, 
-        <"Streak: <0>", 
-        killStreak>, 
-        Location.Left, 2, Color.Red, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+            // streak enemies
+            CreateHudText(killStreak >= 5 ? RemoveFromArray(all, player) : null, 
+            HeroIconString(HeroOf()), player, <"Streak: <0>", killStreak>, 
+            Location.Left, SlotOf() + 1, CustomColor(128 + 127 * CosineFromDegrees(Time() * RGBCYCLE),
+                                                    128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 120),
+                                                    128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 240), 
+                                                    250), Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+        }
 
-        // damage
-        CreateHudText(player, null, null, 
-        <"Damage Done: <0>\nDamage Taken: <1>\nAccuracy: <2>%", 
-        RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
-        RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
-        RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>,
-        Location.Top, 2, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
-    
-        // specs
-        CreateHudText(null, 
-        HeroIconString(HeroOf()), 
-        <"<0> | <1> kills | <2> streak", 
-        player, 
-        RoundToInteger(PlayerStat(player, PlayerStat.FinalBlows), Rounding.Nearest), 
-        killStreak>, 
-        <"Damage Done: <0> | Damage Taken: <1> | Accuracy: <2>%", 
-        RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
-        RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
-        RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, 
-        Location.Left, SlotOf(), Color.Red, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleAlways);
+        if (playerStats)
+        {
+            // stats
+            CreateHudText(player, null, null, 
+            <"DMG Done: <0> | DMG Taken: <1> | Accuracy: <2>%", 
+            RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
+            RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
+            RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, 
+            Location.Top, 2, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
+        }
+
+        if (specPlayerStats)
+        {
+            // specs
+            CreateHudText(null, 
+            HeroIconString(HeroOf()), 
+            <"<0> | <1> Kills | <2> Deaths<3>", player, PlayerStat(player, PlayerStat.FinalBlows), PlayerStat(player, PlayerStat.Deaths), killStreak >= 5 ? <" | <0> streak", killStreak> : "">, 
+            <"DMG Done: <0> | DMG Taken: <1> | Accuracy: <2>%", 
+            RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
+            RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
+            RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, 
+            Location.Left, SlotOf(), killStreak >= 5 ? CustomColor(128 + 127 * CosineFromDegrees(Time() * 150),
+                                                    128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 120),
+                                                    128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 240), 
+                                                    250) : Color.Red, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleAlways);
+        }
     }
 
 rule: "Update Killstreak "
@@ -99,7 +118,7 @@ rule: "Heal On Kill"
     if (healOnKill && !IsDuplicating(Attacker()) && Health(Attacker()) < MaxHealth(Attacker()))
     {
         if (nerfedHeal)
-            Heal(Attacker(), null, HEAL_PERC * MaxHealth(Victim()));
+            Heal(Attacker(), null, heal * MaxHealth(Victim()));
         else
             Heal(Attacker(), null, MaxHealth(Victim()));
     }
