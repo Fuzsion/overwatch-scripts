@@ -17,14 +17,20 @@ rule: "Created by scort#12211 | Feel free to edit, modify, host your own lobby, 
 
 rule: "Initial Global"
     {
+        CreateHudText(all, null, "ㅤTryhard FFA | Created by scort#11221", null, Location.Right, 0, Color.White, CustomColor(128 + 127 * CosineFromDegrees(Time() * RGBCYCLE),
+                                                    128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 120),
+                                                    128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 240), 
+                                                    250), Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+
         MATCH_TIME = WorkshopSettingInteger("Settings", "​Match Time (Minutes)", 60, 1, 60, 1) * 60;
         healOnKill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 2);
-        s_heal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (ex. killing a 200hp hero would heal 100hp if set to 50%)", 1, ["25%", "50%", "75%", "100%"], 4) / 100;
-        heal = (s_heal + 1) * 25;
+        s_heal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (ex. killing a 200hp hero would heal 100hp if set to 50%)", 1, ["25%", "50%", "75%", "100%"], 4);
+        heal = ((s_heal + 1) * 25) / 100;
 
         killStreakHud = WorkshopSettingToggle("HUD Text", "Show Kill Streaks", true, 1);
+        playerStats = WorkshopSettingToggle("HUD Text", "Show Player Stats", true, 2);
         specPlayerStats = WorkshopSettingToggle("HUD Text", "Show Player Stats for spectators", true, 2);
-        RGBCYCLE = WorkshopSettingInteger("HUD Text", "​RGB Cycle Speed", 150, 1, 1000, 3);
+        RGBCYCLE = WorkshopSettingInteger("HUD Text", "​very cool and definitely not gimmicky RGB cycle speed", 150, 1, 1000, 3);
 
         SetMatchTime(10);
     }
@@ -76,10 +82,11 @@ rule: "HUD Text"
         {
             // stats
             CreateHudText(player, null, null, 
-            <"DMG Done: <0> | DMG Taken: <1> | Acc: <2>%", 
+            <"DMG Done: <0> | DMG Taken: <1> | Acc: <2>% | Crit Acc <3>%", 
             RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
             RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
-            RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, 
+            RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100, Rounding.Nearest),
+            RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100, Rounding.Nearest)>, 
             Location.Top, 2, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString, Spectators.VisibleNever);
         }
 
@@ -89,10 +96,11 @@ rule: "HUD Text"
             CreateHudText(null, 
             HeroIconString(HeroOf()), 
             <"<0> | <1> K | <2> D | <3> Ults<4>", player, PlayerStat(player, PlayerStat.FinalBlows), PlayerStat(player, PlayerStat.Deaths), PlayerStat(player, PlayerStat.UltimatesUsed), killStreak >= 5 ? <" | <0> streak", killStreak> : "">, 
-            <"DMG Done: <0> | DMG Taken: <1> | Acc: <2>%", 
+            <"DMG Done: <0> | DMG Taken: <1> | Acc: <2>% | Crit Acc <3>%", 
             RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
             RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
-            RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, 
+            RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100, Rounding.Nearest), 
+            RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100, Rounding.Nearest)>, 
             Location.Left, SlotOf(), killStreak >= 5 ? CustomColor(128 + 127 * CosineFromDegrees(Time() * 150),
                                                     128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 120),
                                                     128 + 127 * CosineFromDegrees((Time() * RGBCYCLE) + 240), 
@@ -117,10 +125,7 @@ rule: "Heal On Kill"
     Event.OnFinalBlow
     if (healOnKill && !IsDuplicating(Attacker()) && Health(Attacker()) < MaxHealth(Attacker()))
     {
-        if (nerfedHeal)
-            Heal(Attacker(), null, heal * MaxHealth(Victim()));
-        else
-            Heal(Attacker(), null, MaxHealth(Victim()));
+        Heal(Attacker(), null, heal * MaxHealth(Victim()));
     }
 
 rule: "End Game"
