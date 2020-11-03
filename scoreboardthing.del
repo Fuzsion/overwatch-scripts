@@ -1,41 +1,57 @@
 import "macros.del";
+define healthColor: CustomColor(r, g, 0, 250);
+define percentage: (NormalizedHealth() * 100);
+define r: 256 - (percentage - 50) * 5.12;
+define g: percentage * 5.12;
+
+rule: "debug"
+    Event.OngoingPlayer
+    {
+        CreateHudText(player, null, null, <"R: <0> G: <1>", r, g>);
+    }
 
 rule: "create text"
     Event.OngoingPlayer
     if (HasSpawned())
     {
+        CreateHudText(AllyPlayers(), 
+                      IsDead() ? IconString(Icon.Skull) : HeroIconString(HeroOf()),
+                      <"<0> | <1>", player, UltimateChargePercent() == 100 ? IconString(Icon.Checkmark) : <"<0>%", UltimateChargePercent()>>,
+                      IsAlive() ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> : "Dead",
+                      Location.Left, SlotOf(), healthColor, Color.White, healthColor, HudTextRev.VisibleToSortOrderStringAndColor);
+
         /* more than 170/200 */
-        CreateHudText((NormalizedHealth() >= 0.85) ? AllyPlayers() : null,
-                      HeroIconString(HeroOf()),
-                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
-                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
-                      Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
+        // CreateHudText((NormalizedHealth() >= 0.85) ? AllyPlayers() : null,
+        //               HeroIconString(HeroOf()),
+        //               <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+        //               <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
+        //               Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
 
-        /* 170/200 - 120/200 */
-        CreateHudText((NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6) ? AllyPlayers() : null,
-                      HeroIconString(HeroOf()),
-                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
-                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
-                      Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
+        // /* 170/200 - 120/200 */
+        // CreateHudText((NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6) ? AllyPlayers() : null,
+        //               HeroIconString(HeroOf()),
+        //               <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+        //               <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
+        //               Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
 
-        /* 120/200 - 70/200*/
-        CreateHudText((NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35) ? AllyPlayers() : null,
-                      HeroIconString(HeroOf()),
-                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
-                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
-                      Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
+        // /* 120/200 - 70/200*/
+        // CreateHudText((NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35) ? AllyPlayers() : null,
+        //               HeroIconString(HeroOf()),
+        //               <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+        //               <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
+        //               Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
 
-        /* less than 70/200 */
-        CreateHudText((IsAlive() && NormalizedHealth() < 0.35) ? AllyPlayers() : null,
-                      HeroIconString(HeroOf()),
-                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
-                      <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
-                      Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
+        // /* less than 70/200 */
+        // CreateHudText((IsAlive() && NormalizedHealth() < 0.35) ? AllyPlayers() : null,
+        //               HeroIconString(HeroOf()),
+        //               <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+        //               <"<0> HP", RoundToInteger(Health(), Rounding.Up)>,
+        //               Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
 
-        /* dead */
-        CreateHudText(IsDead() ? AllyPlayers() : null,
-                      IconString(Icon.Skull),
-                      <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
-                      "Dead",
-                      Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
+        // /* dead */
+        // CreateHudText(IsDead() ? AllyPlayers() : null,
+        //               IconString(Icon.Skull),
+        //               <"<0>", UltimateChargePercent() == 100 ? <"<0> | <1>", player, IconString(Icon.Checkmark)> : <"<0> | <1>%", player, UltimateChargePercent()>>,
+        //               "Dead",
+        //               Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
     }
