@@ -76,7 +76,7 @@ rule: "HUD Text"
         {
             // stats
             CreateHudText(player, null, null, 
-            <"DMG Done: <0> | DMG Taken: <1> | Accuracy: <2>%", 
+            <"DMG Done: <0> | DMG Taken: <1> | Acc: <2>%", 
             RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
             RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
             RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, 
@@ -88,8 +88,8 @@ rule: "HUD Text"
             // specs
             CreateHudText(null, 
             HeroIconString(HeroOf()), 
-            <"<0> | <1> Kills | <2> Deaths<3>", player, PlayerStat(player, PlayerStat.FinalBlows), PlayerStat(player, PlayerStat.Deaths), killStreak >= 5 ? <" | <0> streak", killStreak> : "">, 
-            <"DMG Done: <0> | DMG Taken: <1> | Accuracy: <2>%", 
+            <"<0> | <1> K | <2> D | <3> Ults<4>", player, PlayerStat(player, PlayerStat.FinalBlows), PlayerStat(player, PlayerStat.Deaths), PlayerStat(player, PlayerStat.UltimatesUsed), killStreak >= 5 ? <" | <0> streak", killStreak> : "">, 
+            <"DMG Done: <0> | DMG Taken: <1> | Acc: <2>%", 
             RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
             RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
             RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerStat.WeaponAccuracy) * 100, Rounding.Nearest)>, 
