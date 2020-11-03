@@ -196,7 +196,7 @@ rule: "[Main] :: Initial Global"
         DisableCompletion();
         DisableAnnouncer();
 
-        CreateHudText(all, null, "Instagib: | Created by scort#11221ㅤ", " v1.8.1 | Share Code: APPPXㅤ", Location.Right, 0, Color.White, RGBColor(), Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(all, null, "Instagib | Created by scort#11221ㅤ", " v1.8.1 | Share Code: APPPXㅤ", Location.Right, 0, Color.White, RGBColor(), Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
         CreateHudText(all, null, null, " ", Location.Right, 0.1);
 
         SetMatchTime(10);
@@ -302,28 +302,24 @@ rule: "[Main] :: Start Match"
         {
             if (!spawnWithWallbang && spawnWallbang)
             {
-                CreateEffect(all, Effect.Ring, Color.Yellow, buffPos[0] - Vector(0, 1, 0), 0.4);
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Baptiste, Button.Ultimate)>, null, 
                 wallbangCD != 0 ? <"<0>", RoundToInteger(wallbangCD, Rounding.Up)> : canPickupWallbang ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", wallbangUser>, 
                 Location.Left, 1, Color.Yellow);
             }
             if (!spawnWithRicochet && spawnRicochet)
             {
-                CreateEffect(all, Effect.Ring, Color.Violet, buffPos[1] - Vector(0, 1, 0), 0.4);
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Winston, Button.Ability1)>, null,
                 ricochetCD != 0 ? <"<0>", RoundToInteger(ricochetCD, Rounding.Up)> : canPickupRicochet ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", ricochetUser>,
                 Location.Left, 2, Color.Purple);
             }
             if (!spawnWithBuckshot && spawnBuckshot)
             {
-                CreateEffect(all, Effect.Ring, Color.Green, buffPos[2] - Vector(0, 1, 0), 0.4);
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Ashe, Button.Ability1)>, null,
                 buckshotCD != 0 ? <"<0>", RoundToInteger(buckshotCD, Rounding.Up)> : canPickupBuckshot ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", buckshotUser>,
                 Location.Left, 3, Color.Green);
             }
             if (!spawnWithLife && spawnLife)
             {
-                CreateEffect(all, Effect.Ring, Color.SkyBlue, buffPos[3] - Vector(0, 1, 0), 0.4);
                 CreateHudText(all, <"<0>", AbilityIconString(Hero.Mercy, Button.Ability2)>, null,
                 lifeCD != 0 ? <"<0>", RoundToInteger(lifeCD, Rounding.Up)> : canPickupLife ? <"<0>", IconString(Icon.Checkmark)> : <"In-Use by <0>", lifeUser>,
                 Location.Left, 4, Color.SkyBlue);
@@ -1258,12 +1254,16 @@ void WallbangCooldown() "[Sub] :: Wallbang Cooldown"
             }
 
             // destroy and recreate the effects, just in case
-            DestroyEffect(wallbangInProgressEffect);
+            DestroyEffect(wallbangInProgressEffect[0]);
+            DestroyEffect(wallbangInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[0]);
+
             MinWait();
             CreateEffect(all, Effect.Sphere, Color.Yellow, buffPos[0], wallbangSphereSize);
-            wallbangInProgressEffect = LastCreatedEntity();
-            CreateProgressBarInWorldText(all, wallbangPBar, null, buffPos[0], 0, Clipping.ClipAgainstSurfaces, Color.Yellow, Color.White);
+            wallbangInProgressEffect[0] = LastCreatedEntity();
+            CreateEffect(all, Effect.Ring, Color.Yellow, buffPos[0] - Vector(0, 1, 0), wallbangSphereSize);
+            wallbangInProgressEffect[1] = LastCreatedEntity();
+            CreateProgressBarInWorldText(all, wallbangPBar, null, buffPos[0] + Vector(0, wallbangSphereSize, 0), 0, Clipping.ClipAgainstSurfaces, Color.Yellow, Color.White);
             cdText[0] = LastTextID();
         }
     }
@@ -1287,12 +1287,16 @@ void RicochetCooldown() "[Sub] :: Ricochet Cooldown"
             }
            
             // destroy and recreate the effects, just in case
-            DestroyEffect(ricochetInProgressEffect);
+            DestroyEffect(ricochetInProgressEffect[0]);
+            DestroyEffect(ricochetInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[1]);
+
             MinWait();
             CreateEffect(all, Effect.Sphere, Color.Violet, buffPos[1], ricochetSphereSize);
-            ricochetInProgressEffect = LastCreatedEntity();
-            CreateProgressBarInWorldText(all, ricochetPBar, null, buffPos[1], 0, Clipping.ClipAgainstSurfaces, Color.Violet, Color.White);
+            ricochetInProgressEffect[0] = LastCreatedEntity();
+            CreateEffect(all, Effect.Ring, Color.Violet, buffPos[1] - Vector(0, 1, 0), ricochetSphereSize);
+            ricochetInProgressEffect[1] = LastCreatedEntity();
+            CreateProgressBarInWorldText(all, ricochetPBar, null, buffPos[1] + Vector(0, ricochetSphereSize, 0), 0, Clipping.ClipAgainstSurfaces, Color.Violet, Color.White);
             cdText[1] = LastTextID();
         }
     }
@@ -1316,12 +1320,16 @@ void BuckshotCooldown() "[Sub] :: Buckshot Cooldown"
             }
             
             // destroy and recreate the effects, just in case
-            DestroyEffect(buckshotInProgressEffect);
+            DestroyEffect(buckshotInProgressEffect[0]);
+            DestroyEffect(buckshotInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[2]);
+
             MinWait();
             CreateEffect(all, Effect.Sphere, Color.Green, buffPos[2], buckshotSphereSize);
-            buckshotInProgressEffect = LastCreatedEntity();
-            CreateProgressBarInWorldText(all, buckshotPBar, null, buffPos[2], 0, Clipping.ClipAgainstSurfaces, Color.Green, Color.White);
+            buckshotInProgressEffect[0] = LastCreatedEntity();
+            CreateEffect(all, Effect.Ring, Color.Green, buffPos[2] - Vector(0, 1, 0), buckshotSphereSize);
+            buckshotInProgressEffect[1] = LastCreatedEntity();
+            CreateProgressBarInWorldText(all, buckshotPBar, null, buffPos[2] + Vector(0, buckshotSphereSize, 0), 0, Clipping.ClipAgainstSurfaces, Color.Green, Color.White);
             cdText[2] = LastTextID();
         }
     }
@@ -1346,12 +1354,16 @@ void LifeCooldown() "[Sub] :: Life Cooldown"
             
 
             // destroy and recreate the effects, just in case
-            DestroyEffect(lifeInProgressEffect);
+            DestroyEffect(lifeInProgressEffect[0]);
+            DestroyEffect(lifeInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[3]);
+
             MinWait();
             CreateEffect(all, Effect.Sphere, Color.SkyBlue, buffPos[3], lifeSphereSize);
             lifeInProgressEffect = LastCreatedEntity();
-            CreateProgressBarInWorldText(all, lifePBar, null, buffPos[3], 0, Clipping.ClipAgainstSurfaces, Color.Blue, Color.White);
+            CreateEffect(all, Effect.Ring, Color.SkyBlue, buffPos[3] - Vector(0, 1, 0), lifeSphereSize);
+            lifeInProgressEffect[1] = LastCreatedEntity();
+            CreateProgressBarInWorldText(all, lifePBar, null, buffPos[3] + Vector(0, lifeSphereSize, 0), 0, Clipping.ClipAgainstSurfaces, Color.Blue, Color.White);
             cdText[3] = LastTextID();
         }
     }
@@ -1363,7 +1375,7 @@ rule: "[Buff] :: Wallbang : Create Orb"
     {
         canPickupWallbang = true;
         LogToInspector("Wallbang Orb Created");
-        DestroyEffect(wallbangInProgressEffect);
+        DestroyEffect(wallbangInProgressEffect[0]);
         CreateEffect(all, Effect.Orb, Color.Yellow, buffPos[0], 2);
         buffEffect[0] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Yellow, buffPos[0], 1);
@@ -1388,6 +1400,7 @@ rule: "[Buff] :: Wallbang : Collect"
         {
             // destroy inworld text / icon / orb
             DestroyProgressBarInWorldText(cdText[0]);
+            DestroyEffect(wallbangInProgressEffect[1]);
             DestroyInWorldText(buffIcon[0]);
             DestroyEffect(buffEffect[0]);
 
@@ -1491,7 +1504,7 @@ rule: "[Buff] :: Ricochet : Create Orb"
         LogToInspector("Ricochet Orb Created");
         canPickupRicochet = true;
 
-        DestroyEffect(ricochetInProgressEffect);
+        DestroyEffect(ricochetInProgressEffect[0]);
         CreateEffect(all, Effect.Orb, Color.Violet, buffPos[1], 2);
         buffEffect[1] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Violet, buffPos[1], 1);
@@ -1516,6 +1529,7 @@ rule: "[Buff] :: Ricochet : Collect"
         {
             // destroy inworld text / icon / orb
             DestroyProgressBarInWorldText(cdText[1]);
+            DestroyEffect(ricochetInProgressEffect[1]);
             DestroyInWorldText(buffIcon[1]);
             DestroyEffect(buffEffect[1]);
 
@@ -1650,7 +1664,7 @@ rule: "[Buff] :: Buckshot : Create Orb"
         LogToInspector("Buckshot Orb Created");
         canPickupBuckshot = true;
 
-        DestroyEffect(buckshotInProgressEffect);
+        DestroyEffect(buckshotInProgressEffect[0]);
         CreateEffect(all, Effect.Orb, Color.Green, buffPos[2], 2);
         buffEffect[2] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Green, buffPos[2], 1);
@@ -1675,6 +1689,7 @@ rule: "[Buff] :: Buckshot : Collect"
         {
             // destroy inworld text / icon / orb
             DestroyProgressBarInWorldText(cdText[2]);
+            DestroyEffect(buckshotInProgressEffect[1]);
             DestroyInWorldText(buffIcon[2]);
             DestroyEffect(buffEffect[2]);
 
@@ -1882,7 +1897,7 @@ rule: "[Buff] :: Extra Life : Create Orb"
     {
         canPickupLife = true;
 
-        DestroyEffect(lifeInProgressEffect);
+        DestroyEffect(lifeInProgressEffect[0]);
         CreateEffect(all, Effect.Orb, Color.SkyBlue, buffPos[3], 2);
         buffEffect[3] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.SkyBlue, buffPos[3], 1);
@@ -1907,6 +1922,7 @@ rule: "[Buff] :: Extra Life : Collect"
         {
             // destroy inworld text / icon / orb
             DestroyProgressBarInWorldText(cdText[3]);
+            DestroyEffect(lifeInProgressEffect[1]);
             DestroyInWorldText(buffIcon[3]);
             DestroyEffect(buffEffect[3]);
 
