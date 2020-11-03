@@ -286,10 +286,12 @@ rule: "[Main] :: Start Match"
 
         if (validMap && !buffsSpawnImmediately && buffsEnabled)
         {
+            // set values first cuz apparently it doesnt work sometimes :)
             wallbangCD = WALLBANG_CD;
             ricochetCD = RICOCHET_CD;
             buckshotCD = BUCKSHOT_CD;
             lifeCD = LIFE_CD;
+
             WallbangCooldown();
             RicochetCooldown();
             BuckshotCooldown();
@@ -1243,7 +1245,7 @@ void WallbangCooldown() "[Sub] :: Wallbang Cooldown"
         {
             LogToInspector("Wallbang Cooldown Started");
 
-            if (wallbangCD == 0)
+            if (wallbangCD == 0 || WALLBANG_CD)
             {
                 wallbangCD = WALLBANG_CD;
                 wallbangPBar = 0;
@@ -1272,7 +1274,7 @@ void RicochetCooldown() "[Sub] :: Ricochet Cooldown"
         {
             LogToInspector("Riochet Cooldown Started");
 
-            if (ricochetCD == 0)
+            if (ricochetCD == 0 || RICOCHET_CD)
             {
                 ricochetCD = RICOCHET_CD;
                 ricochetPBar = 0;
@@ -1301,7 +1303,7 @@ void BuckshotCooldown() "[Sub] :: Buckshot Cooldown"
         {
             LogToInspector("Buckshot Cooldown Started");
 
-            if (buckshotCD == 0)
+            if (buckshotCD == 0 || BUCKSHOT_CD)
             {
                 buckshotCD = BUCKSHOT_CD;
                 buckshotPBar = 0;
@@ -1330,7 +1332,7 @@ void LifeCooldown() "[Sub] :: Life Cooldown"
         {
             LogToInspector("Extra Life Cooldown Started");
 
-            if (lifeCD == 0)
+            if (lifeCD == 0 || LIFE_CD)
             {
                 lifeCD = LIFE_CD;
                 lifePBar = 0;
