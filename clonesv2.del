@@ -527,7 +527,7 @@ rule: "[IE] :: Aim & Movement"
 
         StartFacing(player, DirectionTowards(EyePosition(),
         RayCastHitPosition(EyePosition(owner), UpdateEveryFrame(EyePosition(owner) + FacingDirectionOf(owner) * 100), AllLivingPlayers(OppositeTeamOf(TeamOf(owner))), AllLivingPlayers(TeamOf(owner)), true)), 
-        999999999);
+        10000);
     }
 
 rule: "[IE] :: Stop Aim"
@@ -545,7 +545,7 @@ rule: "[IE] :: Hello"
         Communicate(bots, Communication.Hello);
     }
 
-rule: "[IE] :: Weapon 1" // Weapon() == 0/1 would make more sense blizzard
+rule: "[IE] :: Weapon 1"
     Event.OngoingPlayer
     if (!IsDummyBot() && Weapon() == 1)
     {
@@ -838,73 +838,33 @@ rule: "[HUD] :: Stats"
         CreateHudText(player, null, null,
         <"Kills: <0> | Deaths: <1> \r\nDMG Dealt: <2> | DMG Recieved: <3>\r\nHeal Dealt: <4> | Heal Recieved: <5>", 
         kills, deaths, damageDealt, damageRecieved, healDealt, healRecieved>, 
-        Location.Left, SlotOf(), Color.White, Color.White, Color.White);
+        Location.Left, 0, Color.White, Color.White, Color.White);
     }
 
-define subheader: attacked ? <"<0> Under Attack <0>", IconString(Icon.Warning)> : HeroOf();
-// define subheader: <"<0> | <1>/<2>", AbilityIconString(HeroOf(), ButtonValue(Button.PrimaryFire)), Ammo(player, 0), MaxAmmo(player, 0)>; // why doesnt this shit WORK
-define text: <"<0> HP", RoundToInteger(Health(), Rounding.Nearest)>;
-define healthColor: CustomColor(r, g, 0, 250);
 define percentage: (NormalizedHealth() * 100);
-define r: 256 - (percentage - 50) * 5.12;
-define g: percentage * 5.12;
+define r: (percentage <= 50) ? 255 : RoundToInteger(256 - (percentage - 50) * 5.12, Rounding.Down);
+define g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Down);
+define healthColor: CustomColor(r, g, 0, 250);
 
 rule: "[HUD] :: Bot Health"
     Event.OngoingPlayer
     if (IsDummyBot() && HasSpawned())
     {
-        Wait(0.25);
-
         // MaxHealth() updates dynamically, using a variable lets me get around this. this will break when echo clones someone or if dva is out of mech
         maxHealth = MaxHealth();
-
-        // // overheal
-        // CreateHudText((Health() > maxHealth) ? owner : null,
-        //               HeroIconString(HeroOf()),
-        //               subheader,
-        //               text,
-        //               Location.Left, SlotOf(), Color.Blue, Color.White, Color.Blue);
         
         CreateHudText(owner, 
-                      IsDead() ? IconString(Icon.Skull) : HeroIconString(HeroOf()),
-                      subheader,
-                      IsAlive() ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> : "Dead",
-                      Location.Left, SlotOf(), healthColor, Color.White, healthColor, HudTextRev.VisibleToSortOrderStringAndColor);
-
-        // // >= 170/200 (85%)
-        // CreateHudText((Health() <= maxHealth && NormalizedHealth() >= 0.85) ? owner : null,
-        //               HeroIconString(HeroOf()),
-        //               subheader,
-        //               text,
-        //               Location.Left, SlotOf(), Color.Green, Color.White, Color.Green);
-
-        // // 170/200 - 120/200 (85% - 60%)
-        // CreateHudText((NormalizedHealth() < 0.85 && NormalizedHealth() >= 0.6) ? owner : null,
-        //               HeroIconString(HeroOf()),
-        //               subheader,
-        //               text,
-        //               Location.Left, SlotOf(), Color.Yellow, Color.White, Color.Yellow);
-
-        // // 120/200 - 70/200 (60% - 35%)
-        // CreateHudText((NormalizedHealth() < 0.6 && NormalizedHealth() >= 0.35) ? owner : null,
-        //               HeroIconString(HeroOf()),
-        //               subheader,
-        //               text,
-        //               Location.Left, SlotOf(), Color.Orange, Color.White, Color.Orange);
-
-        // // < 70/200 (35%)
-        // CreateHudText((IsAlive() && NormalizedHealth() < 0.35) ? owner : null,
-        //               HeroIconString(HeroOf()),
-        //               subheader,
-        //               text,
-        //               Location.Left, SlotOf(), Color.Red, Color.White, Color.Red);
-
-        // // dead
-        // CreateHudText(IsDead() ? owner : null,
-        //               <"<0>", IconString(Icon.Skull)>,
-        //               subheader,
-        //               "Dead",
-        //               Location.Left, SlotOf(), Color.Red, Color.Red, Color.Red);
+        /* header */    IsDead() ? IconString(Icon.Skull) : HeroIconString(HeroOf()),
+        /* subheader */ attacked ? <"<0> Under Attack <0>", IconString(Icon.Warning)> : HeroOf(),
+        /* text */      IsAlive() ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> : "Dead",
+                        Location.Left, SlotOf() + 1, 
+        /* color */     (Health() > maxHealth) ? Color.Blue : healthColor, Color.White, (Health() > maxHealth) ? Color.Blue : healthColor, 
+                        HudTextRev.VisibleToSortOrderStringAndColor);
+        // CreateProgressBarHudText(owner, percentage, 
+        // <"<0>  <1> | <2>  <0>", attacked ? IconString(Icon.Warning) : " ", IsAlive() ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> : "Dead", HeroOf()>, 
+        // Location.Left, SlotOf() + 1, 
+        // (Health() > maxHealth) ? Color.Blue : healthColor, (Health() > maxHealth) ? Color.Blue : healthColor, 
+        // ProgressBarEvaluation.VisibleToValuesAndColor);
     }
 
 disabled rule: "---------------- Hero Specifics (HS) ----------------"{}
