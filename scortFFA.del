@@ -11,6 +11,9 @@ globalvar define nerfedHeal;
 globalvar define sHeal;
 globalvar define heal;
 globalvar define matchStarted;
+globalvar define playersJoined;
+globalvar define endScoreboard;
+globalvar define sScoreboard;
 playervar define killStreak;
 
 define rainbowColor: CustomColor(128 + 127 * CosineFromDegrees(Time() * RAINBOW_S),
@@ -30,6 +33,8 @@ rule: "Initial Global"
         CreateHudText(all, null, "ㅤTryhard FFA | Created by scort#11221", null, Location.Right, 0, Color.White, rainbowColor, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
 
         MATCH_TIME = WorkshopSettingInteger("Settings", "​Match Time (Minutes)", 60, 1, 60, 1) * 60;
+        sScoreboard = WorkshopSettingToggle("Settings", "Show Scoreboard at end of match", true, 2);
+
         healOnKill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 2);
         sHeal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (ex. killing a 200hp hero would heal 100hp if set to 50%)", 1, ["25%", "50%", "75%", "100%"], 4);
         heal = ((sHeal + 1) * 25) / 100;
@@ -45,6 +50,7 @@ rule: "Initial Global"
 rule: "Initial Player Join"
     Event.OnPlayerJoin
     {
+        playersJoined++;
         killStreak = 0;
     }
 
@@ -53,6 +59,29 @@ rule: "Set Match Time"
     {
         SetMatchTime(MATCH_TIME);
         DisableCompletion();
+        DisableAnnouncer();
+    }
+
+rule: "Reset Cooldowns on respawn"
+    Event.OngoingPlayer
+    if (IsAlive())
+    {
+        SetAmmo(player, 0, MaxAmmo());
+        SetAmmo(player, 1, MaxAmmo());
+
+        // tracer / sym
+        SetAbilityCharge(IsHero(Hero.Tracer) || IsHero(Hero.Symmetra) ? player : null, Button.Ability1, 3);
+
+        // junkrat
+        SetAbilityCharge(IsHero(Hero.Junkrat) ? player : null, Button.Ability1, 2);
+
+        // dva / bastion / pharah
+        SetAbilityResource(player, Button.SecondaryFire, 100);
+
+        SetAbilityCooldown(player, Button.Ability1, 0);
+        SetAbilityCooldown(player, Button.Ability2, 0);
+        SetAbilityCooldown(player, Button.PrimaryFire, 0);
+        SetAbilityCooldown(player, Button.SecondaryFire, 0);
     }
 
 rule: "HUD Text"
@@ -119,9 +148,59 @@ rule: "Heal On Kill"
         Heal(Attacker(), null, heal * MaxHealth(Victim()));
     }
 
-rule: "End Game"
-    if (MatchTime() == 0)
+rule: "End Game Scoreboard"
+    Event.OngoingPlayer
+    if (endScoreboard)
     {
+        DestroyAllHudText();
+        CreateHudText(all, null, "ㅤTryhard FFA | Created by scort#11221", null, Location.Right, 0, Color.White, rainbowColor, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        StartCamera(all, Vector(214.63, 18.51, 48.69), Vector(203.25, 9.50, 68.08));
+
+        SetInvisible(all);
+        DisableGameModeHud(all);
+        DisableHeroHud(all);
+        DisableRespawning(all);
+        DisableKillFeed(all);
+
+        MinWait();
+
+        DisallowButton(all, Button.PrimaryFire);
+        DisallowButton(all, Button.SecondaryFire);
+        DisallowButton(all, Button.Ability1);
+        DisallowButton(all, Button.Ability2);
+        DisallowButton(all, Button.Ultimate);
+        DisallowButton(all, Button.Melee);
+        DisallowButton(all, Button.Interact);
+        
+        CreateHudText(player, null, null, <" \n<0> players joined the lobby in total\n\n\n", playersJoined>, Location.Top, 0);
+
+        CreateHudText(player, HeroIconString(HeroOf()), player,
+        <"<0> Kills | <1> Deaths | <2> Ults | DMG Out: <3> | DMG In: <4> | Acc: <5>% | Crit Acc: <6>%", 
+        PlayerStat(player, PlayerStat.FinalBlows), PlayerStat(player, PlayerStat.Deaths), PlayerStat(player, PlayerStat.UltimatesUsed), RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
+        RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
+        RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100, Rounding.Nearest), 
+        RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100, Rounding.Nearest)>, Location.Top, SlotOf() + 1, 
+        Color.SkyBlue, Color.SkyBlue);
+
+        CreateHudText(RemoveFromArray(all, player), HeroIconString(HeroOf()), player,
+        <"<0> Kills | <1> Deaths | <2> Ults | DMG Out: <3> | DMG In: <4> | Acc: <5>% | Crit Acc: <6>%", 
+        PlayerStat(player, PlayerStat.FinalBlows), PlayerStat(player, PlayerStat.Deaths), PlayerStat(player, PlayerStat.UltimatesUsed), RoundToInteger(PlayerStat(player, PlayerStat.AllDamageDealt), Rounding.Nearest), 
+        RoundToInteger(PlayerStat(player, PlayerStat.DamageTaken), Rounding.Nearest), 
+        RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100, Rounding.Nearest), 
+        RoundToInteger(PlayerHeroStat(player, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100, Rounding.Nearest)>, Location.Top, SlotOf() + 1, 
+        Color.Red, Color.Red);
+    }
+
+rule: "End Game"
+    if (MatchTime() <= 0)
+    {
+        WaitIfTrue(0.08);
+        if (sScoreboard)
+        {
+            endScoreboard = true;
+            Wait(15);
+        }
+
         EnableCompletion();
     }
 
@@ -151,4 +230,13 @@ rule: "[Debug] :: Damage"
     if (player == host && IsCrouchHeld())
     {
         Damage(player, null, 10);
+    }
+
+rule: "[Debug] :: Hud"
+    Event.OngoingPlayer
+    if (player == host)
+    {
+        CreateHudText(player, null, null, <" \nPos: <0>", PositionOf()>, Location.Top, 10);
+        CreateHudText(player, null, null, <"Facing: <0>", FacingDirectionOf()>, Location.Top, 11);
+        CreateHudText(player, null, null, <"Raycast: <0>", RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100)>, Location.Top, 12);
     }
