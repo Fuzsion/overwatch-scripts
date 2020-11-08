@@ -50,7 +50,7 @@ define ServerLoadText():            CreateHudText(all, null, <"Server Load: (<0>
                                                             RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest), 
                                                             RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, 
                                                             null, Location.Right, -1);
-define RainbowColor():              CustomColor(128 + 127 * CosineFromDegrees(Time() * 100),
+define RainbowColor():                  CustomColor(128 + 127 * CosineFromDegrees(Time() * 100),
                                                 128 + 127 * CosineFromDegrees((Time() * 100) + 120),
                                                 128 + 127 * CosineFromDegrees((Time() * 100) + 240), 
                                                 250);
