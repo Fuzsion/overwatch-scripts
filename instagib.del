@@ -181,7 +181,7 @@ general optimizations
 fix buff cooldown in-world disappearing upon player leaving, internal timer doesnt break, only the in-world bar
 drop whichever buff(s) the player has upon death (orb(s) will only be up for 20 seconds, then will disappear then use the normal cooldown at its map determined spot)
 option for extra lives to "stack"
-new buff: wallbang and ricochet properties all within shotgun pellets; will work on this once i figure out a more efficient spread
+new buff: wallbang and ricochet properties all within shotgun pellets
 randomize weapon buff map locations upon match start
 
 random world events: lasts for 30 seconds, has a 2 minute cooldown
@@ -1254,7 +1254,7 @@ void WallbangCooldown() "[Sub] :: Wallbang Cooldown"
     {
         if (!spawnWithWallbang && spawnWallbang)
         {
-            if (wallbangCD == 0 || wallbangCD == WALLBANG_CD)
+            if (wallbangCD == 0 || WALLBANG_CD)
             {
                 LogToInspector("Wallbang cooldown started");
                 wallbangCD = WALLBANG_CD;
@@ -1267,8 +1267,8 @@ void WallbangCooldown() "[Sub] :: Wallbang Cooldown"
                 ChaseVariableOverTime(wallbangSphereSize, 0.4, WALLBANG_CD, TimeChaseReevaluation.None);
             }
 
-            // wallbangUser = null;
             // destroy and recreate the effects, just in case
+            LogToInspector("Wallbang effects destroyed and created");
             DestroyEffect(wallbangInProgressEffect[0]);
             DestroyEffect(wallbangInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[0]);
@@ -1290,7 +1290,7 @@ void RicochetCooldown() "[Sub] :: Ricochet Cooldown"
     {
         if (!spawnWithRicochet && spawnRicochet)
         {
-            if (ricochetCD == 0 || ricochetCD == RICOCHET_CD)
+            if (ricochetCD == 0 || RICOCHET_CD)
             {
                 LogToInspector("Riochet cooldown started");
                 ricochetCD = RICOCHET_CD;
@@ -1302,9 +1302,9 @@ void RicochetCooldown() "[Sub] :: Ricochet Cooldown"
                 ChaseVariableOverTime(ricochetPBar, 100, RICOCHET_CD, TimeChaseReevaluation.None);
                 ChaseVariableOverTime(ricochetSphereSize, 0.4, RICOCHET_CD, TimeChaseReevaluation.None);
             }
-
-            // ricochetUser = null;
+           
             // destroy and recreate the effects, just in case
+            LogToInspector("Ricochet effects destroyed and created");
             DestroyEffect(ricochetInProgressEffect[0]);
             DestroyEffect(ricochetInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[1]);
@@ -1326,7 +1326,7 @@ void BuckshotCooldown() "[Sub] :: Buckshot Cooldown"
     {
         if (!spawnWithBuckshot && spawnBuckshot)
         {
-            if (buckshotCD == 0 || buckshotCD == BUCKSHOT_CD)
+            if (buckshotCD == 0 || BUCKSHOT_CD)
             {
                 LogToInspector("Buckshot cooldown started");
                 buckshotCD = BUCKSHOT_CD;
@@ -1339,8 +1339,8 @@ void BuckshotCooldown() "[Sub] :: Buckshot Cooldown"
                 ChaseVariableOverTime(buckshotSphereSize, 0.4, BUCKSHOT_CD, TimeChaseReevaluation.None);
             }
             
-            // buckshotUser = null;
             // destroy and recreate the effects, just in case
+            LogToInspector("Buckshot effects destroyed and created");
             DestroyEffect(buckshotInProgressEffect[0]);
             DestroyEffect(buckshotInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[2]);
@@ -1362,7 +1362,7 @@ void LifeCooldown() "[Sub] :: Life Cooldown"
     {
         if (!spawnWithLife && spawnLife)
         {
-            if (lifeCD == 0 || lifeCD == LIFE_CD)
+            if (lifeCD == 0 || LIFE_CD)
             {
                 LogToInspector("Extra Life cooldown started");
                 lifeCD = LIFE_CD;
@@ -1375,8 +1375,9 @@ void LifeCooldown() "[Sub] :: Life Cooldown"
                 ChaseVariableOverTime(lifeSphereSize, 0.4, LIFE_CD, TimeChaseReevaluation.None);
             }
             
-            // lifeUser = null;
+
             // destroy and recreate the effects, just in case
+            LogToInspector("Extra Life effects destroyed and created");
             DestroyEffect(lifeInProgressEffect[0]);
             DestroyEffect(lifeInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[3]);
@@ -1476,6 +1477,7 @@ rule: "[Buff] :: Wallbang : Remove"
         StopChasingVariable(wallbangDur);
 
         wallbangEnabled = false;
+        wallbangUser = null;
         wallbangDur = 100;
 
         // start in world cooldown
@@ -1603,6 +1605,7 @@ rule: "[Buff] :: Ricochet : Remove"
         StopChasingVariable(ricochetDur);
 
         ricochetEnabled = false;
+        ricochetUser = null;
         ricochetDur = 100;
 
         // start in world cooldown
