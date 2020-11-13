@@ -9,7 +9,6 @@
   "Modes": {
     "All": {
       "Game Mode Start": "Immediately",
-      "Allow Hero Switching": false,
       "Hero Limit": "Off",
       "Spawn Health Packs": "Disabled"
     },
@@ -39,7 +38,8 @@
   "Heroes": {
     "General": {
       "Enabled Heroes": [
-        "Mccree"
+        "Mccree",
+        "Ana"
       ],
       "Mccree": {
         "Damage Dealt": 500.0,
@@ -48,8 +48,15 @@
         "Quick Melee": false,
         "Secondary Fire": false,
         "Ultimate Ability (Deadeye)": false
+      },
+      "Ana": {
+        "Damage Dealt": 500.0,
+        "Damage Received": 500.0,
+        "No Ammunition Requirement": true,
+        "Quick Melee": false,
+        "Ultimate Ability (Nano Boost)": false
       }
     }
   },
-  "Description": "Instagib v2.0.0 | Created by scort#11221 | 11/02/20\n- Hold down Jump to gain speed by bunny hopping\n- Press Secondary Fire (Right Click) to fire a knockback orb to displace enemies or to give yourself more mobility\n- Press Ability 1 (Shift) to dodge in any direction\n- Press Ability 2 (E) to throw out a grappling hook to attach to walls or pull players\n- Buffs are littered throughout the map that change your weapon drastically"
+  "Description": "Instagib v2.0.0 | Created by scort#11221 | 11/??/20\n- Hold down Jump to gain speed by bunny hopping\n- Press Secondary Fire (Right Click) to fire a knockback orb to displace enemies or to give yourself more mobility\n- Press Ability 1 (Shift) to dodge in any direction\n- Press Ability 2 (E) to throw out a grappling hook to attach to walls or pull players\n- Buffs are littered throughout the map that change your weapon drastically"
 }
