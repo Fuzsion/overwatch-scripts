@@ -72,7 +72,7 @@ globalvar define secondaryEnabled;
 globalvar define primaryFxEnabled;
 globalvar define bhopEnabled;
 globalvar define buffHudText;
-// globalvar define cdIP;
+globalvar define cdIP;
 
 //// wallbang ////
 
@@ -208,7 +208,7 @@ rule: "[Main] :: Initial Global"
         buffsSpawnImmediately = WorkshopSettingToggle("General", "​Buffs Spawn Immediately When Match Starts (Off)", false, 4);
         primaryFxEnabled = WorkshopSettingToggle("General", "Enable Primary Fire Effects (On)", true, 5);
         cdType = WorkshopSettingCombo("General", "Buff Cooldown Visual Type (Progress Bar)", 0, ["Progress Bar", "Countdown", "None"], 6);
-        // cdIP = WorkshopSettingToggle("General", "Show buff cooldown visuals (On)", true, 7);
+        cdIP = WorkshopSettingToggle("General", "Show buff cooldown visuals (On)", true, 7);
         buffHudText = WorkshopSettingToggle("General", "Show Buff Cooldown HUD Text (On)", true, 8);
 
         grappleEnabled = WorkshopSettingToggle("Grapple", "Enable Grapple (On)", true, 1);
@@ -1367,18 +1367,18 @@ rule: "[Buff] :: Buff Owner Leave"
         }
     }
 
-// globalvar define sphereInProgressEffect;
-// globalvar define ringInProgressEffect;
+globalvar define sphereInProgressEffect;
+globalvar define ringInProgressEffect;
 globalvar define wallbangPBar;
-// globalvar define wallbangSphereSize;
+globalvar define wallbangSphereSize;
 globalvar define ricochetPBar;
-// globalvar define ricochetSphereSize;
+globalvar define ricochetSphereSize;
 globalvar define buckshotPBar;
-// globalvar define buckshotSphereSize;
+globalvar define buckshotSphereSize;
 globalvar define lifePBar;
-// globalvar define lifeSphereSize;
+globalvar define lifeSphereSize;
 globalvar define redeemerPBar;
-// globalvar define redeemerSphereSize;
+globalvar define redeemerSphereSize;
 
 globalvar define wallbangTimer;
 globalvar define ricochetTimer;
@@ -1404,21 +1404,21 @@ void WallbangCooldown() "[Sub] :: Wallbang Cooldown"
             }
 
             // destroy and recreate the effects, just in case
-            // DestroyEffect(sphereInProgressEffect[0]);
-            // DestroyEffect(ringInProgressEffect[0]);
+            DestroyEffect(sphereInProgressEffect[0]);
+            DestroyEffect(ringInProgressEffect[0]);
             DestroyProgressBarInWorldText(cdText[0]);
             DestroyInWorldText(cdText[0]);
 
             MinWait();
 
-            // if (cdIP)
-            // {
-            //     CreateEffect(all, Effect.Sphere, Color.Yellow, buffPos[0], wallbangPBar * 0.004, EffectRev.PositionAndRadius);
-            //     sphereInProgressEffect[0] = LastCreatedEntity();
+            if (cdIP)
+            {
+                CreateEffect(all, Effect.Sphere, Color.Yellow, buffPos[0], wallbangPBar * 0.004, EffectRev.PositionAndRadius);
+                sphereInProgressEffect[0] = LastCreatedEntity();
 
-            //     CreateEffect(all, Effect.Ring, Color.Yellow, buffPos[0] - Vector(0, 1, 0), wallbangPBar * 0.004, EffectRev.PositionAndRadius);
-            //     ringInProgressEffect[0] = LastCreatedEntity();
-            // }
+                CreateEffect(all, Effect.Ring, Color.Yellow, buffPos[0] - Vector(0, 1, 0), wallbangPBar * 0.004, EffectRev.PositionAndRadius);
+                ringInProgressEffect[0] = LastCreatedEntity();
+            }
 
             if (cdType == 0)
             {
@@ -1451,21 +1451,21 @@ void RicochetCooldown() "[Sub] :: Ricochet Cooldown"
             }
             
             // destroy and recreate the effects, just in case
-            // DestroyEffect(sphereInProgressEffect[1]);
-            // DestroyEffect(ringInProgressEffect[1]);
+            DestroyEffect(sphereInProgressEffect[1]);
+            DestroyEffect(ringInProgressEffect[1]);
             DestroyProgressBarInWorldText(cdText[1]);
             DestroyInWorldText(cdText[1]);
 
             MinWait();
 
-            // if (cdIP)
-            // {
-            //     CreateEffect(all, Effect.Sphere, Color.Violet, buffPos[1], ricochetPBar * 0.004, EffectRev.PositionAndRadius);
-            //     sphereInProgressEffect[1] = LastCreatedEntity();
+            if (cdIP)
+            {
+                CreateEffect(all, Effect.Sphere, Color.Violet, buffPos[1], ricochetPBar * 0.004, EffectRev.PositionAndRadius);
+                sphereInProgressEffect[1] = LastCreatedEntity();
 
-            //     CreateEffect(all, Effect.Ring, Color.Violet, buffPos[1] - Vector(0, 1, 0), ricochetPBar * 0.004, EffectRev.PositionAndRadius);
-            //     ringInProgressEffect[1] = LastCreatedEntity();
-            // }
+                CreateEffect(all, Effect.Ring, Color.Violet, buffPos[1] - Vector(0, 1, 0), ricochetPBar * 0.004, EffectRev.PositionAndRadius);
+                ringInProgressEffect[1] = LastCreatedEntity();
+            }
 
             if (cdType == 0)
             {
@@ -1498,21 +1498,21 @@ void BuckshotCooldown() "[Sub] :: Buckshot Cooldown"
             }
 
             // destroy and recreate the effects, just in case
-            // DestroyEffect(sphereInProgressEffect[2]);
-            // DestroyEffect(ringInProgressEffect[2]);
+            DestroyEffect(sphereInProgressEffect[2]);
+            DestroyEffect(ringInProgressEffect[2]);
             DestroyProgressBarInWorldText(cdText[2]);
             DestroyInWorldText(cdText[2]);
 
             MinWait();
 
-            // if (cdIP)
-            // {
-            //     CreateEffect(all, Effect.Sphere, Color.Green, buffPos[2], buckshotPBar * 0.004, EffectRev.PositionAndRadius);
-            //     sphereInProgressEffect[2] = LastCreatedEntity();
+            if (cdIP)
+            {
+                CreateEffect(all, Effect.Sphere, Color.Green, buffPos[2], buckshotPBar * 0.004, EffectRev.PositionAndRadius);
+                sphereInProgressEffect[2] = LastCreatedEntity();
 
-            //     CreateEffect(all, Effect.Ring, Color.Green, buffPos[2] - Vector(0, 1, 0), buckshotPBar * 0.004, EffectRev.PositionAndRadius);
-            //     ringInProgressEffect[2] = LastCreatedEntity();
-            // }
+                CreateEffect(all, Effect.Ring, Color.Green, buffPos[2] - Vector(0, 1, 0), buckshotPBar * 0.004, EffectRev.PositionAndRadius);
+                ringInProgressEffect[2] = LastCreatedEntity();
+            }
 
             if (cdType == 0)
             {
@@ -1545,21 +1545,21 @@ void LifeCooldown() "[Sub] :: Life Cooldown"
             }
 
             // destroy and recreate the effects, just in case
-            // DestroyEffect(sphereInProgressEffect[3]);
-            // DestroyEffect(ringInProgressEffect[3]);
+            DestroyEffect(sphereInProgressEffect[3]);
+            DestroyEffect(ringInProgressEffect[3]);
             DestroyProgressBarInWorldText(cdText[3]);
             DestroyInWorldText(cdText[3]);
 
             MinWait();
 
-            // if (cdIP)
-            // {
-            //     CreateEffect(all, Effect.Sphere, Color.SkyBlue, buffPos[3], lifePBar * 0.004, EffectRev.PositionAndRadius);
-            //     sphereInProgressEffect[3] = LastCreatedEntity();
+            if (cdIP)
+            {
+                CreateEffect(all, Effect.Sphere, Color.SkyBlue, buffPos[3], lifePBar * 0.004, EffectRev.PositionAndRadius);
+                sphereInProgressEffect[3] = LastCreatedEntity();
 
-            //     CreateEffect(all, Effect.Ring, Color.SkyBlue, buffPos[3] - Vector(0, 1, 0), lifePBar * 0.004, EffectRev.PositionAndRadius);
-            //     ringInProgressEffect[3] = LastCreatedEntity();
-            // }
+                CreateEffect(all, Effect.Ring, Color.SkyBlue, buffPos[3] - Vector(0, 1, 0), lifePBar * 0.004, EffectRev.PositionAndRadius);
+                ringInProgressEffect[3] = LastCreatedEntity();
+            }
 
             if (cdType == 0)
             {
@@ -1592,21 +1592,21 @@ void RedeemerCooldown() "[Sub] :: Redeemer Cooldown"
             }
             
             // destroy and recreate the effects, just in case
-            // DestroyEffect(sphereInProgressEffect[4]);
-            // DestroyEffect(ringInProgressEffect[4]);
+            DestroyEffect(sphereInProgressEffect[4]);
+            DestroyEffect(ringInProgressEffect[4]);
             DestroyProgressBarInWorldText(cdText[4]);
             DestroyInWorldText(cdText[4]);
 
             MinWait();
 
-            // if (cdIP)
-            // {
-            //     CreateEffect(all, Effect.Sphere, Color.Rose, buffPos[4], redeemerPBar * 0.004);
-            //     sphereInProgressEffect[4] = LastCreatedEntity();
+            if (cdIP)
+            {
+                CreateEffect(all, Effect.Sphere, Color.Rose, buffPos[4], redeemerPBar * 0.004);
+                sphereInProgressEffect[4] = LastCreatedEntity();
 
-            //     CreateEffect(all, Effect.Ring, Color.Rose, buffPos[4] - Vector(0, 1, 0), redeemerPBar * 0.004);
-            //     ringInProgressEffect[4] = LastCreatedEntity();
-            // }
+                CreateEffect(all, Effect.Ring, Color.Rose, buffPos[4] - Vector(0, 1, 0), redeemerPBar * 0.004);
+                ringInProgressEffect[4] = LastCreatedEntity();
+            }
             
             if (cdType == 0)
             {
@@ -1757,8 +1757,8 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
         // destroy inworld text / icon / orb
         DestroyProgressBarInWorldText(cdText[bIndex]);
         DestroyInWorldText(cdText[bIndex]);
-        // DestroyEffect(sphereInProgressEffect[bIndex]);
-        // DestroyEffect(ringInProgressEffect[bIndex]);
+        DestroyEffect(sphereInProgressEffect[bIndex]);
+        DestroyEffect(ringInProgressEffect[bIndex]);
         DestroyInWorldText(buffIcon[bIndex]);
         DestroyEffect(buffEffect[bIndex]);
 
@@ -1785,7 +1785,7 @@ rule: "[Buff] :: Wallbang : Create Orb"
     {
         canPickupBuff[0] = true;
         LogToInspector("Wallbang Orb Created");
-        // DestroyEffect(sphereInProgressEffect[0]);
+        DestroyEffect(sphereInProgressEffect[0]);
         CreateEffect(all, Effect.Orb, Color.Yellow, buffPos[0], 2, EffectRev.None);
         buffEffect[0] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Yellow, buffPos[0], 1);
@@ -1891,7 +1891,7 @@ rule: "[Buff] :: Ricochet : Create Orb"
         LogToInspector("Ricochet Orb Created");
         canPickupBuff[1] = true;
 
-        // DestroyEffect(sphereInProgressEffect[1]);
+        DestroyEffect(sphereInProgressEffect[1]);
         CreateEffect(all, Effect.Orb, Color.Violet, buffPos[1], 2, EffectRev.None);
         buffEffect[1] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Violet, buffPos[1], 1);
@@ -2028,7 +2028,7 @@ rule: "[Buff] :: Buckshot : Create Orb"
         LogToInspector("Buckshot Orb Created");
         canPickupBuff[2] = true;
 
-        // DestroyEffect(sphereInProgressEffect[2]);
+        DestroyEffect(sphereInProgressEffect[2]);
         CreateEffect(all, Effect.Orb, Color.Green, buffPos[2], 2, EffectRev.None);
         buffEffect[2] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Green, buffPos[2], 1);
@@ -2225,7 +2225,7 @@ rule: "[Buff] :: Extra Life : Create Orb"
     {
         canPickupBuff[3] = true;
 
-        // DestroyEffect(sphereInProgressEffect[3]);
+        DestroyEffect(sphereInProgressEffect[3]);
         CreateEffect(all, Effect.Orb, Color.SkyBlue, buffPos[3], 2, EffectRev.None);
         buffEffect[3] = LastCreatedEntity();
         PlayEffect(all, PlayEffect.GoodPickupEffect, Color.SkyBlue, buffPos[3], 1);
