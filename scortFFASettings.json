@@ -54,6 +54,9 @@
         "Hack": false,
         "Ultimate Ability (EMP)": false
       },
+      "Ashe": {
+        "Ultimate Duration": 50
+      },
       "Bastion": {
           "Reconfigure": false
       }
