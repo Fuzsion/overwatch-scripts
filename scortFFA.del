@@ -3,7 +3,6 @@ import "macros.del";
 
 globalvar define s_match_time;
 globalvar define match_time;
-globalvar define rainbow_s;
 globalvar define player_stats;
 globalvar define killstreak_hud;
 globalvar define heal_on_kill;
@@ -28,366 +27,389 @@ playervar define hide_hud;
 playervar define kill_streak;
 playervar define best_streak;
 
-define rainbow_color: CustomColor(128 + 127 * CosineFromDegrees(Time() * rainbow_s),
-                                 128 + 127 * CosineFromDegrees((Time() * rainbow_s) + 120),
-                                 128 + 127 * CosineFromDegrees((Time() * rainbow_s) + 240), 
-                                 250);
+define rainbow_color: CustomColor(128 + 127 * CosineFromDegrees(Time() * 150),
+                                128 + 127 * CosineFromDegrees((Time() * 150) + 120),
+                                128 + 127 * CosineFromDegrees((Time() * 150) + 240), 
+                                250);
 define health_color: CustomColor(r, g, 0, 250);
 define percentage: (NormalizedHealth() * 100);
 define r: (percentage <= 50) ? 255 : RoundToInteger(256 - (percentage - 50) * 5.12, Rounding.Down);
 define g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Down);
-rule: "v1.0.1 | Created by scort#12211" {}
+rule: "v1.0.1 | Created by scort#12211" { 
+DisableInspectorRecording(); 
+}
 
 rule: "Initial Global"
+{
+    CreateHudText(all, null, null, t_text, Location.Top, 0.1, TextColor: timer_color, Reevaluation:HudTextRev.VisibleToSortOrderStringAndColor);
+    timer_color = Color.White;
+    s_match_time = WorkshopSettingCombo("Settings", "​Match Time", 3, 
+    ["15 minutes", "30 minutes", "45 minutes", 
+    "1 hour", "1 hour, 15 minutes", "1 hour, 30 minutes", "1 hour, 45 minutes",
+    "2 hours", "2 hours, 15 minutes", "2 hours, 30 minutes", "2 hours, 45 minutes",
+    "3 hours", "3 hours, 15 minutes", "3 hours, 30 minutes", "3 hours, 45 minutes",
+    "4 hours", "4 hours, 15 minutes"], 1);
+    match_time = ((s_match_time + 1) * 15);
+    t_left = match_time * 60;
+    t_left_yellow = t_left / 4;
+
+    s_scoreboard = WorkshopSettingToggle("Settings", "Show Scoreboard at end of match", true, 2);
+    red_dot = WorkshopSettingToggle("Settings", "Show Widow Red Dot on scope-in", false, 3);
+    instant_respawn = WorkshopSettingToggle("Settings", "Respawn instantly on Jump", true, 4);
+
+    heal_on_kill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 2);
+    s_heal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (e.g. killing a 200hp hero would heal the player 100hp if set to 50%)", 1, ["25%", "50%", "75%", "100%"], 4);
+    heal = ((s_heal + 1) * 25) / 100;
+
+    killstreak_hud = WorkshopSettingToggle("Information", "Show Kill Streaks", true, 1);
+    player_stats = WorkshopSettingToggle("Information", "Show Player Stats", true, 2);
+    server_load = WorkshopSettingToggle("Information", "Show Server Load for Host", false, 4);
+
+    define credit = WorkshopSettingCombo("Credit", "Created by", 0, ["scort#11221", "Please credit!"], 1000);
+
+    if (server_load)
     {
-        DisableInspectorRecording();
-        CreateHudText(all, null, null, t_text, Location.Top, 0.1, TextColor: timer_color, Reevaluation:HudTextRev.VisibleToSortOrderStringAndColor);
-        timer_color = Color.White;
-        s_match_time = WorkshopSettingCombo("Settings", "​Match Time", 3, 
-        ["15 minutes", "30 minutes", "45 minutes", 
-        "1 hour", "1 hour, 15 minutes", "1 hour, 30 minutes", "1 hour, 45 minutes",
-        "2 hours", "2 hours, 15 minutes", "2 hours, 30 minutes", "2 hours, 45 minutes",
-        "3 hours", "3 hours, 15 minutes", "3 hours, 30 minutes", "3 hours, 45 minutes",
-        "4 hours", "4 hours, 15 minutes"], 1);
-        match_time = ((s_match_time + 1) * 15);
-        t_left = match_time * 60;
-        t_left_yellow = t_left / 4;
-
-        s_scoreboard = WorkshopSettingToggle("Settings", "Show Scoreboard at end of match", true, 2);
-        red_dot = WorkshopSettingToggle("Settings", "Show Widow Red Dot on scope-in", false, 3);
-        instant_respawn = WorkshopSettingToggle("Settings", "Respawn instantly on Jump", true, 4);
-
-        heal_on_kill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 2);
-        s_heal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (e.g. killing a 200hp hero would heal the player 100hp if set to 50%)", 1, ["25%", "50%", "75%", "100%"], 4);
-        heal = ((s_heal + 1) * 25) / 100;
-
-        killstreak_hud = WorkshopSettingToggle("Information", "Show Kill Streaks", true, 1);
-        player_stats = WorkshopSettingToggle("Information", "Show Player Stats", true, 2);
-        server_load = WorkshopSettingToggle("Information", "Show Server Load for Host", false, 4);
-        rainbow_s = WorkshopSettingInteger("Information", "​very cool and definitely not gimmicky rainbow cycle speed", 150, 1, 1000, 5);
-
-        define credit = WorkshopSettingCombo("Credit", "Created by", 0, ["scort#11221", "Please credit!"], 1000);
-
-        if (server_load)
-        {
-            CreateHudText(host, null, null, "Server Load", Location.Left, 10);
-            CreateHudText(host, null, "Current", <"<0>%", RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest)>, Location.Left, 11, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-            CreateHudText(host, null, "Average", <"<0>%", RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest)>, Location.Left, 12, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-            CreateHudText(host, null, "Peak", <"<0>%", RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, Location.Left, 13, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-        }
-
-        SetMatchTime(10);
+        CreateHudText(host, null, null, "Server Load", Location.Left, 10);
+        CreateHudText(host, null, "Current", <"<0>%", RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest)>, Location.Left, 11, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(host, null, "Average", <"<0>%", RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest)>, Location.Left, 12, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(host, null, "Peak", <"<0>%", RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, Location.Left, 13, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
     }
+
+    SetMatchTime(10);
+}
 
 rule: "Initial Player Join"
-    Event.OnPlayerJoin
-    {
-        CreateHudText(player, null, null, !hide_hud ? "ㅤTryhard FFA | scort#11221" : "", Location.Right, 0.1, Color.White, Color.White, Color.White);
-        CreateHudText(player, null, !hide_hud ? <"ㅤHold <0> to hide/unhide HUD | Code: BKRXY\n", InputBindingString(Button.Interact)> : "", null, Location.Right, 0.2);
-        players_joined++;
-        kill_streak = 0;
-        DisableGameModeHud();
-    }
+Event.OnPlayerJoin
+{
+    CreateHudText(player, null, null, !hide_hud ? "ㅤTryhard FFA | scort#11221" : "", Location.Right, 0.1, Color.White, Color.White, Color.White);
+    CreateHudText(player, null, !hide_hud ? <"ㅤHold <0> to hide/unhide HUD | Code: BKRXY\n", InputBindingString(Button.Interact)> : "", null, Location.Right, 0.2);
+    players_joined++;
+    kill_streak = 0;
+    DisableGameModeHud();
+}
 
 rule: "Player Leave"
-    Event.OnPlayerLeave
+Event.OnPlayerLeave
+{
+    if (player == best_streak_ser_usr)
     {
-        if (player == best_streak_ser_usr)
-        {
-            best_streak_ser = 0;
-        }
-
-        kill_streak = 0;
-        best_streak = 0;
+        LogToInspector("best_streak_ser_usr left, setting best_streak_ser to 0");
+        best_streak_ser = 0;
     }
+
+    kill_streak = 0;
+    best_streak = 0;
+}
 
 rule: "Hide/Unhide HUD"
-    Event.OngoingPlayer
-    if (IsInteractHeld())
-    {
-        WaitIfTrue(0.5);
+Event.OngoingPlayer
+if (IsInteractHeld())
+{
+    WaitIfTrue(0.5);
 
-        hide_hud = !hide_hud;
-        if (hide_hud)
-        {
-            hide_hud = true;
-        }
-        else
-        {
-            hide_hud = false;
-        }
+    hide_hud = !hide_hud;
+    if (hide_hud)
+    {
+        LogToInspector(<"<0> hid hud", player>);
+        hide_hud = true;
     }
+    else
+    {
+        LogToInspector(<"<0> unhid hud", player>);
+        hide_hud = false;
+    }
+}
 
 rule: "Set Match Time"
-    if (IsGameInProgress())
-    {
-        SetMatchTime(0);
-        DisableCompletion();
-        DisableAnnouncer();
+if (IsGameInProgress())
+{
+    SetMatchTime(0);
+    DisableCompletion();
+    DisableAnnouncer();
 
-        t_running = true;
-    }
+    t_running = true;
+}
 
 rule: "Timer Tick"
-    if (t_running)
-    {
-        t_text = <"<0><1>:<2>\n", 
-                t_left >= 3600 
-                    ? <"<0>:", RoundToInteger(t_left / 3600, Rounding.Down)> 
-                    : "", 
-                t_left % 3600 / 60 < 10 && t_left >= 3600 
-                    ? <"0<0>", RoundToInteger(t_left % 3600 / 60, Rounding.Down)> 
-                    : <"<0>", RoundToInteger(t_left % 3600 / 60, Rounding.Down)>, 
-                t_left % 60 >= 10 
-                    ? <"<0>", t_left % 60> 
-                    : <"0<0>", t_left % 60>>;
+if (t_running)
+{
+    t_text = <"<0><1>:<2>\n", 
+            t_left >= 3600 
+                ? <"<0>:", RoundToInteger(t_left / 3600, Rounding.Down)> 
+                : "", 
+            t_left % 3600 / 60 < 10 && t_left >= 3600 
+                ? <"0<0>", RoundToInteger(t_left % 3600 / 60, Rounding.Down)> 
+                : <"<0>", RoundToInteger(t_left % 3600 / 60, Rounding.Down)>, 
+            t_left % 60 >= 10 
+                ? <"<0>", t_left % 60> 
+                : <"0<0>", t_left % 60>>;
 
-        Wait(1);
-        t_left--;
-        LoopIfConditionIsTrue();
-    }
+    Wait(1);
+    t_left--;
+    LoopIfConditionIsTrue();
+}
 
 globalvar define timer_color;
 rule: "Timer Color"
-    if (t_running && t_left % 60 >= 10)
-    {
-        if (t_left <= 60)
-            timer_color = Color.Red;
-        else if (t_left > t_left_yellow)
-            timer_color = Color.White;
-        else
-            timer_color = Color.Yellow;
-    }
+if (t_running && t_left % 60 >= 10)
+{
+    if (t_left <= 60)
+        timer_color = Color.Red;
+    else if (t_left > t_left_yellow)
+        timer_color = Color.White;
+    else
+        timer_color = Color.Yellow;
+}
 
 rule: "Widow Red Dot"
-    Player.Widowmaker
-    if (red_dot)
-    {
-        CreateEffect(IsSecondaryHeld() && !IsFiringPrimary() ? RemoveFromArray(all, player) : null, Effect.GoodAura, Color.Red, 
-        RayCastHitPosition(EyePosition(), UpdateEveryFrame(EyePosition() + Facing() * 200), RemoveFromArray(AllLivingPlayers(), player), player),
-        0, EffectRev.VisibleToPositionRadiusAndColor);
-    }
+Player.Widowmaker
+if (red_dot)
+{
+    CreateEffect(IsSecondaryHeld() && !IsFiringPrimary() ? RemoveFromArray(all, player) : null, Effect.GoodAura, Color.Red, 
+    RayCastHitPosition(EyePosition(), UpdateEveryFrame(EyePosition() + Facing() * 200), RemoveFromArray(AllLivingPlayers(), player), player),
+    0, EffectRev.VisibleToPositionRadiusAndColor);
+}
 
 rule: "Reset Cooldowns on respawn"
-    Event.OngoingPlayer
-    if (IsAlive())
-    {
-        SetAmmo(player, 0, MaxAmmo());
-        SetAmmo(player, 1, MaxAmmo());
+Event.OngoingPlayer
+if (IsAlive())
+{
+    SetAmmo(player, 0, MaxAmmo());
+    SetAmmo(player, 1, MaxAmmo());
 
-        // tracer / sym
-        SetAbilityCharge(IsHero(Hero.Tracer) || IsHero(Hero.Symmetra) ? player : null, Button.Ability1, 3);
+    // tracer / sym
+    SetAbilityCharge(IsHero(Hero.Tracer) || IsHero(Hero.Symmetra) ? player : null, Button.Ability1, 3);
 
-        // junkrat
-        SetAbilityCharge(IsHero(Hero.Junkrat) ? player : null, Button.Ability1, 2);
+    // junkrat
+    SetAbilityCharge(IsHero(Hero.Junkrat) ? player : null, Button.Ability1, 2);
 
-        // dva / bastion
-        SetAbilityResource(player, Button.SecondaryFire, 100);
+    // dva / bastion
+    SetAbilityResource(player, Button.SecondaryFire, 100);
 
-        // pharah
-        SetAbilityResource(player, Button.Jump, 100);
+    // pharah
+    SetAbilityResource(player, Button.Jump, 100);
 
-        SetAbilityCooldown(player, Button.Ability1, 0);
-        SetAbilityCooldown(player, Button.Ability2, 0);
-        SetAbilityCooldown(player, Button.PrimaryFire, 0);
-        SetAbilityCooldown(player, Button.SecondaryFire, 0);
-    }
+    SetAbilityCooldown(player, Button.Ability1, 0);
+    SetAbilityCooldown(player, Button.Ability2, 0);
+    SetAbilityCooldown(player, Button.PrimaryFire, 0);
+    SetAbilityCooldown(player, Button.SecondaryFire, 0);
+}
 
 rule: "HUD Text"
-    Event.OngoingPlayer
+Event.OngoingPlayer
+{
+    if (killstreak_hud)
     {
-        if (killstreak_hud)
-        {
-            // // streak self
-            // CreateHudText(kill_streak >= 5 ? !hide_hud ? player : null : null, 
-            // HeroIconString(HeroOf()), 
-            // <"<0> (You)", player>, 
-            // best_streak != 0 ? <"Streak: <0> | Best: <1>", kill_streak, best_streak> : <"Streak: <0>", kill_streak>, 
-            // Location.Left, 1, rainbow_color, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
+        // // streak self
+        // CreateHudText(kill_streak >= 5 ? !hide_hud ? player : null : null, 
+        // HeroIconString(HeroOf()), 
+        // <"<0> (You)", player>, 
+        // best_streak != 0 ? <"Streak: <0> | Best: <1>", kill_streak, best_streak> : <"Streak: <0>", kill_streak>, 
+        // Location.Left, 1, rainbow_color, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
 
-            CreateHudText(kill_streak >= 5 ? FilteredArray(all, !Curr().hide_hud): null, 
-            HeroIconString(HeroOf()), 
-            <"<0>", player>, 
-            best_streak != 0 ? <"Streak: <0> | Best: <1>", kill_streak, best_streak> : <"Streak: <0>", kill_streak>, 
-            Location.Left, SlotOf() + 1, health_color, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
+        CreateHudText(kill_streak >= 5 ? FilteredArray(all, !Curr().hide_hud): null, 
+        HeroIconString(HeroOf()), 
+        <"<0>", player>, 
+        best_streak != 0 ? <"Streak: <0> | Best: <1>", kill_streak, best_streak> : <"Streak: <0>", kill_streak>, 
+        Location.Left, SlotOf() + 1, health_color, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
 
-            // streak best
-            CreateHudText(best_streak_ser >= 5 && !hide_hud ? player : null, null, "", <"Best Streak: <0> by <1>", best_streak_ser, best_streak_ser_usr>, Location.Right, 0.3, Color.White, Color.White, Color.Yellow);
-        }
-
-        if (player_stats)
-        {
-            // stats
-            CreateHudText(!hide_hud ? player : null, null,
-            <" \n\n\n\n\n\n<0> <1>\nKDR: <2>\nDamage Given: <3>\nDamage Taken: <4>\nAccuracy: <5>%\n<6><7><8><9><10><11>\n", 
-            HeroIconString(HeroOf()),
-            HeroOf(),
-            Deaths(player) == 0 && Kills(player) >= 1 ? <"<0>", Kills(player)>: Kills(player) / Deaths(player),
-            DamageDealt(player), 
-            DamageTaken(player), 
-            Accuracy(player),
-            !IsHero(Hero.Ana) && !IsHero(Hero.Pharah) ? <"Crit Accuracy: <0>%\n", CritAccuracy(player)> : "",
-            IsHero(Hero.Widowmaker) || IsHero(Hero.Ashe) || IsHero(Hero.Ana) ? <"Scope Accuracy: <0>%\n", ScopedAccuracy(player)> : "", 
-            IsHero(Hero.Widowmaker) || IsHero(Hero.Ashe) ? <"Scope Crit Accuracy: <0>%\n", ScopedCritAccuracy(player)> : "", 
-            IsHero(Hero.Doomfist) || IsHero(Hero.Pharah) || IsHero(Hero.Lucio) ? <"Environmental Kills: <0>\n", EnvironmentalKills(player)> : "",
-            IsHero(Hero.Bastion) || IsHero(Hero.Lucio) || IsHero(Hero.Soldier76) || IsHero(Hero.Baptiste) || IsHero(Hero.Ana) ? <"Self Healing: <0>\n", SelfHealing(player)> : "",
-            best_streak != 0 ? <" \nBest Streak: <0>", best_streak> : "">,
-            null, Location.Left, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString);
-        }
+        // streak best
+        CreateHudText(best_streak_ser >= 5 && !hide_hud ? player : null, null, "", <"Best Streak: <0> by <1>", best_streak_ser, best_streak_ser_usr>, Location.Right, 0.3, Color.White, Color.White, Color.Yellow);
     }
+
+    if (player_stats)
+    {
+        // stats
+        CreateHudText(!hide_hud ? player : null, null,
+        <" \n\n\n\n\n\n<0> <1>\nKDR: <2>\nDamage Given: <3>\nDamage Taken: <4>\nAccuracy: <5>%\n<6><7><8><9><10><11>\n", 
+        HeroIconString(HeroOf()),
+        HeroOf(),
+        Deaths(player) == 0 && Kills(player) >= 1 
+            ? <"<0>", Kills(player)>
+            : Kills(player) / Deaths(player),
+        DamageDealt(player), 
+        DamageTaken(player), 
+        Accuracy(player),
+        
+        !IsHero(Hero.Ana) && !IsHero(Hero.Pharah)
+            ? <"Crit Accuracy: <0>%\n", CritAccuracy(player)> : "",
+
+        IsHero(Hero.Widowmaker) || IsHero(Hero.Ashe) || IsHero(Hero.Ana)
+            ? <"Scope Accuracy: <0>%\n", ScopedAccuracy(player)> : "", 
+
+        IsHero(Hero.Widowmaker) || IsHero(Hero.Ashe) 
+            ? <"Scope Crit Accuracy: <0>%\n", ScopedCritAccuracy(player)> : "", 
+
+        IsHero(Hero.Doomfist) || IsHero(Hero.Pharah) || IsHero(Hero.Lucio)
+            ? <"Environmental Kills: <0>\n", EnvironmentalKills(player)> : "",
+
+        IsHero(Hero.Bastion) || IsHero(Hero.Lucio) || IsHero(Hero.Soldier76) || IsHero(Hero.Baptiste) || IsHero(Hero.Ana)
+            ? <"Self Healing: <0>\n", SelfHealing(player)> : "",
+
+        best_streak != 0 
+            ? <" \nBest Streak: <0>", best_streak> : "">,
+
+        null, Location.Left, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderAndString);
+    }
+}
 
 rule: "Update Killstreak"
-    Event.OnFinalBlow
-    if (IsAlive(Attacker()) && Attacker() != Victim())
-    {
-        kill_streak++;
-    }
+Event.OnFinalBlow
+if (IsAlive(Attacker()) && Attacker() != Victim())
+{
+    kill_streak++;
+}
 
 rule: "Reset Kills"
-    Event.OnDeath
+Event.OnDeath
+{
+    if (kill_streak >= 5 && kill_streak >= best_streak)
     {
-        if (kill_streak >= 5 && kill_streak >= best_streak)
-        {
-            best_streak = kill_streak;
+        best_streak = kill_streak;
 
-            if (best_streak > best_streak_ser)
-            {
-                best_streak_ser = best_streak;
-                best_streak_ser_usr = player;
-                SmallMessage(player, <"<0> player killstreak! The lobby's best!", kill_streak>);
-            }
-            else 
-            {
-                SmallMessage(player, <"<0> player killstreak! Your personal best!", kill_streak>);
-            }
-        }
-        else if (kill_streak >= 5)
+        if (best_streak > best_streak_ser)
         {
-            SmallMessage(player, <"<0> player killstreak!", kill_streak>);
+            best_streak_ser = best_streak;
+            best_streak_ser_usr = player;
+            SmallMessage(player, <"<0> player killstreak! The lobby's best!", kill_streak>);
         }
-
-        Wait(0.1);
-        kill_streak = 0;
+        else 
+        {
+            SmallMessage(player, <"<0> player killstreak! Your personal best!", kill_streak>);
+        }
     }
+    else if (kill_streak >= 5)
+    {
+        SmallMessage(player, <"<0> player killstreak!", kill_streak>);
+    }
+
+    Wait(0.1);
+    kill_streak = 0;
+}
 
 rule: "Heal On Kill"
-    Event.OnFinalBlow
-    if (heal_on_kill && !IsDuplicating(Attacker()) && Health(Attacker()) < MaxHealth(Attacker()))
-    {
+Event.OnFinalBlow
+if (heal_on_kill && !IsDuplicating(Attacker()) && Health(Attacker()) < MaxHealth(Attacker()))
+{
+    // if (!IsHero(Hero.Lucio) && !IsHero(Hero.Soldier76))
         StartHealOverTime(Attacker(), null, 1, heal * MaxHealth(Victim()));
-    }
+    // else 
+    //     StartHealOverTime(Attacker(), null, 1, heal / 2 * MaxHealth(Victim()));
+}
 
 rule: "End Game Scoreboard"
-    Event.OngoingPlayer
-    if (end_scoreboard)
-    {
-        StartFacing(player, Facing(), 10000);
+Event.OngoingPlayer
+if (end_scoreboard)
+{
+    StartFacing(player, Facing(), 10000);
 
-        StartForcingPlayerOutlines(player, player, true, Color.SkyBlue, OutlineType.Always);
-        CreateHudText(player, null, null, <" \n<0> players joined the lobby in total\n\n\n", players_joined>, Location.Top, 0.2);
+    StartForcingPlayerOutlines(player, player, true, Color.SkyBlue, OutlineType.Always);
+    StartForcingPlayerOutlines(player, RemoveFromArray(all, player), true, Color.Red, OutlineType.Always);
+    CreateHudText(player, null, null, <" \n<0> players joined the lobby in total\n\n\n", players_joined>, Location.Top, 0.2);
 
-        CreateHudText(player, HeroIconString(HeroOf()), <"<0> | <1> HP", player, RoundToInteger(Health(), Rounding.Nearest)>,
-        <"Best Streak: <7>  |  <0> Kills  |  <1> Deaths  |  <2> Ults  |  DMG Out: <3>  |  DMG In: <4>  |  Acc: <5>%  |  Crit Acc: <6>%", 
-        Kills(player), 
-        Deaths(player), 
-        UltsUsed(player), 
-        DamageDealt(player), 
-        DamageTaken(player), 
-        Accuracy(player),
-        CritAccuracy(player), 
-        best_streak>,
-        Location.Top, SlotOf() + 1, 
-        Color.SkyBlue, Color.SkyBlue);
+    CreateHudText(player, HeroIconString(HeroOf()), <"<0> | <1> HP", player, RoundToInteger(Health(), Rounding.Nearest)>,
+    <"Best Streak: <7>  |  <0> Kills  |  <1> Deaths  |  <2> Ults  |  DMG Out: <3>  |  DMG In: <4>  |  Acc: <5>%  |  Crit Acc: <6>%", 
+    Kills(player), 
+    Deaths(player), 
+    UltsUsed(player), 
+    DamageDealt(player), 
+    DamageTaken(player), 
+    Accuracy(player),
+    CritAccuracy(player), 
+    best_streak>,
+    Location.Top, SlotOf() + 1, 
+    Color.SkyBlue, Color.SkyBlue);
 
-        CreateHudText(RemoveFromArray(all, player), HeroIconString(HeroOf()), <"<0> | <1> HP", player, RoundToInteger(Health(), Rounding.Nearest)>,
-        <"Best Streak: <7>  |  <0> Kills  |  <1> Deaths  |  <2> Ults  |  DMG Out: <3>  |  DMG In: <4>  |  Acc: <5>%  |  Crit Acc: <6>%", 
-        Kills(player), 
-        Deaths(player), 
-        UltsUsed(player), 
-        DamageDealt(player), 
-        DamageTaken(player), 
-        Accuracy(player),
-        CritAccuracy(player), 
-        best_streak>,
-        Location.Top, SlotOf() + 1, 
-        health_color, health_color);
-    }
+    CreateHudText(RemoveFromArray(all, player), HeroIconString(HeroOf()), <"<0> | <1> HP", player, RoundToInteger(Health(), Rounding.Nearest)>,
+    <"Best Streak: <7>  |  <0> Kills  |  <1> Deaths  |  <2> Ults  |  DMG Out: <3>  |  DMG In: <4>  |  Acc: <5>%  |  Crit Acc: <6>%", 
+    Kills(player), 
+    Deaths(player), 
+    UltsUsed(player), 
+    DamageDealt(player), 
+    DamageTaken(player), 
+    Accuracy(player),
+    CritAccuracy(player), 
+    best_streak>,
+    Location.Top, SlotOf() + 1, 
+    health_color, health_color);
+}
 
 rule: "End Game"
-    if (t_left <= 0)
+if (t_left <= 0)
+{
+    t_running = false;
+    if (s_scoreboard)
     {
-        t_running = false;
-        if (s_scoreboard)
-        {
-            end_scoreboard = true;
-            
-            DestroyAllHudText();
-            
-            CreateHudText(all, null, null, "Tryhard FFA | Created by scort#11221", Location.Top, 0.1, Color.White, Color.White, rainbow_color, HudTextRev.VisibleToSortOrderStringAndColor);
-            
-            StartCamera(all, Vector(214.63, 18.51, 48.69), Vector(203.25, 9.50, 68.08));
+        end_scoreboard = true;
+        
+        DestroyAllHudText();
+        
+        CreateHudText(all, null, null, "Tryhard FFA | Created by scort#11221", Location.Top, 0.1, Color.White, Color.White, rainbow_color, HudTextRev.VisibleToSortOrderStringAndColor);
+        
+        StartCamera(all, Vector(214.63, 18.51, 48.69), Vector(203.25, 9.50, 68.08));
 
-            DisableGameModeHud(all);
-            DisableHeroHud(all);
-            DisableRespawning(all);
-            DisableKillFeed(all);
-            
-            // disable movement and freeze players in air
-            ForceThrottle(all, 0,0,0,0,0,0);
-            SetGravity(all, 0);
-            ApplyImpulse(all, Up(), 0.001);
-            ApplyImpulse(all, Down(), 0.001);
-            ApplyImpulse(all, Forward(), 0.001);
-            ApplyImpulse(all, Backward(), 0.001);
-            ApplyImpulse(all, Left(), 0.001);
-            ApplyImpulse(all, Right(), 0.001);
+        DisableGameModeHud(all);
+        DisableHeroHud(all);
+        DisableRespawning(all);
+        DisableKillFeed(all);
+        
+        // disable movement and freeze players in air
+        ForceThrottle(all, 0,0,0,0,0,0);
+        SetGravity(all, 0);
+        ApplyImpulse(all, Up(), 0.001);
+        ApplyImpulse(all, Down(), 0.001);
+        ApplyImpulse(all, Forward(), 0.001);
+        ApplyImpulse(all, Backward(), 0.001);
+        ApplyImpulse(all, Left(), 0.001);
+        ApplyImpulse(all, Right(), 0.001);
 
-            DisallowButton(all, Button.PrimaryFire);
-            DisallowButton(all, Button.SecondaryFire);
-            DisallowButton(all, Button.Ability1);
-            DisallowButton(all, Button.Ability2);
-            DisallowButton(all, Button.Ultimate);
-            DisallowButton(all, Button.Melee);
-            DisallowButton(all, Button.Jump);
-            DisallowButton(all, Button.Crouch);
-            DisallowButton(all, Button.Interact);
-            DisableRespawning(all);
-            SetDamageDealt(all, 0);
-            SetDamageReceived(all, 0);
-            
-            Wait(15);
-        }
-
-        EnableCompletion();
+        DisallowButton(all, Button.PrimaryFire);
+        DisallowButton(all, Button.SecondaryFire);
+        DisallowButton(all, Button.Ability1);
+        DisallowButton(all, Button.Ability2);
+        DisallowButton(all, Button.Ultimate);
+        DisallowButton(all, Button.Melee);
+        DisallowButton(all, Button.Jump);
+        DisallowButton(all, Button.Crouch);
+        DisallowButton(all, Button.Interact);
+        DisableRespawning(all);
+        SetDamageDealt(all, 0);
+        SetDamageReceived(all, 0);
+        
+        Wait(15);
     }
+
+    EnableHeroHud(all);
+    EnableCompletion();
+}
 
 rule: "Force Respawn"
-    Event.OngoingPlayer
-    if (instant_respawn && IsButtonHeld(player, Button.Jump) && IsDead())
-    {
-        Respawn();
-    }
+Event.OngoingPlayer
+if (instant_respawn && IsButtonHeld(player, Button.Jump) && IsDead())
+{
+    Respawn();
+}
 
-rule: "[Debug] :: Bots"
-    Event.OngoingPlayer
-    if (player == host && IsInteractHeld() && !IsCrouchHeld())
-    {
-        CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
-    }
+// rule: "[Debug] :: Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsInteractHeld() && !IsCrouchHeld())
+//     {
+//         CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+//     }
 
-rule: "[Debug] :: Destroy Bots"
-    Event.OngoingPlayer
-    if (player == host && IsCrouchHeld() && IsInteractHeld())
-    {
-        DestroyAllDummyBots();
-    }
+// rule: "[Debug] :: Destroy Bots"
+//     Event.OngoingPlayer
+//     if (player == host && IsCrouchHeld() && IsInteractHeld())
+//     {
+//         DestroyAllDummyBots();
+//     }
 
-rule: "[Degug] :: Bots Hold Left Click"
-    Event.OngoingPlayer
-    if (IsDummyBot())
-    {
-        StartHoldingButton(player, Button.PrimaryFire);
-    }
+// rule: "[Degug] :: Bots Hold Left Click"
+//     Event.OngoingPlayer
+//     if (IsDummyBot())
+//     {
+//         StartHoldingButton(player, Button.PrimaryFire);
+//     }
 
 // rule: "[Debug] :: Decrease Match Time"
 //     Event.OngoingPlayer
@@ -398,7 +420,17 @@ rule: "[Degug] :: Bots Hold Left Click"
 //         else
 //             t_left -= 60;
 
-//         t_text = timer;
+//         t_text = <"<0><1>:<2>\n", 
+//                 t_left >= 3600 
+//                     ? <"<0>:", RoundToInteger(t_left / 3600, Rounding.Down)> 
+//                     : "", 
+//                 t_left % 3600 / 60 < 10 && t_left >= 3600 
+//                     ? <"0<0>", RoundToInteger(t_left % 3600 / 60, Rounding.Down)> 
+//                     : <"<0>", RoundToInteger(t_left % 3600 / 60, Rounding.Down)>, 
+//                 t_left % 60 >= 10 
+//                     ? <"<0>", t_left % 60> 
+//                     : <"0<0>", t_left % 60>>;
+
 //         MinWait();
 //         LoopIfConditionIsTrue();
 //     }

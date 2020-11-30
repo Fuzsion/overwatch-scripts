@@ -29,6 +29,7 @@
         "Hanzo",
         "Lúcio",
         "Mccree",
+        "Mei",
         "Echo",
         "Sombra",
         "Pharah",
@@ -45,7 +46,10 @@
       },
       "Mei": {
         "No Ammunition Requirement": true,
-        "Primary Fire": false
+        "Cryo-Freeze": false,
+        "Ice Wall": false,
+        "Primary Fire": false,
+        "Ultimate Ability (Blizzard)": false
       },
       "Sigma": {
         "Experimental Barrier": false
