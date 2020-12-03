@@ -67,7 +67,7 @@ rule: "Initial Global"
         healToggle = WorkshopSettingToggle("Options", "Heal Over Time out of combat (On)", true, 8);
         botOutlines = WorkshopSettingToggle("Options", "Hide Owned Bot Outlines (On)", true, 9);
 
-        CreateHudText(all, null, "ㅤMimiq | Created by scort#11221", " v1.0.0 | Share Code: WRYEPㅤ", Location.Right, 0, Color.White, RGBColor(), Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(all, null, "ㅤMimiq | Created by scort#11221", " v1.0.0 | Share Code: WRYEPㅤ", Location.Right, 0, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
     }
 
 rule: "Initial Player Join"
