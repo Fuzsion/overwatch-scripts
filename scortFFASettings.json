@@ -51,9 +51,6 @@
         "Primary Fire": false,
         "Ultimate Ability (Blizzard)": false
       },
-      "Sigma": {
-        "Experimental Barrier": false
-      },
       "Sombra": {
         "Hack": false,
         "Ultimate Ability (EMP)": false
@@ -66,5 +63,5 @@
       }
     }
   },
-  "Description": "Tryhard FFA | Code: BKRXY | Created by scort#11221 | 11/26/2020 | Immanust fan club"
+  "Description": "Tryhard FFA | Code: BKRXY | Created by scort#11221 | 12/03/2020 | v1.0.2 | Immanust fan club"
 }

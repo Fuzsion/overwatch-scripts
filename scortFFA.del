@@ -6,10 +6,8 @@ globalvar define match_time;
 globalvar define player_stats;
 globalvar define killstreak_hud;
 globalvar define heal_on_kill;
-globalvar define nerfed_heal;
 globalvar define s_heal;
 globalvar define heal;
-globalvar define match_started;
 globalvar define players_joined;
 globalvar define end_scoreboard;
 globalvar define s_scoreboard;
@@ -19,8 +17,9 @@ globalvar define server_load;
 globalvar define t_running;
 globalvar define t_left;
 globalvar define t_text;
-globalvar define best_streak_ser;
-globalvar define best_streak_ser_usr;
+globalvar define bs_ser;
+globalvar define bs_ser_usr;
+globalvar define bs_ser_hero;
 globalvar define t_left_yellow;
 
 playervar define hide_hud;
@@ -35,8 +34,11 @@ define health_color: CustomColor(r, g, 0, 250);
 define percentage: (NormalizedHealth() * 100);
 define r: (percentage <= 50) ? 255 : RoundToInteger(256 - (percentage - 50) * 5.12, Rounding.Down);
 define g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Down);
-rule: "v1.0.1 | Created by scort#12211" { 
-DisableInspectorRecording(); 
+rule: "v1.0.2 | Created by scort#12211" 
+{ 
+    DisableInspectorRecording(); 
+    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, null, "ㅤTryhard FFA | Created by scort#11221", Location.Right, 0.1, Color.White, Color.White, Color.White);
+    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, <"ㅤHold <0> to hide/unhide HUD | Code: BKRXY\n", InputBindingString(Button.Interact)>, null, Location.Right, 0.2);
 }
 
 rule: "Initial Global"
@@ -57,8 +59,8 @@ rule: "Initial Global"
     red_dot = WorkshopSettingToggle("Settings", "Show Widow Red Dot on scope-in", false, 3);
     instant_respawn = WorkshopSettingToggle("Settings", "Respawn instantly on Jump", true, 4);
 
-    heal_on_kill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 2);
-    s_heal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (e.g. killing a 200hp hero would heal the player 100hp if set to 50%)", 1, ["25%", "50%", "75%", "100%"], 4);
+    heal_on_kill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 1);
+    s_heal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (Killing a 200HP hero would heal 50HP if set to 25%, 150HP if set to 75%)", 1, ["25%", "50%", "75%", "100%"], 2);
     heal = ((s_heal + 1) * 25) / 100;
 
     killstreak_hud = WorkshopSettingToggle("Information", "Show Kill Streaks", true, 1);
@@ -81,20 +83,20 @@ rule: "Initial Global"
 rule: "Initial Player Join"
 Event.OnPlayerJoin
 {
-    CreateHudText(player, null, null, !hide_hud ? "ㅤTryhard FFA | scort#11221" : "", Location.Right, 0.1, Color.White, Color.White, Color.White);
-    CreateHudText(player, null, !hide_hud ? <"ㅤHold <0> to hide/unhide HUD | Code: BKRXY\n", InputBindingString(Button.Interact)> : "", null, Location.Right, 0.2);
+
     players_joined++;
     kill_streak = 0;
     DisableGameModeHud();
+    CreateHudText(IsDead() ? player : null, null, null, <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPress <0> to respawn instantly, Press H to change hero", InputBindingString(Button.Jump)>, Location.Top, 10, Color.White, Color.White, Color.Yellow);
 }
 
 rule: "Player Leave"
 Event.OnPlayerLeave
 {
-    if (player == best_streak_ser_usr)
+    if (player == bs_ser_usr)
     {
-        LogToInspector("best_streak_ser_usr left, setting best_streak_ser to 0");
-        best_streak_ser = 0;
+        // bs_ser = LastOf(SortedArray(all, Curr().best_streak));
+        bs_ser = 0;
     }
 
     kill_streak = 0;
@@ -200,21 +202,21 @@ Event.OngoingPlayer
 {
     if (killstreak_hud)
     {
-        // // streak self
-        // CreateHudText(kill_streak >= 5 ? !hide_hud ? player : null : null, 
-        // HeroIconString(HeroOf()), 
-        // <"<0> (You)", player>, 
-        // best_streak != 0 ? <"Streak: <0> | Best: <1>", kill_streak, best_streak> : <"Streak: <0>", kill_streak>, 
-        // Location.Left, 1, rainbow_color, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
+        // streak self
+        CreateHudText(kill_streak >= 5 ? !hide_hud ? player : null : null, 
+        HeroIconString(HeroOf()), 
+        <"<0> (You)", player>, 
+        best_streak != 0 ? <"Streak: <0> | Best: <1>", kill_streak, best_streak> : <"Streak: <0>", kill_streak>, 
+        Location.Left, 1, health_color, rainbow_color, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
 
-        CreateHudText(kill_streak >= 5 ? FilteredArray(all, !Curr().hide_hud): null, 
+        CreateHudText(kill_streak >= 5 ? FilteredArray(RemoveFromArray(all, player), !Curr().hide_hud) : null, 
         HeroIconString(HeroOf()), 
         <"<0>", player>, 
         best_streak != 0 ? <"Streak: <0> | Best: <1>", kill_streak, best_streak> : <"Streak: <0>", kill_streak>, 
         Location.Left, SlotOf() + 1, health_color, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
 
         // streak best
-        CreateHudText(best_streak_ser >= 5 && !hide_hud ? player : null, null, "", <"Best Streak: <0> by <1>", best_streak_ser, best_streak_ser_usr>, Location.Right, 0.3, Color.White, Color.White, Color.Yellow);
+        CreateHudText(bs_ser >= 5 && !hide_hud ? player : null, null, "", <"Best Streak: <0> by <2><1>", bs_ser, bs_ser_usr, bs_ser_hero>, Location.Right, 0.3, Color.White, Color.White, Color.Yellow);
     }
 
     if (player_stats)
@@ -263,24 +265,27 @@ if (IsAlive(Attacker()) && Attacker() != Victim())
 rule: "Reset Kills"
 Event.OnDeath
 {
-    if (kill_streak >= 5 && kill_streak >= best_streak)
+    if (kill_streak >= 5 && kill_streak > best_streak)
     {
         best_streak = kill_streak;
 
-        if (best_streak > best_streak_ser)
+        if (best_streak > bs_ser)
         {
-            best_streak_ser = best_streak;
-            best_streak_ser_usr = player;
-            SmallMessage(player, <"<0> player killstreak! The lobby's best!", kill_streak>);
+            bs_ser = best_streak;
+            bs_ser_usr = player;
+            bs_ser_hero = HeroIconString(HeroOf());
+            SmallMessage(!hide_hud ? player : null, <"<0> player killstreak! The lobby's best!", kill_streak>);
+            Wait(0.1);
+            SmallMessage(FilteredArray(RemoveFromArray(all, player), !Curr().hide_hud), <"<2><0> got a <1> player killstreak! The lobby's best!", bs_ser_usr, kill_streak, bs_ser_hero>);
         }
         else 
         {
-            SmallMessage(player, <"<0> player killstreak! Your personal best!", kill_streak>);
+            SmallMessage(!hide_hud ? player : null, <"<0> player killstreak! Your personal best!", kill_streak>);
         }
     }
     else if (kill_streak >= 5)
     {
-        SmallMessage(player, <"<0> player killstreak!", kill_streak>);
+        SmallMessage(!hide_hud ? player : null, <"<0> player killstreak!", kill_streak>);
     }
 
     Wait(0.1);
@@ -291,10 +296,7 @@ rule: "Heal On Kill"
 Event.OnFinalBlow
 if (heal_on_kill && !IsDuplicating(Attacker()) && Health(Attacker()) < MaxHealth(Attacker()))
 {
-    // if (!IsHero(Hero.Lucio) && !IsHero(Hero.Soldier76))
-        StartHealOverTime(Attacker(), null, 1, heal * MaxHealth(Victim()));
-    // else 
-    //     StartHealOverTime(Attacker(), null, 1, heal / 2 * MaxHealth(Victim()));
+    StartHealOverTime(Attacker(), null, 1, heal * MaxHealth(Victim()));
 }
 
 rule: "End Game Scoreboard"
@@ -439,7 +441,7 @@ if (instant_respawn && IsButtonHeld(player, Button.Jump) && IsDead())
 //     Event.OngoingPlayer
 //     if (player == host && IsCrouchHeld())
 //     {
-//         Damage(player, null, 10);
+//         SetPlayerHealth(player, 1);
 //     }
 
 // rule: "[Debug] :: Rez"
