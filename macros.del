@@ -2,7 +2,7 @@ define player:                      EventPlayer();
 define all:                         AllPlayers();
 define allLiving:                   AllLivingPlayers();
 define host:                        HostPlayer();
-define Facing():                    FacingDirectionOf();
+Vector Facing():                    FacingDirectionOf();
 define IsPrimaryHeld():             IsButtonHeld(player, Button.PrimaryFire);
 define IsSecondaryHeld():           IsButtonHeld(player, Button.SecondaryFire);
 define IsAbility1Held():            IsButtonHeld(player, Button.Ability1);
@@ -40,6 +40,7 @@ define WaitIfTrue(define time):     Wait(time, WaitBehavior.AbortWhenFalse); // 
 define EnemyPlayers():              AllPlayers(OppositeTeamOf(TeamOf()));
 define AllyPlayers():               AllPlayers(TeamOf());
 define IsHero(ref define hero):     HeroOf() == hero;
+define IsMap(ref define map):       CurrentMap() == map;
 define Curr():                      ArrayElement();
 
 // HUD Text
