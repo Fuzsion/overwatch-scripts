@@ -29,7 +29,6 @@ rule: "Player Join Init"
 rule: "Init"
     {
         DisableInspectorRecording();
-        ServerLoadText();
         team1Bots = EmptyArray();
         team2Bots = EmptyArray();
     }
@@ -367,7 +366,6 @@ rule: "Create HUD Text"
     Event.OngoingPlayer
     if (IsDummyBot())
     {
-        CreditText();
         Wait(1.5);
         /* spacing */
         CreateHudText(FilteredArray(owner, EntityExists(player)), null, " ", " ", Location.Left, -1);
