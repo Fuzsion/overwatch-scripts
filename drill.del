@@ -1,0 +1,64 @@
+import "macros.del";
+globalvar define playerPos;
+globalvar define playerFacing;
+globalvar define players;
+
+rule: "init"
+{
+    CreateInWorldText(all, "Prof smells really really bad", Vector(0, 1000, 0), 10);
+    CreateHudText(all, null, null, 
+    <"<0> + <1> Saves player locations\n<0> + <2> Teleports players to saved locations", 
+    InputBindingString(Button.Crouch), InputBindingString(Button.Reload), InputBindingString(Button.Melee)>, Location.Left, 1);
+    CreateHudText(all, null, null, <"<0> to fully heal and give Ult", InputBindingString(Button.Interact)>, Location.Left, 2);
+}
+
+rule: "save positions"
+Event.OngoingPlayer
+if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player, Button.Reload))
+{
+    DestroyAllEffects();
+    playerPos = [];
+    playerFacing = [];
+    players = [];
+    players = RemoveFromArray(all, host);
+    playerPos = MappedArray(RemoveFromArray(all, host), PositionOf(Curr()));
+    playerFacing = MappedArray(RemoveFromArray(all, host), FacingDirectionOf(Curr()));
+
+    foreach (define pos in playerPos)
+    {
+        CreateEffect(all, Effect.Ring, Color.White, pos, 1, EffectRev.None);
+    }
+}
+
+rule: "teleport to positions"
+Event.OngoingPlayer
+if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player, Button.Melee))
+{
+    for (define i = 0; i < CountOf(players); i++)
+    {
+        Teleport(players[i], playerPos[i]);
+        SetFacing(players[i], playerFacing[i]);
+    }
+}
+
+rule: "give"
+Event.OngoingPlayer
+if (IsButtonHeld(player, Button.Interact))
+{
+    SetUltimateCharge(player, 100);
+    SetPlayerHealth(player, MaxHealth());
+}
+
+// rule: "[Debug] :: Bots"
+// Event.OngoingPlayer
+// if (player == host && IsInteractHeld() && !IsCrouchHeld())
+// {
+//     CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+// }
+
+// rule: "[Debug] :: Destroy Bots"
+// Event.OngoingPlayer
+// if (player == host && IsCrouchHeld() && IsInteractHeld())
+// {
+//     DestroyAllDummyBots();
+// }
