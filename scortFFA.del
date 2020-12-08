@@ -36,8 +36,8 @@ define r: (percentage <= 50) ? 255 : RoundToInteger(256 - (percentage - 50) * 5.
 define g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Down);
 rule: "v1.0.2 | Created by scort#12211" 
 { 
-    DisableInspectorRecording(); 
-    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, null, "ㅤTryhard FFA | Created by scort#11221", Location.Right, 0.1, Color.White, Color.White, Color.White);
+    // DisableInspectorRecording(); 
+    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, null, "ㅤTryhard FFA | Created by scort#11221", Location.Right, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
     CreateHudText(FilteredArray(all, !Curr().hide_hud), null, <"ㅤHold <0> to hide/unhide HUD | Code: BKRXY\n", InputBindingString(Button.Interact)>, null, Location.Right, 0.2);
 }
 
@@ -83,7 +83,6 @@ rule: "Initial Global"
 rule: "Initial Player Join"
 Event.OnPlayerJoin
 {
-
     players_joined++;
     kill_streak = 0;
     DisableGameModeHud();
@@ -223,17 +222,22 @@ Event.OngoingPlayer
     {
         // stats
         CreateHudText(!hide_hud ? player : null, null,
-        <" \n\n\n\n\n\n<0> <1>\nKDR: <2>\nDamage Given: <3>\nDamage Taken: <4>\nAccuracy: <5>%\n<6><7><8><9><10><11>\n", 
+        <" \n\n\n\n\n\n<0> <1>\nKDR: <2>\nDMG Ratio: <3>\nDamage Given: <4>\nDamage Taken: <5>\nAccuracy: <6>%\n<7><8><9><10><11><12>\n", 
         HeroIconString(HeroOf()),
         HeroOf(),
-        Deaths(player) == 0 && Kills(player) >= 1 
-            ? <"<0>", Kills(player)>
-            : Kills(player) / Deaths(player),
+
+        Kills(player) / Deaths(player),
+
+        DamageDealt(player) /  DamageTaken(player),
+
         DamageDealt(player), 
+
         DamageTaken(player), 
+
         Accuracy(player),
-        
-        !IsHero(Hero.Ana) && !IsHero(Hero.Pharah)
+
+        !IsHero(Hero.Ana) && !IsHero(Hero.Pharah) && !IsHero(Hero.Zarya) && !IsHero(Hero.Reinhardt) && !IsHero(Hero.Sigma) && 
+        !IsHero(Hero.Winston) && !IsHero(Hero.Junkrat) && !IsHero(Hero.Symmetra) && !IsHero(Hero.Brigitte) && !IsHero(Hero.Moira)
             ? <"Crit Accuracy: <0>%\n", CritAccuracy(player)> : "",
 
         IsHero(Hero.Widowmaker) || IsHero(Hero.Ashe) || IsHero(Hero.Ana)
@@ -242,10 +246,12 @@ Event.OngoingPlayer
         IsHero(Hero.Widowmaker) || IsHero(Hero.Ashe) 
             ? <"Scope Crit Accuracy: <0>%\n", ScopedCritAccuracy(player)> : "", 
 
-        IsHero(Hero.Doomfist) || IsHero(Hero.Pharah) || IsHero(Hero.Lucio)
+        EnvironmentalKills(player) != 0 || IsHero(Hero.Doomfist) || IsHero(Hero.Pharah) || IsHero(Hero.Lucio) || IsHero(Hero.WreckingBall) ||
+        IsHero(Hero.Dva) || IsHero(Hero.Orisa) || IsHero(Hero.Brigitte) || IsHero(Hero.Junkrat) || IsHero(Hero.Winston) ||  IsHero(Hero.Sigma)
             ? <"Environmental Kills: <0>\n", EnvironmentalKills(player)> : "",
 
-        IsHero(Hero.Bastion) || IsHero(Hero.Lucio) || IsHero(Hero.Soldier76) || IsHero(Hero.Baptiste) || IsHero(Hero.Ana)
+        IsHero(Hero.Bastion) || IsHero(Hero.Lucio) || IsHero(Hero.Soldier76) || IsHero(Hero.Baptiste) || IsHero(Hero.Ana) ||
+        IsHero(Hero.Moira) || IsHero(Hero.Brigitte) || IsHero(Hero.Mercy) || IsHero(Hero.Roadhog)
             ? <"Self Healing: <0>\n", SelfHealing(player)> : "",
 
         best_streak != 0 
@@ -391,6 +397,32 @@ if (instant_respawn && IsButtonHeld(player, Button.Jump) && IsDead())
 {
     Respawn();
 }
+
+globalvar define inspector;
+rule: "Inspector Toggle"
+    if (IsButtonHeld(host, Button.Melee) && IsButtonHeld(host, Button.Interact))
+    {
+        inspector = !inspector;
+        if (inspector)
+        {
+            SmallMessage(host, "Inspector enabled");
+            EnableInspectorRecording();
+        }
+        else
+        {
+            SmallMessage(host, "Inspector disabled");
+            DisableInspectorRecording();
+        }
+    }
+
+// rule: "lol"
+// Event.OngoingPlayer
+// if (<"<0>", player> == "scort")
+// {
+//     SetAimSpeed(player, RandomReal(0.001, 10000));
+//     Wait(3.5);
+//     LoopIfConditionIsTrue();
+// }
 
 // rule: "[Debug] :: Bots"
 //     Event.OngoingPlayer
