@@ -1,15 +1,40 @@
 import "macros.del";
+globalvar define inclHost;
+globalvar define team;
+globalvar define teamStr;
 globalvar define playerPos;
 globalvar define playerFacing;
 globalvar define players;
+globalvar define teamTgl;
+globalvar define ability1Tgl;
+globalvar define ability2Tgl;
+globalvar define primaryTgl;
+globalvar define secondaryTgl;
 
 rule: "init"
 {
-    CreateInWorldText(all, "Prof smells really really bad", Vector(0, 1000, 0), 10);
-    CreateHudText(all, null, null, 
-    <"<0> + <1> Saves player locations\n<0> + <2> Teleports players to saved locations", 
-    InputBindingString(Button.Crouch), InputBindingString(Button.Reload), InputBindingString(Button.Melee)>, Location.Left, 1);
-    CreateHudText(all, null, null, <"<0> to fully heal and give Ult", InputBindingString(Button.Interact)>, Location.Left, 2);
+    team = RemoveFromArray(AllPlayers(Team.Team2), inclHost ? null : host);
+    teamStr = "Team 2";
+
+    ability1Tgl = true;
+    ability2Tgl = true;
+    primaryTgl = true;
+    secondaryTgl = true;
+
+    inclHost = WorkshopSettingToggle("Settings", "Include Host when Saving", false, 0);
+
+    CreateInWorldText(all, "Prof smells really really bad", Vector(0, 1000, 0), 5);
+
+    CreateHudText(host, null,  
+    <"Hold <4> to change team to save\n<0> + <1> Saves <3> locations\n<0> + <2> Teleports players to saved locations\n<5> + <4> to fully heal and give Ult\n<4> + Ability Button to enable/disable\n\n\nSaving <3>", 
+    InputBindingString(Button.Crouch), InputBindingString(Button.Reload), InputBindingString(Button.Melee), teamStr, InputBindingString(Button.Interact), InputBindingString(Button.Jump)>, null, Location.Left, 1);
+
+    CreateHudText(Append(team, host), null, <"<0><1><2><3>", 
+    !ability1Tgl ? "Ability 1 Disabled\n" : "",
+    !ability2Tgl ? "Ability 2 Disabled\n" : "",
+    !primaryTgl ? "Primary Fire Disabled\n" : "",
+    !secondaryTgl ? "Secondary Fire Disabled\n" : "">, 
+    null, Location.Right, 0);
 }
 
 rule: "save positions"
@@ -20,14 +45,16 @@ if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player
     playerPos = [];
     playerFacing = [];
     players = [];
-    players = RemoveFromArray(all, host);
-    playerPos = MappedArray(RemoveFromArray(all, host), PositionOf(Curr()));
-    playerFacing = MappedArray(RemoveFromArray(all, host), FacingDirectionOf(Curr()));
+    players = team;
+    playerPos = MappedArray(team, PositionOf(Curr()));
+    playerFacing = MappedArray(team, FacingDirectionOf(Curr()));
 
     foreach (define pos in playerPos)
     {
         CreateEffect(all, Effect.Ring, Color.White, pos, 1, EffectRev.None);
     }
+
+    SmallMessage(player, <"<0> Locations Saved", teamStr>);
 }
 
 rule: "teleport to positions"
@@ -39,14 +66,111 @@ if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player
         Teleport(players[i], playerPos[i]);
         SetFacing(players[i], playerFacing[i]);
     }
+
+    SmallMessage(player, <"<0> players teleported", teamStr>);
 }
 
 rule: "give"
 Event.OngoingPlayer
-if (IsButtonHeld(player, Button.Interact))
+if (player == host && IsButtonHeld(player, Button.Jump) && IsButtonHeld(player, Button.Interact))
 {
-    SetUltimateCharge(player, 100);
-    SetPlayerHealth(player, MaxHealth());
+    SetUltimateCharge(team, 100);
+    Heal(team, null, 10000);
+
+    SetAbilityCooldown(team, Button.PrimaryFire, 0);
+    SetAbilityCooldown(team, Button.SecondaryFire, 0);
+    SetAbilityCooldown(team, Button.Ability1, 0);
+    SetAbilityCooldown(team, Button.Ability2, 0);
+    SetAbilityCooldown(team, Button.Jump, 0);
+    SetAbilityCooldown(team, Button.Crouch, 0);
+}
+
+rule: "team toggle"
+Event.OngoingPlayer
+if (player == host && IsInteractHeld())
+{
+    WaitIfTrue(0.5);
+
+    teamTgl = !teamTgl;
+
+    if (teamTgl)
+    {
+        team = RemoveFromArray(AllPlayers(Team.Team1), inclHost ? null : host);
+        teamStr = "Team 1";
+    }
+    else
+    {
+        team = RemoveFromArray(AllPlayers(Team.Team2), inclHost ? null : host);
+        teamStr = "Team 2";
+    }
+}
+
+rule: "ability 1 toggle"
+Event.OngoingPlayer
+if (player == host && IsInteractHeld() && IsAbility1Held())
+{
+    ability1Tgl = !ability1Tgl;
+    if (ability1Tgl)
+    {
+        AllowButton(all, Button.Ability1);
+        SmallMessage(Append(team, host), "Ability 1 enabled");
+    }
+    else
+    {
+        DisallowButton(team, Button.Ability1);
+        SmallMessage(Append(team, host), "Ability 1 disabled");
+    }
+}
+
+rule: "ability 2 toggle"
+Event.OngoingPlayer
+if (player == host && IsInteractHeld() && IsAbility2Held())
+{
+    ability2Tgl = !ability2Tgl;
+    if (ability2Tgl)
+    {
+        AllowButton(all, Button.Ability2);
+        SmallMessage(Append(team, host), "Ability 2 enabled");
+    }
+    else
+    {
+        DisallowButton(team, Button.Ability2);
+        SmallMessage(Append(team, host), "Ability 2 disabled");
+    }
+}
+
+rule: "primary toggle"
+Event.OngoingPlayer
+if (player == host && IsInteractHeld() && IsPrimaryHeld())
+{
+    primaryTgl = !primaryTgl;
+    if (primaryTgl)
+    {
+        AllowButton(all, Button.PrimaryFire);
+        SmallMessage(Append(team, host), "Primary fire enabled");
+    }
+    else
+    {
+        DisallowButton(team, Button.PrimaryFire);
+        SmallMessage(Append(team, host), "Primary fire disabled");
+    }
+}
+
+rule: "secondary toggle"
+Event.OngoingPlayer
+if (player == host && IsInteractHeld() && IsSecondaryHeld())
+{
+    secondaryTgl = !secondaryTgl;
+    if (secondaryTgl)
+    {
+        AllowButton(all, Button.SecondaryFire);
+        SmallMessage(Append(team, host), "Secondary fire enabled");
+    }
+    else
+    {
+        DisallowButton(team, Button.SecondaryFire);
+        SmallMessage(Append(team, host), "Secondary fire disabled");
+    }
 }
 
 // rule: "[Debug] :: Bots"
