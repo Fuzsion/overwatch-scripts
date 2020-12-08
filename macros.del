@@ -66,5 +66,7 @@ define CritAccuracy(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf
 define ScopedAccuracy(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.ScopedAccuracy) * 100, Rounding.Nearest);
 define ScopedCritAccuracy(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.ScopedCriticalHitAccuracy) * 100, Rounding.Nearest);
 define EnvironmentalKills(define Player): PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.EnvironmentalKills);
+define HealingDealt(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingDealt), Rounding.Nearest);
+define HealingTaken(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingReceived), Rounding.Nearest);
 define SelfHealing(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.SelfHealing), Rounding.Nearest);
 define UltsUsed(define Player): PlayerStat(Player, PlayerStat.UltimatesUsed);

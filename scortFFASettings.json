@@ -56,7 +56,8 @@
         "Ultimate Ability (EMP)": false
       },
       "Ashe": {
-        "Ultimate Duration": 50
+        "Ultimate Duration": 50,
+        "Dynamite": false
       },
       "Bastion": {
           "Reconfigure": false
