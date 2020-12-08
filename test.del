@@ -1,1 +1,15 @@
 import "macros.del";
+
+playervar define startPos;
+
+rule: "[Main] :: Primary Effect"
+    Event.OngoingPlayer
+    {
+        CreateEffect(player, Effect.Sphere, Color.Aqua, startPos, 0.05);
+
+        while (true)
+        {
+            startPos = EyePosition() + Facing() + WorldVectorOf(Right() - Vector(0, 0.675, 0), player) * 0.13;
+            MinWait();
+        }
+    }
