@@ -14,9 +14,8 @@
     },
     "Deathmatch": {
       "Enabled Maps": [
-        "Blizzard World",
+        "Blizzard World (Winter)",
         "Château Guillard",
-        "Dorado",
         "Ecopoint: Antarctica",
         "Eichenwalde",
         "Hollywood",
@@ -25,15 +24,7 @@
         "Lijiang Garden",
         "Necropolis",
         "Paris",
-        "Havana",
-        "Castillo",
         "Black Forest",
-        "Nepal Sanctum",
-        "Nepal Village",
-        "Nepal Shrine",
-        "Ilios Well",
-        "Ilios Lighthouse",
-        "Ilios Ruins",
         "Oasis City Center",
         "Oasis University",
         "Oasis Gardens"
@@ -43,25 +34,17 @@
   "Heroes": {
     "General": {
       "Enabled Heroes": [
-        "Mccree",
-        "Ana"
+        "Mccree"
       ],
       "Mccree": {
-        "Damage Dealt": 500.0,
-        "Damage Received": 500.0,
+        "Damage Dealt": 500,
+        "Damage Received": 500,
         "No Ammunition Requirement": true,
         "Quick Melee": false,
         "Secondary Fire": false,
         "Ultimate Ability (Deadeye)": false
-      },
-      "Ana": {
-        "Damage Dealt": 500.0,
-        "Damage Received": 500.0,
-        "No Ammunition Requirement": true,
-        "Quick Melee": false,
-        "Ultimate Ability (Nano Boost)": false
       }
     }
   },
-  "Description": "Instagib v2.0.0 | Created by scort#11221 | ??/??/??\n- Hold down Jump to gain speed by bunny hopping\n- Press Secondary Fire (Right Click) to fire an orb to push players away\n- Press Ability 1 (Shift) to dodge in any direction\n- Press Ability 2 (E) to throw out a grappling hook to attach to walls or pull players\n- Buffs are littered throughout the map that change your weapon drastically"
+  "Description": "Instagib v2.0.0 | Created by scort#11221 | ??/??/??\n◈ Hold down Jump to gain speed by bunny hopping\n◈ Press Secondary Fire (Right Click) to fire an orb to push players away\n◈ Press Ability 1 (Shift) to dodge in any direction\n◈ Press Ability 2 (E) to throw out a grappling hook to attach to walls or pull players\n◈ Buffs are littered throughout the map that change your weapon drastically"
 }
