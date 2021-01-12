@@ -1,4 +1,5 @@
 import "macros.del";
+playervar define interactTaps;
 globalvar define inclHost;
 globalvar define team;
 globalvar define teamStr;
@@ -6,6 +7,7 @@ globalvar define playerPos;
 globalvar define playerFacing;
 globalvar define players;
 globalvar define teamTgl;
+globalvar define ultTgl;
 globalvar define ability1Tgl;
 globalvar define ability2Tgl;
 globalvar define primaryTgl;
@@ -16,6 +18,7 @@ rule: "init"
     team = RemoveFromArray(AllPlayers(Team.Team2), inclHost ? null : host);
     teamStr = "Team 2";
 
+    ultTgl = true;
     ability1Tgl = true;
     ability2Tgl = true;
     primaryTgl = true;
@@ -26,10 +29,11 @@ rule: "init"
     CreateInWorldText(all, "Prof smells really really bad", Vector(0, 1000, 0), 5);
 
     CreateHudText(host, null,  
-    <"Hold <4> to change team to save\n<0> + <1> Saves <3> locations\n<0> + <2> Teleports players to saved locations\n<5> + <4> to fully heal and give Ult\n<4> + Ability Button to enable/disable\n\n\nSaving <3>", 
+    <"Double Tap <4> to change team to save\n<0> + <1> Saves <3> locations\n<0> + <2> Teleports players to saved locations\n<5> + <4> to fully heal and give Ult\n<4> + Ability Button to enable/disable\n\n\nSaving <3>", 
     InputBindingString(Button.Crouch), InputBindingString(Button.Reload), InputBindingString(Button.Melee), teamStr, InputBindingString(Button.Interact), InputBindingString(Button.Jump)>, null, Location.Left, 1);
 
-    CreateHudText(Append(team, host), null, <"<0><1><2><3>", 
+    CreateHudText(Append(team, host), null, <"<0><1><2><3><4>", 
+    !ultTgl ? "Ultimate Disabled\n" : "",
     !ability1Tgl ? "Ability 1 Disabled\n" : "",
     !ability2Tgl ? "Ability 2 Disabled\n" : "",
     !primaryTgl ? "Primary Fire Disabled\n" : "",
@@ -85,23 +89,80 @@ if (player == host && IsButtonHeld(player, Button.Jump) && IsButtonHeld(player, 
     SetAbilityCooldown(team, Button.Crouch, 0);
 }
 
-rule: "team toggle"
+rule: "interact taps"
 Event.OngoingPlayer
 if (player == host && IsInteractHeld())
 {
-    WaitIfTrue(0.5);
+    interactTaps++;
+}
 
+rule: "reset taps"
+Event.OngoingPlayer
+if (player == host && !IsInteractHeld())
+{
+    WaitIfTrue(0.25);
+    interactTaps = 0;
+}
+
+rule: "team toggle"
+Event.OngoingPlayer
+if (player == host && interactTaps == 2)
+{
     teamTgl = !teamTgl;
 
+    // gross
     if (teamTgl)
     {
         team = RemoveFromArray(AllPlayers(Team.Team1), inclHost ? null : host);
         teamStr = "Team 1";
+        DestroyAllEffects();
+        playerPos = [];
+        playerFacing = [];
+        ultTgl = true;
+        ability1Tgl = true;
+        ability2Tgl = true;
+        primaryTgl = true;
+        secondaryTgl = true;
+        AllowButton(all, Button.Ultimate);
+        AllowButton(all, Button.Ability1);
+        AllowButton(all, Button.Ability2);
+        AllowButton(all, Button.PrimaryFire);
+        AllowButton(all, Button.SecondaryFire);
     }
     else
     {
         team = RemoveFromArray(AllPlayers(Team.Team2), inclHost ? null : host);
         teamStr = "Team 2";
+        DestroyAllEffects();
+        playerPos = [];
+        playerFacing = [];
+        ultTgl = true;
+        ability1Tgl = true;
+        ability2Tgl = true;
+        primaryTgl = true;
+        secondaryTgl = true;
+        AllowButton(all, Button.Ultimate);
+        AllowButton(all, Button.Ability1);
+        AllowButton(all, Button.Ability2);
+        AllowButton(all, Button.PrimaryFire);
+        AllowButton(all, Button.SecondaryFire);
+    }
+}
+
+rule: "ultimate toggle"
+Event.OngoingPlayer
+if (player == host && IsInteractHeld() && IsUltHeld())
+{
+    ultTgl = !ultTgl;
+    if (ultTgl)
+    {
+        AllowButton(all, Button.Ultimate);
+        SmallMessage(Append(team, host), "Ultimate enabled");
+    }
+    else
+    {
+        DisallowButton(team, Button.Ultimate);
+        SmallMessage(Append(team, host), "Ultimate disabled");
     }
 }
 
