@@ -1,0 +1,64 @@
+import "macros.del";
+
+playervar define jump_charge;
+playervar define c_jump;
+
+rule: "hud"
+Event.OngoingPlayer
+{
+    CreateHudText(player, null, null, " \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n", Location.Top, 5);
+    CreateProgressBarHudText(jump_charge != 0 ? player : null, jump_charge, null, Location.Top, 6);
+}
+
+rule: "charge jump"
+Event.OngoingPlayer
+if (IsCrouchHeld()) 
+if (IsOnGround())
+{
+    jump_charge = 0;
+    ChaseVariableOverTime(jump_charge, 100, 0.7);
+}
+
+rule: "cancel charge"
+Event.OngoingPlayer
+if (!IsCrouchHeld())
+{
+    StopChasingVariable(jump_charge);
+    WaitIfTrue(0.5);
+    jump_charge = 0;
+}
+
+rule: "jump"
+Event.OngoingPlayer
+if (jump_charge > 0)
+if (IsJumping())
+{
+    ApplyImpulse(player, Up(), 0.25 * jump_charge);
+
+    if (jump_charge > 75)
+        PlayEffect(all, PlayEffect.RingExplosion, Color.White, PositionOf() + Vector(0, 1.5, 0), 2);
+    if (jump_charge > 50)
+        PlayEffect(all, PlayEffect.RingExplosion, Color.White, PositionOf() + Vector(0, 1.25, 0), 1.5);
+    if (jump_charge > 25)
+        PlayEffect(all, PlayEffect.RingExplosion, Color.White, PositionOf() + Vector(0, 1, 0), 1);
+
+    PlayEffect(all, PlayEffect.RingExplosion, Color.White, PositionOf() + Vector(0, 0.75, 0), 0.5);
+
+    c_jump = true;
+}
+
+rule: "in air"
+Event.OngoingPlayer
+if (IsInAir())
+{
+    StopChasingVariable(jump_charge);
+    jump_charge = 0;
+}
+
+rule: "on ground"
+Event.OngoingPlayer
+if (IsOnGround())
+{
+    c_jump = false;
+    jump_charge = 0;
+}
