@@ -1,3 +1,4 @@
+
 import "macros.del";
 playervar define interactTaps;
 globalvar define inclHost;
@@ -13,6 +14,8 @@ globalvar define ability2Tgl;
 globalvar define primaryTgl;
 globalvar define secondaryTgl;
 
+// TA5TH
+
 rule: "init"
 {
     team = RemoveFromArray(AllPlayers(Team.Team2), inclHost ? null : host);
@@ -26,11 +29,14 @@ rule: "init"
 
     inclHost = WorkshopSettingToggle("Settings", "Include Host when Saving", false, 0);
 
-    CreateInWorldText(all, "Prof smells really really bad", Vector(0, 1000, 0), 5);
+    // CreateInWorldText(all, "Prof smells really really bad", Vector(0, 1000, 0), 5);
 
-    CreateHudText(host, null,  
-    <"Double Tap <4> to change team to save\n<0> + <1> Saves <3> locations\n<0> + <2> Teleports players to saved locations\n<5> + <4> to fully heal and give Ult\n<4> + Ability Button to enable/disable\n\n\nSaving <3>", 
-    InputBindingString(Button.Crouch), InputBindingString(Button.Reload), InputBindingString(Button.Melee), teamStr, InputBindingString(Button.Interact), InputBindingString(Button.Jump)>, null, Location.Left, 1);
+    CreateHudText(host, null, <"<0> twice to switch saved team (Wipes save!)", InputBindingString(Button.Interact)>, null, Location.Left, 1);
+    CreateHudText(host, null, <"<0> + <1> Saves <2> locations", InputBindingString(Button.Crouch), InputBindingString(Button.Reload), teamStr>, null, Location.Left, 2);
+    CreateHudText(host, null, <"<0> + <1> Teleports to saved locations", InputBindingString(Button.Crouch), InputBindingString(Button.Melee)>, null, Location.Left, 3);
+    CreateHudText(host, null, <"<0> + <1> to fully heal, reset cooldowns, and give Ult", InputBindingString(Button.Interact), InputBindingString(Button.Jump)>, null, Location.Left, 4);
+    CreateHudText(host, null, <"<0> + Ability Button to enable/disable", InputBindingString(Button.Interact)>, null, Location.Left, 5);
+    CreateHudText(host, null, <" \n\nSaving <0>", teamStr>, null, Location.Left, 6, SubheaderColor: Color.Yellow);
 
     CreateHudText(Append(team, host), null, <"<0><1><2><3><4>", 
     !ultTgl ? "Ultimate Disabled\n" : "",
@@ -78,15 +84,15 @@ rule: "give"
 Event.OngoingPlayer
 if (player == host && IsButtonHeld(player, Button.Jump) && IsButtonHeld(player, Button.Interact))
 {
-    SetUltimateCharge(team, 100);
-    Heal(team, null, 10000);
+    SetUltimateCharge(Append(team, host), 100);
+    Heal(Append(team, host), null, 10000);
 
-    SetAbilityCooldown(team, Button.PrimaryFire, 0);
-    SetAbilityCooldown(team, Button.SecondaryFire, 0);
-    SetAbilityCooldown(team, Button.Ability1, 0);
-    SetAbilityCooldown(team, Button.Ability2, 0);
-    SetAbilityCooldown(team, Button.Jump, 0);
-    SetAbilityCooldown(team, Button.Crouch, 0);
+    SetAbilityCooldown(Append(team, host), Button.PrimaryFire, 0);
+    SetAbilityCooldown(Append(team, host), Button.SecondaryFire, 0);
+    SetAbilityCooldown(Append(team, host), Button.Ability1, 0);
+    SetAbilityCooldown(Append(team, host), Button.Ability2, 0);
+    SetAbilityCooldown(Append(team, host), Button.Jump, 0);
+    SetAbilityCooldown(Append(team, host), Button.Crouch, 0);
 }
 
 rule: "interact taps"
