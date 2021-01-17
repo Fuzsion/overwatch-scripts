@@ -16,17 +16,8 @@ globalvar define secondaryTgl;
 
 // TA5TH
 
-rule: "init"
+rule: "Initial Global"
 {
-    team = RemoveFromArray(AllPlayers(Team.Team2), inclHost ? null : host);
-    teamStr = "Team 2";
-
-    ultTgl = true;
-    ability1Tgl = true;
-    ability2Tgl = true;
-    primaryTgl = true;
-    secondaryTgl = true;
-
     inclHost = WorkshopSettingToggle("Settings", "Include Host when Saving", false, 0);
 
     // CreateInWorldText(all, "Prof smells really really bad", Vector(0, 1000, 0), 5);
@@ -45,9 +36,18 @@ rule: "init"
     !primaryTgl ? "Primary Fire Disabled\n" : "",
     !secondaryTgl ? "Secondary Fire Disabled\n" : "">, 
     null, Location.Right, 0);
+
+    team = RemoveFromArray(AllPlayers(Team.Team2), inclHost ? null : host);
+    teamStr = "Team 2";
+
+    ultTgl = true;
+    ability1Tgl = true;
+    ability2Tgl = true;
+    primaryTgl = true;
+    secondaryTgl = true;
 }
 
-rule: "save positions"
+rule: "Save Positions"
 Event.OngoingPlayer
 if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player, Button.Reload))
 {
@@ -61,13 +61,23 @@ if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player
 
     foreach (define pos in playerPos)
     {
-        CreateEffect(all, Effect.Ring, Color.White, pos, 1, EffectRev.None);
+        if (pos != null)
+            CreateEffect(all, Effect.Ring, Color.White, pos, 1, EffectRev.None);
     }
 
     SmallMessage(player, <"<0> Locations Saved", teamStr>);
 }
 
-rule: "teleport to positions"
+rule: "Update Team Array"
+Event.OnPlayerJoin
+{
+    if (teamTgl && TeamOf() == Team.Team1)
+        team = Append(team, player);
+    else if (!teamTgl && TeamOf() == Team.Team2)
+        team = Append(team, player);
+}
+
+rule: "Teleport to Positions"
 Event.OngoingPlayer
 if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player, Button.Melee))
 {
@@ -80,7 +90,7 @@ if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player
     SmallMessage(player, <"<0> players teleported", teamStr>);
 }
 
-rule: "give"
+rule: "Give"
 Event.OngoingPlayer
 if (player == host && IsButtonHeld(player, Button.Jump) && IsButtonHeld(player, Button.Interact))
 {
@@ -95,14 +105,14 @@ if (player == host && IsButtonHeld(player, Button.Jump) && IsButtonHeld(player, 
     SetAbilityCooldown(Append(team, host), Button.Crouch, 0);
 }
 
-rule: "interact taps"
+rule: "Save Interact Taps"
 Event.OngoingPlayer
 if (player == host && IsInteractHeld())
 {
     interactTaps++;
 }
 
-rule: "reset taps"
+rule: "Reset Taps"
 Event.OngoingPlayer
 if (player == host && !IsInteractHeld())
 {
@@ -110,7 +120,7 @@ if (player == host && !IsInteractHeld())
     interactTaps = 0;
 }
 
-rule: "team toggle"
+rule: "Team Toggle"
 Event.OngoingPlayer
 if (player == host && interactTaps == 2)
 {
@@ -121,41 +131,29 @@ if (player == host && interactTaps == 2)
     {
         team = RemoveFromArray(AllPlayers(Team.Team1), inclHost ? null : host);
         teamStr = "Team 1";
-        DestroyAllEffects();
-        playerPos = [];
-        playerFacing = [];
-        ultTgl = true;
-        ability1Tgl = true;
-        ability2Tgl = true;
-        primaryTgl = true;
-        secondaryTgl = true;
-        AllowButton(all, Button.Ultimate);
-        AllowButton(all, Button.Ability1);
-        AllowButton(all, Button.Ability2);
-        AllowButton(all, Button.PrimaryFire);
-        AllowButton(all, Button.SecondaryFire);
     }
     else
     {
         team = RemoveFromArray(AllPlayers(Team.Team2), inclHost ? null : host);
         teamStr = "Team 2";
-        DestroyAllEffects();
-        playerPos = [];
-        playerFacing = [];
-        ultTgl = true;
-        ability1Tgl = true;
-        ability2Tgl = true;
-        primaryTgl = true;
-        secondaryTgl = true;
-        AllowButton(all, Button.Ultimate);
-        AllowButton(all, Button.Ability1);
-        AllowButton(all, Button.Ability2);
-        AllowButton(all, Button.PrimaryFire);
-        AllowButton(all, Button.SecondaryFire);
     }
+
+    DestroyAllEffects();
+    playerPos = [];
+    playerFacing = [];
+    ultTgl = true;
+    ability1Tgl = true;
+    ability2Tgl = true;
+    primaryTgl = true;
+    secondaryTgl = true;
+    AllowButton(all, Button.Ultimate);
+    AllowButton(all, Button.Ability1);
+    AllowButton(all, Button.Ability2);
+    AllowButton(all, Button.PrimaryFire);
+    AllowButton(all, Button.SecondaryFire);
 }
 
-rule: "ultimate toggle"
+rule: "Ultimate Toggle"
 Event.OngoingPlayer
 if (player == host && IsInteractHeld() && IsUltHeld())
 {
@@ -172,7 +170,7 @@ if (player == host && IsInteractHeld() && IsUltHeld())
     }
 }
 
-rule: "ability 1 toggle"
+rule: "Ability 1 Toggle"
 Event.OngoingPlayer
 if (player == host && IsInteractHeld() && IsAbility1Held())
 {
@@ -189,7 +187,7 @@ if (player == host && IsInteractHeld() && IsAbility1Held())
     }
 }
 
-rule: "ability 2 toggle"
+rule: "Ability 2 Toggle"
 Event.OngoingPlayer
 if (player == host && IsInteractHeld() && IsAbility2Held())
 {
@@ -206,7 +204,7 @@ if (player == host && IsInteractHeld() && IsAbility2Held())
     }
 }
 
-rule: "primary toggle"
+rule: "Primary Toggle"
 Event.OngoingPlayer
 if (player == host && IsInteractHeld() && IsPrimaryHeld())
 {
@@ -223,7 +221,7 @@ if (player == host && IsInteractHeld() && IsPrimaryHeld())
     }
 }
 
-rule: "secondary toggle"
+rule: "Secondary Toggle"
 Event.OngoingPlayer
 if (player == host && IsInteractHeld() && IsSecondaryHeld())
 {
