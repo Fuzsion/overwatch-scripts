@@ -1,0 +1,44 @@
+import "macros.del";
+
+rule: "HUD Team 1"
+Event.OngoingPlayer
+Team.Team1
+{
+    CreateHudText(null, null, <"<0><1><2><3><4><5><6><7><8><9><10>",
+    HeroIconString(HeroOf()), 
+    <"  KILLS: <0> ", Kills(player)>,
+    <"- DEATHS: <0> ", Deaths(player)>,
+    <"- DMG OUT: <0> ", DamageDealt(player)>,
+    <"- DMG IN: <0> ", DamageTaken(player)>, 
+    <"- ULTS USED: <0> ", UltsUsed(player)>,
+    <"- ULTS EARNED: <0> ", UltsEarned(player)>,
+
+    HealingDealt(player) != 0 ? <"- HEAL OUT: <0> ", HealingDealt(player)> : "",
+    <"- HEAL IN: <0> ", HealingTaken(player)>,
+    SelfHealing(player) != 0 ? <"- SELF HEAL: <0> ", SelfHealing(player)> : "",
+    DamageBlocked(player) != 0 ? <"- BLOCKED: <0> ", DamageBlocked(player)> : ""
+
+    >, null, Location.Left, 0, Color.White, Color.SkyBlue, Color.White, Spectators: Spectators.VisibleAlways);
+}
+
+rule: "HUD Team 2"
+Event.OngoingPlayer
+Team.Team2
+{
+    CreateHudText(null, null, <"<0><1><2><3><4><5><6><7><8><9><10>",
+    HeroIconString(HeroOf()), 
+    <"  KILLS: <0> ", Kills(player)>,
+    <"- DEATHS: <0> ", Deaths(player)>,
+    <"- DMG OUT: <0> ", DamageDealt(player)>,
+    <"- DMG IN: <0> ", DamageTaken(player)>, 
+    <"- ULTS USED: <0> ", UltsUsed(player)>,
+    <"- ULTS EARNED: <0> ", UltsEarned(player)>,
+
+    HealingDealt(player) != 0 ? <"- HEAL OUT: <0> ", HealingDealt(player)> : "",
+    <"- HEAL IN: <0> ", HealingTaken(player)>,
+    SelfHealing(player) != 0 ? <"- SELF HEAL: <0> ", SelfHealing(player)> : "",
+    DamageBlocked(player) != 0 ? <"- BLOCKED: <0> ", DamageBlocked(player)> : ""
+
+    >, null, Location.Right, 0, Color.White, Color.Red, Color.White, Spectators: Spectators.VisibleAlways);
+}
+
