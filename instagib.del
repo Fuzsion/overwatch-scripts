@@ -117,7 +117,7 @@ playervar define lockEnabled;
 playervar define lockDur;
 
 globalvar define serverLoad;
-// globalvar define customXhair;
+globalvar define customXhair;
 globalvar define PICKUP_RAD;
 globalvar define primaryDelay;
 globalvar define PRI_DELAY;
@@ -151,7 +151,7 @@ rule: "[Main] :: Initial Global"
 
     CreateHudText(all, null, MatchTime() % 60 >= 10 
                              ? <"<0>:<1>", RoundToInteger(MatchTime() / 60, Rounding.Down), RoundToInteger(MatchTime() % 60, Rounding.Down)> 
-                             : <"<0>:0<1>", RoundToInteger(MatchTime() / 60, Rounding.Down), RoundToInteger(MatchTime() % 60, Rounding.Down)>, " \n\n", Location.Top, 0.2);
+                             : <"<0>:0<1>", RoundToInteger(MatchTime() / 60, Rounding.Down), RoundToInteger(MatchTime() % 60, Rounding.Down)>, /* spacing for crosshair */ " \n\n", Location.Top, 0.2);
 
     SetMatchTime(10);
 
@@ -173,7 +173,7 @@ rule: "[Main] :: Initial Global"
     buffsSpawnImmediately = WorkshopSettingToggle("Buffs",      "​Buffs Spawn Immediately When Match Starts (Off)", false, 3);
     cdIP = WorkshopSettingToggle("Buffs",                       "Show buff cooldown timer (On)", true, 4);
     buffHudText = WorkshopSettingToggle("Buffs",                "Show Buff Cooldown HUD Text (On)", true, 5);
-    // customXhair = WorkshopSettingToggle("Buffs",                "Buffs Change Crosshair (On)", true, 6);
+    customXhair = WorkshopSettingToggle("Buffs",                "Buffs Change Crosshair (On)", true, 6);
     PICKUP_RAD = WorkshopSettingReal("Buffs",                   "Buff Collection Radius (1.25)", 1.25, 0.5, 3, 7);
 
     grappleEnabled = WorkshopSettingToggle("Grapple",           "Enable Grapple (On)", true, 1);
@@ -196,7 +196,7 @@ rule: "[Main] :: Initial Global"
     spawnWallbang = WorkshopSettingToggle("Wallbang",           "​​​​Spawn Wallbang (On)", true, 1);
     WALLBANG_CD = WorkshopSettingInteger("Wallbang",            "​​Wallbang Spawn Time (75)", 75, 5, 600, 2);
     WALLBANG_DUR = WorkshopSettingInteger("Wallbang",           "Wallbang ​​​Duration (30)", 30, 1, 600, 3);
-    NUM_WALLBANGS = WorkshopSettingInteger("Wallbang",          "​Wallbang Amount (10)", 10, 2, 100, 4);
+    NUM_WALLBANGS = WorkshopSettingInteger("Wallbang",          "​Wallbang Amount (8)", 8, 2, 100, 4);
     spawnWithWallbang = WorkshopSettingToggle("Wallbang",       "​​​​​All players have Wallbang (Off)", false, 5);
 
     spawnRicochet = WorkshopSettingToggle("Ricochet",           "Spawn Ricochet (On)", true, 1);
@@ -214,13 +214,13 @@ rule: "[Main] :: Initial Global"
     ELECTRO_PSPEED = WorkshopSettingReal("Electro",             "Electro Mine Projectile Speed (70)", 70, 1, 500, 7);
     spawnWithElectro = WorkshopSettingToggle("Electro",         "​​​​​All players have Electro (Off)", false, 9);
 
-    // spawnVoid = WorkshopSettingToggle("Void",                   "​​​​​Spawn Void (On)", true, 1);
-    // VOID_CD = WorkshopSettingInteger("Void",                    "Void ​Spawn Time (85)", 85, 5, 600, 2);
-    // VOID_DUR = WorkshopSettingInteger("Void",                   "Void Duration (30)", 25, 1, 600, 3);
-    // VOID_PSPEED = WorkshopSettingReal("Void",                   "Void Projectile Speed (10)", 10, 1, 500, 4);
-    // VOID_ESIZE = WorkshopSettingReal("Void",                    "Void Normal Explosion Size (1.5)", 1.5, 1, 500, 5);
-    // VOID_HITESIZE = WorkshopSettingReal("Void",                 "Void Hit Explosion Size (4)", 4, 1, 500, 6);
-    // spawnWithVoid = WorkshopSettingToggle("Void",               "​​​​​All players have Void (Off)", false, 7);
+    // spawnSpark = WorkshopSettingToggle("Spark",                   "​​​​​Spawn Spark (On)", true, 1);
+    // SPARK_CD = WorkshopSettingInteger("Spark",                    "Spark ​Spawn Time (85)", 85, 5, 600, 2);
+    // SPARK_DUR = WorkshopSettingInteger("Spark",                   "Spark Duration (30)", 25, 1, 600, 3);
+    // SPARK_PSPEED = WorkshopSettingReal("Spark",                   "Spark Projectile Speed (10)", 10, 1, 500, 4);
+    // SPARK_ESIZE = WorkshopSettingReal("Spark",                    "Spark Normal Explosion Size (1.5)", 1.5, 1, 500, 5);
+    // SPARK_HITESIZE = WorkshopSettingReal("Spark",                 "Spark shot out of air Explosion Size (4)", 4, 1, 500, 6);
+    // spawnWithSpark = WorkshopSettingToggle("Spark",               "​​​​​All players have Spark (Off)", false, 7);
 
     spawnQuadshot = WorkshopSettingToggle("Quadshot",           "​​​​​Spawn Quadshot (On)", true, 1);
     QUADSHOT_CD = WorkshopSettingInteger("Quadshot",            "Quadshot ​Spawn Time (125)", 125, 5, 600, 2);
@@ -262,13 +262,14 @@ rule: "[Main] :: Initial Global"
         spawnLock = false;
         spawnVaporizer = false;
         spawnElectro = false;
+        // spawnSpark = false;
         spawnQuadshot = false;
     }
 
      // [0]: wallbang
     // [1]: ricochet
     // [5]: electro
-    // [6]: shock
+    // [6]: spark
     // [7]: quadshot
 
     // supers
@@ -539,6 +540,7 @@ rule: "[Main] :: Initial Global"
         lockCD = LOCK_CD;
         vaporizerCD = VAPORIZER_CD;
         electroCD = ELECTRO_CD;
+        // sparkCD = SPARK_CD;
         quadshotCD = QUADSHOT_CD;
     }
 }
@@ -629,8 +631,11 @@ if (IsGameInProgress())
                 Location.Left, 5, Color.Orange);
             }
 
-            // CreateHudText(all, null, " ", null,
-            // Location.Left, 5.1, Color.White);
+            if ((!spawnWithVaporizer && spawnVaporizer) || (!spawnWithBuckshot && spawnBuckshot) || (!spawnWithLock && spawnLock))
+            {
+                CreateHudText(all, null, " \nSupers", null,
+                Location.Left, 5.1, Color.White);
+            }
 
             if (!spawnWithVaporizer && spawnVaporizer)
             {
@@ -654,43 +659,43 @@ if (IsGameInProgress())
     }
 }
 
-// rule: "[Main] :: Crosshair"
-// Event.OngoingPlayer
-// if (customXhair)
-// {
-//     /* 
-//     wallbang: 》 《
-//     ricochet: ᄾ ᄼ
-//     shock: 
-//     electro: ㅑㅕ
-//     tri shot: ∴ ∴
+rule: "[Main] :: Crosshair"
+Event.OngoingPlayer
+if (customXhair)
+{
+    /* 
+    wallbang: 》 《
+    ricochet: ᄾ ᄼ
+    shock: 
+    electro: ㅑㅕ
+    tri shot: ∴ ∴
 
 
-//     buckshot: 〘 〙
-//     vaporizer: ∈ ∋
-//     smart lock: ⁅ ⁆
-//     */
+    buckshot: 〘 〙
+    vaporizer: ∈ ∋
+    smart lock: ⁅ ⁆
+    */
 
-//     // this is fucking disgusting and needs improvement. for now this works fine as a proof of concept
-//     CreateHudText(player, null, " \n\n", <"ㅤ\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0><1><2><3><4><5><6>               <7><8><9><10><11><12><13>", 
-//     // left
-//     wallbangEnabled ? "≫" : "",
-//     ricochetEnabled ? "ᄾ" : "",
-//     electroEnabled ? "ㅑ" : "",
-//     quadshotEnabled ? "Ｘ" : "",
-//     buckshotEnabled ? "〘" : "",
-//     lockEnabled ? CountOf(lockedTargets) >= 1 ? "▣" : "□" : "",
-//     vaporizerEnabled ? " ∈" : "",
-//     // right
-//     vaporizerEnabled ? "∋ " : "",
-//     lockEnabled ? CountOf(lockedTargets) >= 1 ? "▣" : "□" : "",
-//     buckshotEnabled ? "〙" : "",
-//     quadshotEnabled ? "Ｘ" : "",
-//     electroEnabled ? "ㅕ" : "",
-//     ricochetEnabled ? "ᄼ" : "",
-//     wallbangEnabled ? "≪" : "">, 
-//     Location.Top, 2, Color.White, Color.White, Color.White);
-// }
+    // this is fucking disgusting and needs improvement. for now this works fine as a proof of concept
+    CreateHudText(player, null, " \n\n", <"ㅤ\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0><1><2><3><4><5><6>               <7><8><9><10><11><12><13>", 
+    // left
+    wallbangEnabled ? "≫" : "",
+    ricochetEnabled ? "ᄾ" : "",
+    electroEnabled ? "ㅑ" : "",
+    quadshotEnabled ? "Ｘ" : "",
+    buckshotEnabled ? "〘" : "",
+    lockEnabled ? CountOf(lockedTargets) >= 1 ? "▣" : "□" : "",
+    vaporizerEnabled ? " ∈" : "",
+    // right
+    vaporizerEnabled ? "∋ " : "",
+    lockEnabled ? CountOf(lockedTargets) >= 1 ? "▣" : "□" : "",
+    buckshotEnabled ? "〙" : "",
+    quadshotEnabled ? "Ｘ" : "",
+    electroEnabled ? "ㅕ" : "",
+    ricochetEnabled ? "ᄼ" : "",
+    wallbangEnabled ? "≪" : "">, 
+    Location.Top, 2, Color.White, Color.White, Color.White);
+}
 
 rule: "[Main] :: Player Join"
 Event.OnPlayerJoin
@@ -743,6 +748,12 @@ Event.OnPlayerJoin
         electroDur = 10000;
         bCnt++;
     }
+    // if (spawnWithSpark)
+    // {
+    //     sparkEnabled = true;
+    //     sparkDur = 10000;
+    //     bCnt++;
+    // }
     if (spawnWithQuadshot)
     {
         quadshotEnabled = true;
@@ -797,6 +808,12 @@ Event.OnPlayerLeave
         LogToInspector("Electro user no longer exists");
         ElectroCooldown();
     }
+
+    // if (player == buffUser[6])
+    // {
+    //     LogToInspector("Spark user no longer exists");
+    //     SparkCooldown();
+    // }
 
     if (player == buffUser[7])
     {
@@ -1975,19 +1992,19 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
     }
     else if (bIndex == 6)
     {
-        LogToInspector(<"Void Enabled for <0>", buffUser[6]>);
+        LogToInspector(<"Spark Enabled for <0>", buffUser[6]>);
         canPickupBuff[6] = false;
-        // voidEnabled = true;
+        // sparkEnabled = true;
 
         // toasts
-        // CreateProgressBarHudText(player, voidDur, <"<0> Void <0>", AbilityIconString(Hero.Sigma, Button.Ability1)>, Location.Right, 0.6, Color.Purple, Color.Purple);
+        // CreateProgressBarHudText(player, sparkDur, <"<0> Spark <0>", AbilityIconString(Hero.Sigma, Button.Ability1)>, Location.Right, 0.6, Color.Purple, Color.Purple);
         hudText[6] = LastTextID();
 
-        BigMessage(player, "Void");
+        BigMessage(player, "Spark");
 
         // start timer
-        // voidDur = 100;
-        // ChaseVariableOverTime(voidDur, 0, VOID_DUR, TimeChaseReevaluation.None);
+        // sparkDur = 100;
+        // ChaseVariableOverTime(sparkDur, 0, SPARK_DUR, TimeChaseReevaluation.None);
     }
     else if (bIndex == 7)
     {
@@ -2119,10 +2136,10 @@ if (IsFiringPrimary())
 
     define wallbangHitPlayer;
 
-    for (define i = 0; DistanceBetween(gunPos, wallbangHitPos) < 100 && i < NUM_WALLBANGS; i++)
+    for (define i = 0; DistanceBetween(wallbangHitPos, wallbangHitPos) < 100 && i < NUM_WALLBANGS; i++)
     {
-        wallbangHitPos = RayCastHitPosition(wallbangHitPos + Facing(), wallbangHitPos + Facing() * (100 - DistanceBetween(gunPos, wallbangHitPos)), AllLivingPlayers(), player, true);
-        wallbangHitPlayer = RayCastHitPlayer(wallbangHitPos, wallbangHitPos + Facing() * (100 - DistanceBetween(gunPos, wallbangHitPos)), AllLivingPlayers(), player, true);
+        wallbangHitPos = RayCastHitPosition(wallbangHitPos + Facing(), wallbangHitPos + Facing() * (100 - DistanceBetween(wallbangHitPos, wallbangHitPos)), AllLivingPlayers(), player, true);
+        wallbangHitPlayer = RayCastHitPlayer(wallbangHitPos, wallbangHitPos + Facing() * (100 - DistanceBetween(wallbangHitPos, wallbangHitPos)), AllLivingPlayers(), player, true);
 
         PlayEffect(all, PlayEffect.GoodExplosion, Color.Yellow, wallbangHitPos, 0.2);
 
@@ -3133,7 +3150,7 @@ if (IsReloadHeld())
 {
     mineColor = Color.Blue;
 
-    // first mine
+    // first mine //
     electroMHitPos[0] = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, null);
     PlayEffect(all, PlayEffect.BuffImpactSound, Color.White, player, 50);
 
@@ -3148,11 +3165,11 @@ if (IsReloadHeld())
     electroMEffect[0][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos1, electroMHitPos[0], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
-    //
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     Wait(0.2);
 
-    // second mine
+    // second mine //
     electroMHitPos[1] = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, null);
     PlayEffect(all, PlayEffect.BuffImpactSound, Color.White, player, 50);
 
@@ -3167,11 +3184,11 @@ if (IsReloadHeld())
     electroMEffect[1][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos2, electroMHitPos[1], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
-    //
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     Wait(0.2);
 
-    // third mine
+    // third mine //
     electroMHitPos[2] = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, null);
     PlayEffect(all, PlayEffect.BuffImpactSound, Color.White, player, 50);
 
@@ -3186,7 +3203,7 @@ if (IsReloadHeld())
     electroMEffect[2][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos3, electroMHitPos[2], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
-    //
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     WaitUntil(DistanceBetween(electroEyePos1, electroMHitPos[0]) < 0.1 && DistanceBetween(electroEyePos2, electroMHitPos[1]) < 0.1 && DistanceBetween(electroEyePos3, electroMHitPos[2]) < 0.1, 9999);
     minesPlaced = true;
@@ -3201,6 +3218,7 @@ void ExplodeMine() playervar "[Sub] :: Electro : Action - Explode Mines"
     define players = [];
     for (define i = 0; i < 3; i++)
     {
+        // todo: mines dont explode instantly, they are delayed, only the mine shot explodes instantly
         players[i] = FilteredArray(RemoveFromArray(AllLivingPlayers(), player), DistanceBetween(Curr(), electroMHitPos[i]) <= ELECTRO_MESIZE); // get players per mine
         for (define j = 0; j < CountOf(players[i]); j++)
         {

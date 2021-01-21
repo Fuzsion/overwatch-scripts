@@ -70,3 +70,5 @@ define HealingDealt(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf
 define HealingTaken(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingReceived), Rounding.Nearest);
 define SelfHealing(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.SelfHealing), Rounding.Nearest);
 define UltsUsed(define Player): PlayerStat(Player, PlayerStat.UltimatesUsed);
+define UltsEarned(define Player): PlayerStat(Player, PlayerStat.UltimatesEarned);
+define DamageBlocked(define Player): PlayerStat(Player, PlayerHeroStat.DamageBlocked);

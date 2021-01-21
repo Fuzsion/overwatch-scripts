@@ -3,7 +3,7 @@
       "Allow Players Who Are In Queue": true,
       "Map Rotation": "After A Game",
       "Max FFA Players": 12,
-      "Max Spectators": 12,
+      "Max Spectators": 2,
       "Return To Lobby": "Never"
     },
     "Modes": {

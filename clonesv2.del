@@ -1,4 +1,5 @@
 import "macros.del";
+import "clonesv2lobby.json";
 define ownerBots: FilteredArray(AllyPlayers(), IsDummyBot(Curr()) && Curr().owner == player);
 define livingBots: FilteredArray(AllLivingPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player);
 
@@ -9,7 +10,6 @@ globalvar define TIMER_DUR; // duration of the combat timer
 globalvar define RESPAWN_TIME; // respawn time
 globalvar define FAILSAFE_TIME; // respawn failsafe time
 globalvar define GENJI_DAMAGE;
-globalvar define botOutlines; // bool owned bot outlines
 globalvar define playerAmount; // amount of players and bots per team (from 0 - 5)
 globalvar define inspector; // inspector toggle
 globalvar define genjiNerf; // bool genji nerf
@@ -30,9 +30,9 @@ playervar define maxHealth; // maximum health a bot spawned with
 playervar define kills; // amount of kills owner and bots have
 playervar define deaths; // amount of deaths owner and bots have
 playervar define damageDealt; // amount of damage owner and bots have done
-playervar define damageRecieved; // amount of damage owner and bots have taken
+playervar define damageTaken; // amount of damage owner and bots have taken
 playervar define healDealt; // amount of healing owner and bots have done
-playervar define healRecieved; // amount of healing owner and bots have recieved
+playervar define healTaken; // amount of healing owner and bots have recieved
 
 // owner
 playervar define owner; // player who owns a set of bots
@@ -61,64 +61,24 @@ rule: "Initial Global"
         TIMER_DUR = WorkshopSettingReal("Options", "In Combat Timer (6) (Time until heal over time starts)", 6, 0, 30, 2);
         OOS_TIME = WorkshopSettingReal("Options", "Out of LOS Teleport Time (0.25)", 0.25, 0, 5, 3);
         RESPAWN_TIME = WorkshopSettingInteger("Options", "Bot Respawn Time (15)", 15, 0, 90, 4);
-        FAILSAFE_TIME = WorkshopSettingReal("Options", "Respawn Failsafe time (18.5) (lower than 18 can respawn prematurely in overtime!)", 18.5, 15.1, 30, 5);
         genjiNerf = WorkshopSettingToggle("Options", "Genji Swift Strike Damage Modification (On)", true, 6);
         GENJI_DAMAGE = WorkshopSettingReal("Options", "Genji Swift Strike Damage Percentage (33.34)", 33.34, 0, 100, 7);
         healToggle = WorkshopSettingToggle("Options", "Heal Over Time out of combat (On)", true, 8);
-        botOutlines = WorkshopSettingToggle("Options", "Hide Owned Bot Outlines (On)", true, 9);
 
-        CreateHudText(all, null, "ㅤMimiq | Created by scort#11221", " v1.0.0 | Share Code: WRYEPㅤ", Location.Right, 0, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(all, null, null, "ㅤMimiq | Created by scort#11221", Location.Right, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleTo);
+        CreateHudText(all, null, "ㅤv1.0.0 | Code: WRYEP", null, Location.Right, 0.2);
     }
 
 rule: "Initial Player Join"
     Event.OnPlayerJoin
     {
         playerSlot = [];
-        kills = "None";
-        deaths = "None";
-        damageDealt = "None";
-        damageRecieved = "None";
-        healDealt = "None";
-        healRecieved = "None";
-    }
-
-rule: "Disclaimer Text"
-    Event.OngoingPlayer
-    if (!dbgArr[1] && !IsDummyBot() && HasSpawned())
-    {
-        infoTimer = 60;
-        ChaseVariableAtRate(infoTimer, 0, 1, RateChaseReevaluation.None);
-        infoText = [];
-        Wait(0.5);
-        CreateHudText(player, null, null, <"ㅤ\n<0> Notice <0>\n", IconString(Icon.Warning)>, Location.Top, 1, Color.Yellow, Color.Yellow, Color.Yellow);
-        infoText[0] = LastTextID();
-        CreateHudText(player, null, "This is an in-development rewrite written entirely in OSTW, and is just a pet project that I enjoy working on.", null, Location.Top, 1.1);
-        infoText[1] = LastTextID();
-        CreateHudText(player, null, "I have no association with any other gamemodes, code, or creators, and certainly nothing is stolen.", null, Location.Top, 1.3);
-        infoText[2] = LastTextID();
-        CreateHudText(player, null, "Please tell me about any issues or suggestions you have, either by adding my Btag in the top right or by telling me in-game.", null, Location.Top, 1.4);
-        infoText[3] = LastTextID();
-        CreateHudText(player, null, null, <"Press [<1>] or wait <0> s to remove this message", RoundToInteger(infoTimer, Rounding.Up), InputBindingString(Button.Interact)>, Location.Top, 1.5);
-        infoText[4] = LastTextID();
-    }
-
-rule: "Destroy Disclaimer Text"
-    Event.OngoingPlayer
-    if (infoTimer == 0 || IsButtonHeld(player, Button.Interact))
-    {
-        DestroyHudText(infoText[0]);
-        DestroyHudText(infoText[1]);
-        DestroyHudText(infoText[2]);
-        DestroyHudText(infoText[3]);
-        DestroyHudText(infoText[4]);
-        StopChasingVariable(infoTimer);
-        infoText = [];
     }
 
 rule: "[All] :: Assembling Heroes Time"
     if (IsAssemblingHeroes())
     {
-        SetMatchTime(15);
+        SetMatchTime(10);
     }
 
 rule: "[All] :: CCed"
@@ -192,7 +152,7 @@ rule: "[Owner] :: Destroy Bots"
         LoopIfConditionIsTrue();
     }
 
-rule: "[Owner] :: On Death Replace Healthiest Bot"
+rule: "[Owner] :: Replace Healthiest Bot"
     Event.OnDeath
     if (!IsDummyBot() && !EventWasEnvironment() && IsTrueForAny(AllLivingPlayers(TeamOf()), Curr().owner == player && IsDummyBot(Curr())))
     {
@@ -204,7 +164,6 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         facingDir = FacingDirectionOf(closestPlayer);
         healthOf = Health(closestPlayer);
         ammoOf[0] = Ammo(closestPlayer, 0);
-        // bap heal clip
         ammoOf[1] = Ammo(closestPlayer, 1);
         SetFacing(closestPlayer, Facing(), Relative.ToWorld);
         Kill(closestPlayer);
@@ -219,27 +178,6 @@ rule: "[Owner] :: On Death Replace Healthiest Bot"
         isRezzing = false;
     }
 
-// playervar define allyEffect; // owner effect visible to ally players
-// playervar define enemyEffect; // owner effect visible to enemy players
-
-// rule: "[Owner] :: Create Effect"
-//     Event.OngoingPlayer
-//     if (!IsDummyBot() && ownerAlive && !isInStealth)
-//     {
-//         CreateEffect(RemoveFromArray(AllyPlayers(), player), Effect.Sparkles, Color.SkyBlue, player, 1);
-//         allyEffect = LastCreatedEntity();
-//         CreateEffect(EnemyPlayers(), Effect.Sparkles, Color.Red, player, 1);
-//         enemyEffect = LastCreatedEntity();
-//     }
-
-// rule: "[Owner] :: Destroy Effect"
-//     Event.OngoingPlayer
-//     if (!ownerAlive || isInStealth)
-//     {
-//         DestroyEffect(allyEffect);
-//         DestroyEffect(enemyEffect);
-//     }
-
 rule: "[Owner] :: Start healOT"
     Event.OngoingPlayer
     if (healToggle && !IsDummyBot() && timer == 0 && Health() < MaxHealth())
@@ -253,7 +191,7 @@ rule: "[Owner] :: Start healOT"
 
 rule: "[Owner] :: Stop healOT"
     Event.OnDamageTaken
-    if (healToggle && !IsDummyBot() && !IsHero(Hero.Mercy))
+    if (healToggle && !IsDummyBot() && !IsHero(Hero.Mercy) && !IsHero(Hero.Lucio))
     {
         // start timer
         timer = TIMER_DUR;
@@ -298,12 +236,12 @@ rule: "[Owner] :: Owner Alive; Re-enable Bot Spawning"
         EnableRespawning(FilteredArray(AllDeadPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player));
     }
 
-rule: "[Owner] :: Kill Bots if Owner is off Map"
+rule: "[Owner] :: Kill Bots if Owner falls off Map"
     Event.OnDeath
     if (!IsDummyBot() && EventWasEnvironment())
     {
         Kill(ownerBots);
-        Wait();
+        MinWait();
         DisableRespawning(FilteredArray(AllDeadPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player));
     }
 
@@ -311,7 +249,7 @@ rule: "[Owner] :: Respawn Failsafe"
     Event.OnDeath
     if (!IsDummyBot() && IsDead() && !isRezzing)
     {
-        WaitIfTrue(FAILSAFE_TIME);
+        WaitIfTrue(RESPAWN_TIME + 5);
         Respawn();
     }
 
@@ -405,11 +343,11 @@ disabled rule: "---------------- Bot Rules ----------------"{}
 
 rule: "[Bot] :: Bot Outlines"
     Event.OngoingPlayer
-    if (botOutlines && botAlive)
+    if (botAlive)
     {
         Wait(0.25);
         DisableNameplates(player, owner);
-        StartForcingPlayerOutlines(player, owner, false);
+        StartForcingPlayerOutlines(player, owner, true, Color.White, OutlineType.Occluded);
     }
 
 rule: "[Bot] :: Alive"
@@ -423,10 +361,8 @@ rule: "[Bot] :: Alive"
         SetWeapon(player, Weapon(owner));
 
         SetAmmo(player, 0, Ammo(owner, 0));
-        // bap clip
         SetAmmo(player, 1, Ammo(owner, 1));
 
-        // GROSS
         SetAbilityCooldown(player, Button.PrimaryFire, AbilityCooldown(owner, Button.PrimaryFire));
         SetAbilityCooldown(player, Button.SecondaryFire, AbilityCooldown(owner, Button.SecondaryFire));
         SetAbilityCooldown(player, Button.Ability1, AbilityCooldown(owner, Button.Ability1));
@@ -521,20 +457,13 @@ disabled rule: "---------------- Input Emulation (IE) ----------------"{}
 
 rule: "[IE] :: Aim & Movement"
     Event.OngoingPlayer
-    if (botAlive && !CCed)
+    if (botAlive)
     {
         StartThrottleInDirection(player, WorldVectorOf(ThrottleOf(owner), owner, LocalVector.Rotation), ThrottleOf(owner) != Vector(0,0,0));
 
         StartFacing(player, DirectionTowards(EyePosition(),
         RayCastHitPosition(EyePosition(owner), UpdateEveryFrame(EyePosition(owner) + FacingDirectionOf(owner) * 100), AllLivingPlayers(OppositeTeamOf(TeamOf(owner))), AllLivingPlayers(TeamOf(owner)), true)), 
-        10000);
-    }
-
-rule: "[IE] :: Stop Aim"
-    Event.OngoingPlayer
-    if (botAlive && CCed)
-    {
-        StopFacing();
+        !CCed ? 10000 : 0.001);
     }
 
 rule: "[IE] :: Hello"
@@ -794,7 +723,7 @@ rule: "[HUD] :: Update Damage Recieved"
     Event.OnDamageTaken
     if (Attacker() != player)
     {
-        (owner == null ? player : owner).damageRecieved += RoundToInteger(EventDamage(), Rounding.Nearest);
+        (owner == null ? player : owner).damageTaken += RoundToInteger(EventDamage(), Rounding.Nearest);
     }
 
 rule: "[HUD] :: Update Heal Dealt"
@@ -808,7 +737,7 @@ rule: "[HUD] :: Update Heal Recieved"
     Event.OnHealingTaken
     if (Healer() != player)
     {
-        (owner == null ? player : owner).healRecieved += RoundToInteger(EventHealing(), Rounding.Nearest);
+        (owner == null ? player : owner).healTaken += RoundToInteger(EventHealing(), Rounding.Nearest);
     }
 
 rule: "[HUD] :: Bot Under Attack"
@@ -834,32 +763,63 @@ rule: "[HUD] :: Stats"
     Event.OngoingPlayer
     if (!IsDummyBot())
     {
-        Wait(0.25);
-        CreateHudText(player, null, null,
-        <"Kills: <0> | Deaths: <1> \r\nDMG Dealt: <2> | DMG Recieved: <3>\r\nHeal Dealt: <4> | Heal Recieved: <5>", 
-        kills, deaths, damageDealt, damageRecieved, healDealt, healRecieved>, 
-        Location.Left, 0, Color.White, Color.White, Color.White);
+        CreateHudText(player, null, " \n\n\n", null, Location.Left, 0.01);
+        Wait(1.5);
+        CreateHudText(player, null,
+        <" \n<0><1><2><3><4><5>",
+        kills != 0 
+            ? <"Kills: <0>\n", kills> : "", 
+
+        deaths != 0 
+            ? <"Deaths: <0>\n", deaths> : "", 
+
+        damageDealt != 0 
+            ? <"Damage Dealt: <0>\n", damageDealt> : "", 
+
+        damageTaken != 0 
+            ? <"Damage Taken: <0>\n", damageTaken> : "", 
+
+        healDealt != 0 
+            ? <"Healing Dealt: <0>\n", healDealt> : "", 
+
+        healTaken != 0 
+            ? <"Healing Taken: <0>\n", healTaken> : "">, 
+
+        null, 
+        Location.Left, 15, Color.White, Color.White, Color.White);
     }
 
 define percentage: (NormalizedHealth() * 100);
 define r: (percentage <= 50) ? 255 : RoundToInteger(256 - (percentage - 50) * 5.12, Rounding.Down);
 define g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Down);
-define healthColor: CustomColor(r, g, 0, 250);
+define healthColor: CustomColor(r, g, 0, 255);
 
 rule: "[HUD] :: Bot Health"
     Event.OngoingPlayer
     if (IsDummyBot() && HasSpawned())
     {
+        Wait(0.5);
         // MaxHealth() updates dynamically, using a variable lets me get around this. this will break when echo clones someone or if dva is out of mech
         maxHealth = MaxHealth();
-        
+
         CreateHudText(owner, 
-        /* header */    IsDead() ? IconString(Icon.Skull) : HeroIconString(HeroOf()),
-        /* subheader */ attacked ? <"<0> Under Attack <0>", IconString(Icon.Warning)> : HeroOf(),
-        /* text */      IsAlive() ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> : "Dead",
-                        Location.Left, SlotOf() + 1, 
-        /* color */     (Health() > maxHealth) ? Color.Blue : healthColor, Color.White, (Health() > maxHealth) ? Color.Blue : healthColor, 
-                        HudTextRev.VisibleToSortOrderStringAndColor);
+        /* header */        IsDead() 
+                                ? IconString(Icon.Skull) 
+                                : HeroIconString(HeroOf()),
+        /* subheader */     attacked 
+                                ? <"<0> Under Attack <0>", IconString(Icon.Warning)> 
+                                : HeroOf(),
+        /* text */          IsAlive() 
+                                ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> 
+                                : "Dead",
+                            Location.Left, SlotOf() + 1, 
+        /* sub color */     (Health() > maxHealth) 
+                                ? Color.Blue 
+                                : healthColor, Color.White, 
+        /* text color */    (Health() > maxHealth) 
+                                ? Color.Blue 
+                                : healthColor, 
+                            HudTextRev.VisibleToSortOrderStringAndColor);
         // CreateProgressBarHudText(owner, percentage, 
         // <"<0>  <1> | <2>  <0>", attacked ? IconString(Icon.Warning) : " ", IsAlive() ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> : "Dead", HeroOf()>, 
         // Location.Left, SlotOf() + 1, 
@@ -883,11 +843,9 @@ rule: "[HS] :: Sombra Disable Ability 2"
 rule: "[HS] :: Sombra Stealth After Bot Spawns"
     Event.OngoingPlayer
     Player.Sombra
-    if (IsUsingAbility1(owner) && botAlive && !IsUsingAbility1())
+    if (IsDummyBot() && IsAlive() && IsUsingAbility1(owner))
     {
-        PressButton(IsAlive() ? player : null, Button.Ability1);
-        Wait(0.16);
-        LoopIfConditionIsTrue();
+        PressButton(player, Button.Ability1);
     }
 
 rule: "[HS] :: Sombra Unstealth Bots"
@@ -895,7 +853,7 @@ rule: "[HS] :: Sombra Unstealth Bots"
     Player.Sombra
     if (!IsUsingAbility1(owner) && IsUsingAbility1())
     {
-        PressButton(IsAlive() ? player : null, Button.Ability1);
+        PressButton(player, Button.Ability1);
     }
 
 rule: "[HS] :: Mei Cancel Ice Block" // gross fix fuck you blizzard
@@ -991,16 +949,16 @@ disabled rule: "---------------- Debug ----------------"{}
 rule: "[DBG] :: Workshop Settings"
     {
         dbgArr = [];
-        dbgArr[0] = WorkshopSettingToggle("Debug", "1. Show Bot Aim", false, 1);
-        dbgArr[1] = WorkshopSettingToggle("Debug", "2. HUD", false, 2);
-        dbgArr[2] = WorkshopSettingToggle("Debug", "(Interact) 1. CC All Bots", false, 3);
-        dbgArr[3] = WorkshopSettingToggle("Debug", "(Interact) 2. CC Owner Bots", false, 4);
-        dbgArr[4] = WorkshopSettingToggle("Debug", "(Interact) 3. CC Self", false, 5);
-        dbgArr[5] = WorkshopSettingToggle("Debug", "(Interact) 4. Kill All Bots", false, 6);
-        dbgArr[6] = WorkshopSettingToggle("Debug", "(Interact) 5. Kill Owner Bots", false, 7);
-        dbgArr[7] = WorkshopSettingToggle("Debug", "(Interact) 6. Kill Self", false, 8);
-        dbgArr[8] = WorkshopSettingToggle("Debug", "(Interact) 7. Kill All", false, 9);
-        dbgArr[9] = WorkshopSettingToggle("Debug", "(Interact) 8. Damage Self", false, 10);
+        dbgArr[0] = WorkshopSettingToggle("Debug", "Show Bot Aim", false, 1);
+        dbgArr[1] = WorkshopSettingToggle("Debug", "HUD", false, 2);
+        dbgArr[2] = WorkshopSettingToggle("Debug", "CC All Bots", false, 3);
+        dbgArr[3] = WorkshopSettingToggle("Debug", "CC Owner Bots", false, 4);
+        dbgArr[4] = WorkshopSettingToggle("Debug", "CC Self", false, 5);
+        dbgArr[5] = WorkshopSettingToggle("Debug", "Kill All Bots", false, 6);
+        dbgArr[6] = WorkshopSettingToggle("Debug", "Kill Owner Bots", false, 7);
+        dbgArr[7] = WorkshopSettingToggle("Debug", "Kill Self", false, 8);
+        dbgArr[8] = WorkshopSettingToggle("Debug", "Kill All", false, 9);
+        dbgArr[9] = WorkshopSettingToggle("Debug", "Damage Self", false, 10);
     }
 
 rule: "[DBG] :: Inspector Toggle"
