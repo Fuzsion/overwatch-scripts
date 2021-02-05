@@ -134,6 +134,7 @@ playervar define electroEnabled;
 playervar define electroDur;
 
 globalvar define buffDbg;
+playervar define bhopping;
 
 /* ------------------------------------------------------------------------------- todo + notes: -------------------------------------------------------------------------------
 notes:
@@ -197,13 +198,11 @@ rule: "[Main] :: Initial Global"
     WALLBANG_CD = WorkshopSettingInteger("Wallbang",            "​​Wallbang Spawn Time (75)", 75, 5, 600, 2);
     WALLBANG_DUR = WorkshopSettingInteger("Wallbang",           "Wallbang ​​​Duration (30)", 30, 1, 600, 3);
     NUM_WALLBANGS = WorkshopSettingInteger("Wallbang",          "​Wallbang Amount (8)", 8, 2, 100, 4);
-    spawnWithWallbang = WorkshopSettingToggle("Wallbang",       "​​​​​All players have Wallbang (Off)", false, 5);
 
     spawnRicochet = WorkshopSettingToggle("Ricochet",           "Spawn Ricochet (On)", true, 1);
     RICOCHET_CD = WorkshopSettingInteger("Ricochet",            "Ricochet ​Spawn Time (75)", 75, 5, 600, 2);
     RICOCHET_DUR = WorkshopSettingInteger("Ricochet",           "​​Ricochet Duration (30)", 30, 1, 600, 3);
     NUM_RICOCHETS = WorkshopSettingInteger("Ricochet",          "​​​Ricochet Amount (4)", 4, 1, 8, 4);
-    spawnWithRicochet = WorkshopSettingToggle("Ricochet",       "​​​​​All players have Ricochet (Off)", false, 5);
 
     spawnElectro = WorkshopSettingToggle("Electro",             "​​​​​Spawn Electro (On)", true, 1);
     ELECTRO_CD = WorkshopSettingInteger("Electro",              "Electro ​Spawn Time (100)", 100, 5, 600, 2);
@@ -212,7 +211,6 @@ rule: "[Main] :: Initial Global"
     ELECTRO_MESIZE = WorkshopSettingReal("Electro",             "Electro Mine Explosion Size (5)", 5, 1, 500, 5);
     ELECTRO_DELAY = WorkshopSettingReal("Electro",              "Electro Mine Explosion Time When Idle (3)", 3, 1, 500, 6);
     ELECTRO_PSPEED = WorkshopSettingReal("Electro",             "Electro Mine Projectile Speed (70)", 70, 1, 500, 7);
-    spawnWithElectro = WorkshopSettingToggle("Electro",         "​​​​​All players have Electro (Off)", false, 9);
 
     // spawnSpark = WorkshopSettingToggle("Spark",                   "​​​​​Spawn Spark (On)", true, 1);
     // SPARK_CD = WorkshopSettingInteger("Spark",                    "Spark ​Spawn Time (85)", 85, 5, 600, 2);
@@ -220,13 +218,11 @@ rule: "[Main] :: Initial Global"
     // SPARK_PSPEED = WorkshopSettingReal("Spark",                   "Spark Projectile Speed (10)", 10, 1, 500, 4);
     // SPARK_ESIZE = WorkshopSettingReal("Spark",                    "Spark Normal Explosion Size (1.5)", 1.5, 1, 500, 5);
     // SPARK_HITESIZE = WorkshopSettingReal("Spark",                 "Spark shot out of air Explosion Size (4)", 4, 1, 500, 6);
-    // spawnWithSpark = WorkshopSettingToggle("Spark",               "​​​​​All players have Spark (Off)", false, 7);
 
     spawnQuadshot = WorkshopSettingToggle("Quadshot",           "​​​​​Spawn Quadshot (On)", true, 1);
     QUADSHOT_CD = WorkshopSettingInteger("Quadshot",            "Quadshot ​Spawn Time (125)", 125, 5, 600, 2);
     QUADSHOT_DUR = WorkshopSettingInteger("Quadshot",           "Quadshot Duration (30)", 25, 1, 600, 3);
     QUADSHOT_SPREAD = WorkshopSettingReal("Quadshot",           "Quadshot Spread (Lower is Tighter) (0.8)", 0.8, 0.1, 20, 4);
-    spawnWithQuadshot = WorkshopSettingToggle("Quadshot",       "​​​​​All players have Quadshot (Off)", false, 5);
 
     // ------------------------------------------- supers ------------------------------------------- //
 
@@ -236,23 +232,32 @@ rule: "[Main] :: Initial Global"
     VAPORIZER_ESIZE = WorkshopSettingReal("Vaporizer",          "Vaporizer Explosion Size (16.75)", 16.75, 5, 50, 4);
     VAPORIZER_DELAY = WorkshopSettingReal("Vaporizer",          "Vaporizer Explosion and Weapon Fire Delay (1)", 1, 0.5, 20, 5);
     vaporizerUserAffected = WorkshopSettingToggle("Vaporizer",  "Vaporizer user affected by own explosion", true, 6);
-    spawnWithVaporizer = WorkshopSettingToggle("Vaporizer",     "​​​​​All players have Vaporizer (Off)", false, 7);
 
     spawnBuckshot = WorkshopSettingToggle("Buckshot",           "​​​​​Spawn Buckshot (On)", true, 1);
     BUCKSHOT_CD = WorkshopSettingInteger("Buckshot",            "Buckshot ​Spawn Time (200)", 200, 5, 600, 2);
     BUCKSHOT_DUR = WorkshopSettingInteger("Buckshot",           "​​Buckshot Duration (30)", 30, 1, 600, 3);
-    BUCKSHOT_SPREAD = WorkshopSettingReal("Buckshot",           "​​​Buckshot Spread (Lower is Tighter) (2.5)", 2.5, 0.1, 20, 4);
-    spawnWithBuckshot = WorkshopSettingToggle("Buckshot",       "​​​​​All players have Buckshot (Off)", false, 5);
+    BUCKSHOT_SPREAD = WorkshopSettingReal("Buckshot",           "​​​Buckshot Spread (Lower is Tighter) (2.65)", 2.65, 0.1, 20, 4);
 
     spawnLock = WorkshopSettingToggle("Smart Lock",             "​​Spawn Smart Lock (On)", true, 1);
     LOCK_CD = WorkshopSettingInteger("Smart Lock",              "​Smart Lock Spawn Time (230)", 230, 5, 600, 2);
     LOCK_DUR = WorkshopSettingInteger("Smart Lock",             "​​​Smart Lock Duration (35)", 35, 1, 600, 3);
     LOCK_RADIUS = WorkshopSettingReal("Smart Lock",             "​​​Lock on radius (Degrees) (10)", 10, 1, 120, 4);
     LOCK_TIME = WorkshopSettingReal("Smart Lock",               "Lock on time (0.65)", 0.65, 0.1, 10, 5);
-    spawnWithLock = WorkshopSettingToggle("Smart Lock",         "​​​All players have Smart Lock (Off)", false, 6);
+
+    // ---------------------------------------------------------------------------------------------- //
 
     serverLoad = WorkshopSettingToggle("Debug",                 "Show Server Load", false, 1);
     buffDbg = WorkshopSettingToggle("Debug",                    "Display Buff Position Info", false, 2);
+    spawnWithWallbang = WorkshopSettingToggle("Debug",          "​​​​​Spawn with Wallbang", false, 3);
+    spawnWithRicochet = WorkshopSettingToggle("Debug",          "​​​​​Spawn with Ricochet", false, 4);
+    spawnWithElectro = WorkshopSettingToggle("Debug",           "​​​​​Spawn with Electro", false, 5);
+    // spawnWithSpark = WorkshopSettingToggle("Debug",             "Spawn with Spark", false, 6);
+    spawnWithQuadshot = WorkshopSettingToggle("Debug",          "Spawn with Quadshot", false, 7);
+    spawnWithVaporizer = WorkshopSettingToggle("Debug",         "Spawn with Vaporizer", false, 8);
+    spawnWithBuckshot = WorkshopSettingToggle("Debug",          "​​​​​Spawn with Buckshot", false, 9);
+    spawnWithLock = WorkshopSettingToggle("Debug",              "Spawn with Smart Lock", false, 10);
+
+
 
     if (!buffsEnabled)
     {
@@ -266,7 +271,7 @@ rule: "[Main] :: Initial Global"
         spawnQuadshot = false;
     }
 
-     // [0]: wallbang
+    // [0]: wallbang
     // [1]: ricochet
     // [5]: electro
     // [6]: spark
@@ -653,7 +658,7 @@ if (IsGameInProgress())
             {
                 CreateHudText(all, AbilityIconString(Hero.Sombra, Button.SecondaryFire), null,
                 lockCD != 0 ? lockText : canPickupBuff[3] ? IconString(Icon.Checkmark) : <"In-Use by <0>", buffUser[3]>,
-                Location.Left, 8, Color.Blue);
+                Location.Left, 8, CustomColor(28, 81, 255, 255));
             }
         }
     }
@@ -981,9 +986,9 @@ if (lifeKills == 6)
     CreateEffect(all, Effect.Sparkles, streakColor != null ? streakColor : RainbowColor(), player, 1, EffectRev.VisibleToPositionRadiusAndColor);
     spreeEffect = LastCreatedEntity();
 
+    // if then else for colors here because var doesnt update when using RainbowColor()
     CreateHudText(player, null, <" \n<0> Kills", lifeKills>, streakStr, Location.Left, 15, Color.White, Color.White, streakColor != null ? streakColor : RainbowColor(), HudTextRev.VisibleToSortOrderStringAndColor);
     spreeHud = LastTextID();
-    // if then else for colors here because var doesnt update when using RainbowColor()
 
     CreateInWorldText(player, "Killing Spree!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.White);
     spreeInWorld[0] = LastTextID();
@@ -1087,7 +1092,7 @@ if (lifeKills == 24)
 {
     BigMessage(all, <"<0> is Empyreal!", player>);
 
-    CreateInWorldText(player, "Empyreal!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.Color, RainbowColor());
+    CreateInWorldText(player, "Empyreal!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.VisibleToStringAndColor, RainbowColor());
     spreeInWorld[6] = LastTextID();
 
     streakStr = "Empyreal";
@@ -1099,8 +1104,6 @@ if (lifeKills == 24)
 }
 
 disabled rule: "---------------- Bhop ----------------"{}
-
-playervar define bhopping;
 
 void ResetSpeed() playervar "[Bhop] :: Reset Speed"
 {
@@ -1208,7 +1211,7 @@ rule: "[Bhop] :: Stop if player is on ground"
 Event.OngoingPlayer
 if ((IsOnGround() && !usingGrapple) && (bhopSpeed > 100))
 {
-    WaitIfTrue(0.2);
+    WaitIfTrue(0.25);
     ResetSpeed();
     // StopAccelDir();
 }
@@ -1947,7 +1950,7 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
         lockEnabled = true;
 
         // toasts
-        CreateProgressBarHudText(player, lockDur, <"<0> Smart Lock <0>", AbilityIconString(Hero.Sombra, Button.SecondaryFire)>, Location.Right, 0.3, CustomColor(54, 55, 212, 255), CustomColor(54, 55, 212, 255));
+        CreateProgressBarHudText(player, lockDur, <"<0> Smart Lock <0>", AbilityIconString(Hero.Sombra, Button.SecondaryFire)>, Location.Right, 0.3, CustomColor(28, 81, 255, 255), CustomColor(28, 81, 255, 255));
         hudText[3] = LastTextID();
 
         BigMessage(player, "Smart Lock");
@@ -1979,10 +1982,8 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
         electroEnabled = true;
 
         // toasts
-        CreateProgressBarHudText(player, electroDur, <"<0> Electro <0>", AbilityIconString(Hero.Echo, Button.SecondaryFire)>, Location.Right, 0.5, Color.Blue, Color.Blue);
-        hudText[5][0] = LastTextID();
-        CreateHudText(player, null, <"Press <0> to fire sticky mines                                                          ", InputBindingString(Button.Reload)>, null, Location.Right, 0.51, Color.SkyBlue, Color.SkyBlue, Color.SkyBlue);
-        hudText[5][1] = LastTextID();
+        CreateProgressBarHudText(player, electroDur, <"<0> Electro <0>  |  Press <1> to fire sticky mines", AbilityIconString(Hero.Echo, Button.SecondaryFire), InputBindingString(Button.Reload)>, Location.Right, 0.5, Color.Blue, Color.Blue);
+        hudText[5] = LastTextID();
 
         BigMessage(player, "Electro");
 
@@ -2251,7 +2252,7 @@ if (IsFiringPrimary())
     CreateBeamEffect(all, BeamType.BadBeam, eyePos + facing + startPos, firstHitPos, Color.Violet, EffectRev.None);
     ricochetEffect = LastCreatedEntity();
 
-    for (define i = 0; i < NUM_RICOCHETS; i++)
+    for (define i = 0; DistanceBetween(eyePos, firstHitPos) < 99 && i < NUM_RICOCHETS; i++)
     {
         if (i > 0)
         {
@@ -2268,9 +2269,6 @@ if (IsFiringPrimary())
         hitPosRicochets[i] = RayCastHitPosition(hitPos[i], hitPos[i] + ricochets[i] * 100, AllLivingPlayers(), player, true);
         hitPosPlayerRicochets[i] = RayCastHitPlayer(hitPos[i], hitPos[i] + ricochets[i] * 100, AllLivingPlayers(), player, true);
 
-        // CreateBeamEffect(all, BeamType.BadBeam, eyePos, hitPos[i], Color.Violet, EffectRev.None); // first raycast hit
-        // ricochetEffect[i] = LastCreatedEntity();
-
         CreateBeamEffect(all, BeamType.BadBeam, hitPos[i], hitPosRicochets[i], Color.Violet, EffectRev.None); // ricochets
         ricochetEffects[i] = LastCreatedEntity();
 
@@ -2279,6 +2277,9 @@ if (IsFiringPrimary())
 
         Damage(hitPosPlayer[i], player, 10000);
         Damage(hitPosPlayerRicochets[i], player, 10000);
+
+        if (DistanceBetween(hitPos[i], hitPosRicochets[i]) > 99)
+            break;
     }
 
     Wait(0.25);
@@ -2643,12 +2644,12 @@ Event.OnPlayerJoin
 
     // locking text
     CreateInWorldText(FilteredArray(RemoveFromArray(AllLivingPlayers(), player), Curr().lockEnabled && ArrayContains(Curr().lockingTargets, player)), 
-    " \n\n\n\n\n□", player, 5, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, CustomColor(54, 55, 212, 255));
+    " \n\n\n\n\n□", player, 5, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, CustomColor(28, 81, 255, 255));
     lockingId = LastTextID();
 
     // locked text
     CreateInWorldText(FilteredArray(RemoveFromArray(AllLivingPlayers(), player), Curr().lockEnabled && ArrayContains(Curr().lockedTargets, player)),
-    " \n\n\n\n\n▣", player, 5, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, CustomColor(54, 55, 212, 255));
+    " \n\n\n\n\n▣", player, 5, Clipping.DoNotClip, InworldTextRev.VisibleToPositionStringAndColor, CustomColor(28, 81, 255, 255));
     lockId = LastTextID();
 }
 
@@ -2826,7 +2827,7 @@ if (IsFiringPrimary())
     PlayEffect(all, PlayEffect.GoodExplosion, Color.Rose, vaporizerHitPos, 5);
 
     vaporizerS = 5;
-    ChaseVariableOverTime(vaporizerS, 0.5, VAPORIZER_DELAY);
+    ChaseVariableOverTime(vaporizerS, 0.5, VAPORIZER_DELAY, TimeChaseReevaluation.None);
 
     DisallowButton(player, Button.PrimaryFire);
 
@@ -2834,6 +2835,7 @@ if (IsFiringPrimary())
     DestroyEffect(vaporizerEffect[0]);
 
     Wait(VAPORIZER_DELAY - 0.25);
+    // WaitUntil(vaporizerS == 0.5, 9999);
     DestroyIcon(vaporizerIcon);
     AllowButton(player, Button.PrimaryFire);
 
@@ -3086,8 +3088,7 @@ if (electroDur == 0)
     LogToInspector(<"Electro Disabled for <0>", buffUser[5]>);
 
     // destroy hud timer and player effect
-    DestroyProgressBarHudText(hudText[5][0]);
-    DestroyHudText(hudText[5][1]);
+    DestroyProgressBarHudText(hudText[5]);
     DestroyEffect(collectedBuffEffect[5]);
 
     StopChasingVariable(electroDur);
@@ -3159,9 +3160,9 @@ if (IsReloadHeld())
 
     electroEyePos1 = EyePosition();
 
-    CreateEffect(all, Effect.Sphere, mineColor, electroEyePos1, 0.20);
+    CreateEffect(all, Effect.Sphere, mineColor, electroEyePos1, 0.20, EffectRev.PositionRadiusAndColor);
     electroMEffect[0][0] = LastCreatedEntity();
-    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos1, 0.275);
+    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos1, 0.275, EffectRev.PositionRadiusAndColor);
     electroMEffect[0][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos1, electroMHitPos[0], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
@@ -3178,9 +3179,9 @@ if (IsReloadHeld())
 
     electroEyePos2 = EyePosition();
 
-    CreateEffect(all, Effect.Sphere, mineColor, electroEyePos2, 0.20);
+    CreateEffect(all, Effect.Sphere, mineColor, electroEyePos2, 0.20, EffectRev.PositionRadiusAndColor);
     electroMEffect[1][0] = LastCreatedEntity();
-    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos2, 0.275);
+    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos2, 0.275, EffectRev.PositionRadiusAndColor);
     electroMEffect[1][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos2, electroMHitPos[1], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
@@ -3197,9 +3198,9 @@ if (IsReloadHeld())
 
     electroEyePos3 = EyePosition();
 
-    CreateEffect(all, Effect.Sphere, mineColor, electroEyePos3, 0.20);
+    CreateEffect(all, Effect.Sphere, mineColor, electroEyePos3, 0.20, EffectRev.PositionRadiusAndColor);
     electroMEffect[2][0] = LastCreatedEntity();
-    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos3, 0.275);
+    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos3, 0.275, EffectRev.PositionRadiusAndColor);
     electroMEffect[2][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos3, electroMHitPos[2], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
@@ -3218,7 +3219,6 @@ void ExplodeMine() playervar "[Sub] :: Electro : Action - Explode Mines"
     define players = [];
     for (define i = 0; i < 3; i++)
     {
-        // todo: mines dont explode instantly, they are delayed, only the mine shot explodes instantly
         players[i] = FilteredArray(RemoveFromArray(AllLivingPlayers(), player), DistanceBetween(Curr(), electroMHitPos[i]) <= ELECTRO_MESIZE); // get players per mine
         for (define j = 0; j < CountOf(players[i]); j++)
         {
@@ -3271,7 +3271,7 @@ rule: "[Debug] :: Bots"
 Event.OngoingPlayer
 if (player == host && IsInteractHeld() && !IsCrouchHeld())
 {
-    CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+    CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, null, null, true), Facing() * -1);
 }
 
 rule: "[Debug] :: Destroy Bots"
