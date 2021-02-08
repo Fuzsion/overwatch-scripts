@@ -39,8 +39,8 @@ define DisableMelee():              DisallowButton(player, Button.Melee);
 define WaitIfTrue(define time):     Wait(time, WaitBehavior.AbortWhenFalse); // Aborts the rule if the condition goes false while waiting
 define EnemyPlayers():              AllPlayers(OppositeTeamOf(TeamOf()));
 define AllyPlayers():               AllPlayers(TeamOf());
-define IsHero(ref define hero):     HeroOf() == hero;
-define IsMap(ref define map):       CurrentMap() == map;
+define IsHero(in define hero):     HeroOf() == hero;
+define IsMap(in define map):       CurrentMap() == map;
 define Curr():                      ArrayElement();
 
 // HUD Text
@@ -71,4 +71,4 @@ define HealingTaken(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf
 define SelfHealing(define Player): RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.SelfHealing), Rounding.Nearest);
 define UltsUsed(define Player): PlayerStat(Player, PlayerStat.UltimatesUsed);
 define UltsEarned(define Player): PlayerStat(Player, PlayerStat.UltimatesEarned);
-define DamageBlocked(define Player): PlayerStat(Player, PlayerHeroStat.DamageBlocked);
+define DamageBlocked(define Player): PlayerStat(Player, PlayerStat.DamageBlocked);
