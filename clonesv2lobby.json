@@ -1,101 +1,85 @@
 {
-    "Lobby": 
-    {
-        "Allow Players Who Are In Queue": true,
-        "Map Rotation": "After A Game",
-        "Max Spectators": 12,
-        "Max Team 1 Players": 3,
-        "Max Team 2 Players": 3,
-        "Return To Lobby": "Never",
-        "Team Balancing": "After A Game"
+    "Lobby": {
+      "Allow Players Who Are In Queue": true,
+      "Map Rotation": "After A Game",
+      "Max Spectators": 4,
+      "Max Team 1 Players": 3,
+      "Max Team 2 Players": 3,
+      "Return To Lobby": "Never",
+      "Team Balancing": "After A Game"
     },
-    "Modes": 
-    {
-        "Assault": {
-            "Competitive Rules": true,
-
-            "Disabled Maps": 
-                ["Horizon Lunar Colony",
-                "Paris"]
+    "Modes": {
+      "All": {
+        "Game Mode Start": "Immediately",
+        "Hero Limit": "Off",
+        "Limit Roles": "2 Of Each Role Per Team",
+        "Respawn As Random Hero": true,
+        "Spawn Health Packs": "Enabled"
+      },
+      "Assault": {
+        "Disabled Maps": [
+          "Horizon Lunar Colony",
+          "Paris"
+        ],
+        "Competitive Rules": true
+      },
+      "Control": {
+        "Competitive Rules": true
+      },
+      "Escort": {
+        "Competitive Rules": true
+      },
+      "Hybrid": {
+        "Disabled Maps": [
+          "Blizzard World (Winter)",
+          "Eichenwalde (Halloween)",
+          "Hollywood (Halloween)",
+          "King's Row (Winter)"
+        ],
+        "Competitive Rules": true
+      }
+    },
+    "Heroes": {
+      "General": {
+          "General": {
+              "Ultimate Generation - Combat": 150.0
+          },
+        "Disabled Heroes": [
+          "D.va"
+        ],
+        "Echo": {
+          "Damage Dealt": 50.0
         },
-        "Control": {
-            "Competitive Rules": true
+        "Lúcio": {
+          "Healing Dealt": 75.0
         },
-        "Escort": {
-            "Competitive Rules": true
+        "Mei": {
+          "Weapon Freeze Rate Scalar": 50.0
         },
-        "Hybrid": {
-            "Competitive Rules": true,
-
-            "Disabled Maps": 
-                ["Blizzard World Winter",
-                "Eichenwalde Halloween",
-                "Hollywood Halloween"]
+        "Moira": {
+          "Damage Dealt": 60.0,
+          "Healing Dealt": 70.0
         },
-        "All": {
-            "Game Mode Start": "Immediately",
-            "Hero Limit": "Off",
-            "Respawn As Random Hero": true,
-            "Spawn Health Packs": "Enabled"
+        "Symmetra": {
+          "Damage Dealt": 50.0
+        },
+        "Torbjörn": {
+          "Damage Dealt": 60.0
+        },
+        "Winston": {
+          "Barrier Projector Cooldown Time": 130.0,
+          "Damage Dealt": 50.0
+        },
+        "Wrecking Ball": {
+          "Adaptive Shield Cooldown Time": 125.0
         }
-    },
-    "Heroes": 
-    {
-        "General": {
-            "General":
-            {
-                "Ultimate Generation - Combat": 150
-            },
-            "Ashe": 
-            {
-                "Ammunition Clip Size Scalar": 125
-            },
-
-            "Echo": 
-            {
-                "Damage Dealt": 50
-            },
-
-            "Lúcio": 
-            {
-                "Healing Dealt": 75
-            },
-
-            "Mei": 
-            {
-                "Weapon Freeze Rate Scalar": 50
-            },
-
-            "Moira": 
-            {
-                "Damage Dealt": 60,
-                "Healing Dealt": 70
-            },
-
-            "Symmetra": 
-            {
-                "Damage Dealt": 50
-            },
-
-            "Torbjörn": 
-            {
-                "Damage Dealt": 75
-            },
-
-            "Winston": 
-            {
-                "Barrier Projector Cooldown Time": 130,
-                "Damage Dealt": 50
-            },
-
-            "Wrecking Ball": 
-            {
-                "Adaptive Shield Cooldown Time": 125
-            },
-
-            "Disabled Heroes": 
-            ["D.Va"]
-    }
-  },
-  "Description": "'Mimiq' by scort#11221 | Each bot duplicates whatever the player is doing, aiming, shooting, using abilities, pulling out Mercy Pistol/Torb Hammer, etc."
-}
+      }
+    }, 
+    "Extensions": {
+        "Spawn More Dummy Bots": true,
+        "Play More Effects": true,
+        "Buff Status Effects": true,
+        "Debuff Status Effects": true
+      },
+      "Description": ""
+  }

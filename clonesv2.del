@@ -341,13 +341,12 @@ disabled rule: "---------------- Bot Rules ----------------"{}
                 /////////////    BOT RULES    /////////////
                 /////////////                 /////////////
 
-rule: "[Bot] :: Bot Outlines"
+rule: "[Bot] :: Init"
     Event.OngoingPlayer
-    if (botAlive)
+    if (IsDummyBot())
     {
-        Wait(0.25);
-        DisableNameplates(player, owner);
-        StartForcingPlayerOutlines(player, owner, true, Color.White, OutlineType.Occluded);
+        StartForcingDummyBotName(player, <"<0>'s Mimiq", owner>);
+        SetRespawnMaxTime(player, RESPAWN_TIME);
     }
 
 rule: "[Bot] :: Alive"
@@ -369,6 +368,9 @@ rule: "[Bot] :: Alive"
         SetAbilityCooldown(player, Button.Ability2, AbilityCooldown(owner, Button.Ability2));
         SetAbilityCooldown(player, Button.Jump, AbilityCooldown(owner, Button.Jump));
         SetAbilityCooldown(player, Button.Crouch, AbilityCooldown(owner, Button.Crouch));
+
+        Wait(0.5);
+        CreateEffect(all, Effect.EchoCloningEffect, Position: player);
     }
 
 rule: "[Bot] :: Dead"
@@ -379,13 +381,6 @@ rule: "[Bot] :: Dead"
         attacked = false;
         SetUltimateCharge(player, 0);
         SetUltimateAbilityEnabled(player, false);
-    }
-
-rule: "[Bot] :: Respawn Time"
-    Event.OngoingPlayer
-    if (IsDummyBot())
-    {
-        SetRespawnMaxTime(player, RESPAWN_TIME);
     }
 
 rule: "[Bot] :: Incorrect Hero"
@@ -807,7 +802,7 @@ rule: "[HUD] :: Bot Health"
                                 ? IconString(Icon.Skull) 
                                 : HeroIconString(HeroOf()),
         /* subheader */     attacked 
-                                ? <"<0> Under Attack <0>", IconString(Icon.Warning)> 
+                                ? <"<0> <1>", HeroOf(), IconString(Icon.Warning)> 
                                 : HeroOf(),
         /* text */          IsAlive() 
                                 ? <"<0> HP", RoundToInteger(Health(), Rounding.Up)> 
@@ -872,36 +867,6 @@ rule: "[HS] :: Mei Ice Block After Bot Spawns"
     {
         PressButton(player, Button.Ability1);
         Wait(0.16);
-        LoopIfConditionIsTrue();
-    }
-
-rule: "[HS] :: Echo Flight Fix"
-    Event.OngoingPlayer
-    Player.Echo
-    if (IsDummyBot() && IsUsingAbility1(owner))
-    {
-        // bug: if moving in a direction echo will gain/lose more distance than intended if i use echos default flight speed (8), bandaid fix for this is to make impulse less intense. not sure how to fix this
-        if (IsButtonHeld(owner, Button.Jump))
-            ApplyImpulse(player, Up(), 4.85, Relative.ToWorld);
-        else if (IsButtonHeld(owner, Button.Crouch))
-            ApplyImpulse(player, Down(), 4.85, Relative.ToWorld);
-
-        Wait();
-        LoopIfConditionIsTrue();
-    }
-
-rule: "[HS] :: Mercy Valk Flight Fix"
-    Event.OngoingPlayer
-    Player.Mercy
-    if (IsDummyBot() && IsUsingUltimate(owner))
-    {
-        // bug: if moving in a direction mercy will gain/lose more distance than intended if i use mercy valk default speed (9), bandaid fix for this is to make the impulse less intense. not sure how to fix this
-        if (IsButtonHeld(owner, Button.Jump))
-            ApplyImpulse(player, Up(), 5.35, Relative.ToWorld);
-        else if (IsButtonHeld(owner, Button.Crouch))
-            ApplyImpulse(player, Down(), 5.35, Relative.ToWorld);
-
-        Wait();
         LoopIfConditionIsTrue();
     }
 
