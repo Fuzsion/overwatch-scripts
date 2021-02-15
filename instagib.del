@@ -559,9 +559,9 @@ if (IsGameInProgress())
         CreateHudText(host, null, "Current", <"<0>%", RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest)>, Location.Left, 12, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
         CreateHudText(host, null, "Average", <"<0>%", RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest)>, Location.Left, 13, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
         CreateHudText(host, null, "Peak", <"<0>%", RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, Location.Left, 14, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-        CreateHudText(host, null, null, "Effect/Text Count", Location.Left, 15);
+        CreateHudText(host, null, null, "Entity/Text Count", Location.Left, 15);
         CreateHudText(host, null, "Entity", EntityCount(), Location.Left, 16, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-        CreateHudText(host, null, "Text", TextCount(), Location.Left, 17, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(host, null, "Text", TextCount() - 16, Location.Left, 17, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
 
         CreateHudText(host, null, <"<0> <1>", buffPos[0], DistanceBetween(host, buffPos[0])>, null, Location.Left, 0.9);
         CreateHudText(host, null, <"<0> <1>", buffPos[1], DistanceBetween(host, buffPos[1])>, null, Location.Left, 1.9);
@@ -2801,7 +2801,7 @@ if (IsFiringPrimary())
     CreateEffect(all, Effect.Ring, Color.Rose, vaporizerHitPos, vaporizerS);
     vaporizerEffect[3] = LastCreatedEntity();
 
-    PlayEffect(all, PlayEffect.GoodExplosion, Color.Rose, vaporizerHitPos, 5);
+    PlayEffect(all, PlayEffect.ZaryaParticleCannonExplosionEffect, Color.Team1, vaporizerHitPos);
 
     vaporizerS = 5;
     ChaseVariableOverTime(vaporizerS, 0.5, VAPORIZER_DELAY, TimeChaseReevaluation.None);
@@ -3094,6 +3094,7 @@ if (IsFiringPrimary())
     electroEffect = LastCreatedEntity();
 
     PlayEffect(all, PlayEffect.GoodExplosion, Color.SkyBlue, electroHitPos, ELECTRO_ESIZE);
+    PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team1, electroHitPos);
 
     define players = FilteredArray(RemoveFromArray(AllLivingPlayers(), player), DistanceBetween(Curr(), electroHitPos) <= ELECTRO_ESIZE && IsInLineOfSight(electroHitPos, Curr()));
     for (define i = 0; i < CountOf(players); i++)
@@ -3139,7 +3140,7 @@ if (IsReloadHeld())
 
     CreateEffect(all, Effect.Sphere, mineColor, electroEyePos1, 0.20, EffectRev.PositionRadiusAndColor);
     electroMEffect[0][0] = LastCreatedEntity();
-    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos1, 0.275, EffectRev.PositionRadiusAndColor);
+    CreateEffect(all, Effect.EchoCloningEffect, Color.Team1, electroEyePos1, 0.275, EffectRev.PositionRadiusAndColor);
     electroMEffect[0][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos1, electroMHitPos[0], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
@@ -3158,7 +3159,7 @@ if (IsReloadHeld())
 
     CreateEffect(all, Effect.Sphere, mineColor, electroEyePos2, 0.20, EffectRev.PositionRadiusAndColor);
     electroMEffect[1][0] = LastCreatedEntity();
-    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos2, 0.275, EffectRev.PositionRadiusAndColor);
+    CreateEffect(all, Effect.EchoCloningEffect, Color.Team1, electroEyePos2, 0.275, EffectRev.PositionRadiusAndColor);
     electroMEffect[1][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos2, electroMHitPos[1], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
@@ -3177,7 +3178,7 @@ if (IsReloadHeld())
 
     CreateEffect(all, Effect.Sphere, mineColor, electroEyePos3, 0.20, EffectRev.PositionRadiusAndColor);
     electroMEffect[2][0] = LastCreatedEntity();
-    CreateEffect(all, Effect.GoodAura, mineColor, electroEyePos3, 0.275, EffectRev.PositionRadiusAndColor);
+    CreateEffect(all, Effect.EchoCloningEffect, Color.Team1, electroEyePos3, 0.275, EffectRev.PositionRadiusAndColor);
     electroMEffect[2][1] = LastCreatedEntity();
 
     ChaseVariableAtRate(electroEyePos3, electroMHitPos[2], ELECTRO_PSPEED, RateChaseReevaluation.DestinationAndRate);
@@ -3206,6 +3207,7 @@ void ExplodeMine() playervar "[Sub] :: Electro : Action - Explode Mines"
         DestroyEffect(electroMEffect[i][1]);
 
         PlayEffect(all, PlayEffect.GoodExplosion, Color.SkyBlue, electroMHitPos[i], ELECTRO_MESIZE);
+        PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team1, electroMHitPos[i]);
         PlayEffect(all, PlayEffect.ExplosionSound, Position: electroMHitPos[i], Radius: 50);
 
         electroMHitPos[i] = null;

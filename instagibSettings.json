@@ -2,7 +2,7 @@
   "Lobby": {
     "Allow Players Who Are In Queue": true,
     "Map Rotation": "After A Game",
-    "Max FFA Players": 10,
+    "Max FFA Players": 8,
     "Max Spectators": 2,
     "Return To Lobby": "Never"
   },
@@ -51,7 +51,8 @@
     "Beam Effects": true,
     "Play More Effects": true,
     "Buff Status Effects": true,
-    "Debuff Status Effects": true
+    "Debuff Status Effects": true,
+    "Energy Explosion Effects": true
   },
   "Description": "Instagib v2.0.0 | Created by scort#11221 | 02/09/21\n◈ Hold down Jump to gain speed by bunny hopping\n◈ Press Secondary Fire (Right Click) to fire an orb to push players away\n◈ Press Ability 1 (Shift) to dodge in any direction\n◈ Press Ability 2 (E) to throw out a grappling hook to attach to walls or pull players\n◈ Buffs are littered throughout the map that change your weapon drastically"
 }

@@ -10,10 +10,10 @@
     },
     "Modes": {
       "All": {
-        "Game Mode Start": "Immediately",
+        "Game Mode Start": "Manual",
         "Hero Limit": "Off",
         "Limit Roles": "2 Of Each Role Per Team",
-        "Respawn As Random Hero": true,
+        "Respawn As Random Hero": false,
         "Spawn Health Packs": "Enabled"
       },
       "Assault": {
@@ -44,9 +44,6 @@
           "General": {
               "Ultimate Generation - Combat": 200.0
           },
-        "Disabled Heroes": [
-          "D.va"
-        ],
         "Echo": {
           "Damage Dealt": 50.0
         },
