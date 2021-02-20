@@ -1,75 +1,293 @@
-define player:                                      EventPlayer();
-define all:                                         AllPlayers();
-define allLiving:                                   AllLivingPlayers();
-define host:                                        HostPlayer();
-Vector Facing():                                    FacingDirectionOf();
-define IsPrimaryHeld():                             IsButtonHeld(player, Button.PrimaryFire);
-define IsSecondaryHeld():                           IsButtonHeld(player, Button.SecondaryFire);
-define IsAbility1Held():                            IsButtonHeld(player, Button.Ability1);
-define IsAbility2Held():                            IsButtonHeld(player, Button.Ability2);
-define IsInteractHeld():                            IsButtonHeld(player, Button.Interact);
-define IsUltHeld():                                 IsButtonHeld(player, Button.Ultimate);
-define IsJumpHeld():                                IsButtonHeld(player, Button.Jump);
-define IsCrouchHeld():                              IsButtonHeld(player, Button.Crouch);
-define IsReloadHeld():                              IsButtonHeld(player, Button.Reload);
-define IsMeleeHeld():                               IsButtonHeld(player, Button.Melee);
-define Time():                                      TotalTimeElapsed();
+define player:                                              EventPlayer();
+define all:                                                 AllPlayers();
+define allLiving:                                           AllLivingPlayers();
+define host:                                                HostPlayer();
+Vector Facing():                                            FacingDirectionOf();
+define IsPrimaryHeld():                                     IsButtonHeld(player, Button.PrimaryFire);
+define IsSecondaryHeld():                                   IsButtonHeld(player, Button.SecondaryFire);
+define IsAbility1Held():                                    IsButtonHeld(player, Button.Ability1);
+define IsAbility2Held():                                    IsButtonHeld(player, Button.Ability2);
+define IsInteractHeld():                                    IsButtonHeld(player, Button.Interact);
+define IsUltHeld():                                         IsButtonHeld(player, Button.Ultimate);
+define IsJumpHeld():                                        IsButtonHeld(player, Button.Jump);
+define IsCrouchHeld():                                      IsButtonHeld(player, Button.Crouch);
+define IsReloadHeld():                                      IsButtonHeld(player, Button.Reload);
+define IsMeleeHeld():                                       IsButtonHeld(player, Button.Melee);
+define Time():                                              TotalTimeElapsed();
 
-// Abilities                
-define AllowPrimary():                              AllowButton(player, Button.PrimaryFire);
-define AllowSecondary():                            AllowButton(player, Button.SecondaryFire);
-define AllowAbility1():                             AllowButton(player, Button.Ability1);
-define AllowAbility2():                             AllowButton(player, Button.Ability2);
-define AllowUlt():                                  AllowButton(player, Button.Ultimate);
-define AllowReload():                               AllowButton(player, Button.Reload);
-define AllowJump():                                 AllowButton(player, Button.Jump);
-define AllowCrouch():                               AllowButton(player, Button.Crouch);
-define AllowMelee():                                AllowButton(player, Button.Melee);
+// Abilities                        
+define AllowPrimary():                                      AllowButton(player, Button.PrimaryFire);
+define AllowSecondary():                                    AllowButton(player, Button.SecondaryFire);
+define AllowAbility1():                                     AllowButton(player, Button.Ability1);
+define AllowAbility2():                                     AllowButton(player, Button.Ability2);
+define AllowUlt():                                          AllowButton(player, Button.Ultimate);
+define AllowReload():                                       AllowButton(player, Button.Reload);
+define AllowJump():                                         AllowButton(player, Button.Jump);
+define AllowCrouch():                                       AllowButton(player, Button.Crouch);
+define AllowMelee():                                        AllowButton(player, Button.Melee);
 
-define DisablePrimary():                            DisallowButton(player, Button.PrimaryFire);
-define DisableSecondary():                          DisallowButton(player, Button.SecondaryFire);
-define DisableAbility1():                           DisallowButton(player, Button.Ability1);
-define DisableAbility2():                           DisallowButton(player, Button.Ability2);
-define DisableUlt():                                DisallowButton(player, Button.Ultimate);
-define DisableReload():                             DisallowButton(player, Button.Reload);
-define DisableJump():                               DisallowButton(player, Button.Jump);
-define DisableCrouch():                             DisallowButton(player, Button.Crouch);
-define DisableMelee():                              DisallowButton(player, Button.Melee);
+define DisablePrimary():                                    DisallowButton(player, Button.PrimaryFire);
+define DisableSecondary():                                  DisallowButton(player, Button.SecondaryFire);
+define DisableAbility1():                                   DisallowButton(player, Button.Ability1);
+define DisableAbility2():                                   DisallowButton(player, Button.Ability2);
+define DisableUlt():                                        DisallowButton(player, Button.Ultimate);
+define DisableReload():                                     DisallowButton(player, Button.Reload);
+define DisableJump():                                       DisallowButton(player, Button.Jump);
+define DisableCrouch():                                     DisallowButton(player, Button.Crouch);
+define DisableMelee():                                      DisallowButton(player, Button.Melee);
 
-define WaitIfTrue(define time):                     Wait(time, WaitBehavior.AbortWhenFalse); // Aborts the rule if the condition goes false while waiting
-define EnemyPlayers():                              AllPlayers(OppositeTeamOf(TeamOf()));
-define AllyPlayers():                               AllPlayers(TeamOf());
-define IsHero(in define hero):                      HeroOf() == hero;
-define IsDuplicatingHero(in define hero):           HeroBeingDuplicated() == hero;
-define IsMap(in define map):                        CurrentMap() == map;
-define Curr():                                      ArrayElement();
+define WaitIfTrue(define time):                             Wait(time, WaitBehavior.AbortWhenFalse); // Aborts the rule if the condition goes false while waiting
+define EnemyPlayers():                                      AllPlayers(OppositeTeamOf(TeamOf()));
+define AllyPlayers():                                       AllPlayers(TeamOf());
+define IsHero(in define hero):                              HeroOf() == hero;
+define IsDuplicatingHero(in define hero):                   HeroBeingDuplicated() == hero;
+define IsMap(in define map):                                CurrentMap() == map;
+define Curr():                                              ArrayElement();
+
+define Floor(define Number):                                RoundToInteger(Number, Rounding.Down);
+define Ceiling(define Number):                              RoundToInteger(Number, Rounding.Up);
+define Round(define Number):                                RoundToInteger(Number);
+
+
 
 // HUD Text
-define RainbowColor():                              CustomColor(128 + 127 * CosineFromDegrees(Time() * 100),
-                                                                128 + 127 * CosineFromDegrees((Time() * 100) + 120),
-                                                                128 + 127 * CosineFromDegrees((Time() * 100) + 240), 
-                                                                250);
+define RainbowColor():                                      CustomColor(128 + 127 * CosineFromDegrees(Time() * 100),
+                                                                        128 + 127 * CosineFromDegrees((Time() * 100) + 120),
+                                                                        128 + 127 * CosineFromDegrees((Time() * 100) + 240), 
+                                                                        250);
 
-// Debug Text
-define ThrottleText():                              CreateHudText(player, null, <"Throttle: <0>", ThrottleOf()>, null, Location.Right, -1);
-define SpeedText():                                 CreateHudText(player, null, <"Speed: <0> M/S", HorizontalSpeedOf()>, null, Location.Right, -1);
-define PositionText():                              CreateHudText(player, null, <"Position: <0>", PositionOf()>, null, Location.Right, -1);
-define FacingText():                                CreateHudText(player, null, <"Facing Direction: <0>", FacingDirectionOf()>, null, Location.Right, -1);
-define HorizontalFacingText():                      CreateHudText(player, null, <"Horizontal Facing Direction: <0>", HorizontalFacingAngleOf()>, null, Location.Right, -1);
-define VerticalFacingText():                        CreateHudText(player, null, <"Vertical Facing Direction: <0>", VerticalFacingAngleOf()>, null, Location.Right, -1);
+// Debug Text       
+define ThrottleText():                                      CreateHudText(player, null, <"Throttle: <0>", ThrottleOf()>, null, Location.Right, -1);
+define SpeedText():                                         CreateHudText(player, null, <"Speed: <0> M/S", HorizontalSpeedOf()>, null, Location.Right, -1);
+define PositionText():                                      CreateHudText(player, null, <"Position: <0>", PositionOf()>, null, Location.Right, -1);
+define FacingText():                                        CreateHudText(player, null, <"Facing Direction: <0>", FacingDirectionOf()>, null, Location.Right, -1);
+define HorizontalFacingText():                              CreateHudText(player, null, <"Horizontal Facing Direction: <0>", HorizontalFacingAngleOf()>, null, Location.Right, -1);
+define VerticalFacingText():                                CreateHudText(player, null, <"Vertical Facing Direction: <0>", VerticalFacingAngleOf()>, null, Location.Right, -1);
 
-define Kills(define Player):                        PlayerStat(Player, PlayerStat.FinalBlows);
-define Deaths(define Player):                       PlayerStat(Player, PlayerStat.Deaths);
-define DamageDealt(define Player):                  RoundToInteger(PlayerStat(Player, PlayerStat.AllDamageDealt), Rounding.Nearest);
-define DamageTaken(define Player):                  RoundToInteger(PlayerStat(Player, PlayerStat.DamageTaken), Rounding.Nearest);
-define Accuracy(define Player):                     RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100, Rounding.Nearest);
-define CritAccuracy(define Player):                 RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100, Rounding.Nearest);
-define ScopedAccuracy(define Player):               RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.ScopedAccuracy) * 100, Rounding.Nearest);
-define ScopedCritAccuracy(define Player):           RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.ScopedCriticalHitAccuracy) * 100, Rounding.Nearest);
-define EnvironmentalKills(define Player):           PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.EnvironmentalKills);
-define HealingDealt(define Player):                 RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingDealt), Rounding.Nearest);
-define HealingTaken(define Player):                 RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingReceived), Rounding.Nearest);
-define SelfHealing(define Player):                  RoundToInteger(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.SelfHealing), Rounding.Nearest);
-define UltsUsed(define Player):                     PlayerStat(Player, PlayerStat.UltimatesUsed);
-define UltsEarned(define Player):                   PlayerStat(Player, PlayerStat.UltimatesEarned);
-define DamageBlocked(define Player):                PlayerStat(Player, PlayerStat.DamageBlocked);
+define Kills(define Player):                                PlayerStat(Player, PlayerStat.FinalBlows);
+define Deaths(define Player):                               PlayerStat(Player, PlayerStat.Deaths);
+define DamageDealt(define Player):                          Round(PlayerStat(Player, PlayerStat.AllDamageDealt));
+define DamageTaken(define Player):                          Round(PlayerStat(Player, PlayerStat.DamageTaken));
+define Accuracy(define Player):                             Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100);
+define CritAccuracy(define Player):                         Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100);
+define ScopedAccuracy(define Player):                       Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.ScopedAccuracy) * 100);
+define ScopedCritAccuracy(define Player):                   Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.ScopedCriticalHitAccuracy) * 100);
+define EnvironmentalKills(define Player):                   PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.EnvironmentalKills);
+define HealingDealt(define Player):                         Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingDealt));
+define HealingTaken(define Player):                         Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingReceived));
+define SelfHealing(define Player):                          Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.SelfHealing));
+define UltsUsed(define Player):                             PlayerStat(Player, PlayerStat.UltimatesUsed);
+define UltsEarned(define Player):                           PlayerStat(Player, PlayerStat.UltimatesEarned);
+define DamageBlocked(define Player):                        PlayerStat(Player, PlayerStat.DamageBlocked);
+String AltFont(Any s):                                      <" <0> ", s>;
+
+////////////////////////////////////
+// shit i do not understand below :)
+////////////////////////////////////
+
+// define ServerLoadText(): CreateHudText(
+//         Header:         AltFont(ServerLoadAverage()),
+//         Subheader:      AltFont("Server Load"),
+//         Text:           AltFont("Average"),
+//         Location:       Location.Right,
+//         HeaderColor:    Colors.Gradient(
+//                             new ComponentColor(Color.Turquoise), 
+//                             new ComponentColor(Color.Orange), 
+//                             ServerLoadAverage()/255),
+//         SortOrder:      100,
+//         Reevaluation:   HudTextRev.VisibleToStringAndColor,
+//         Spectators:     Spectators.VisibleAlways
+//     );
+
+
+// enum SpectatorButton
+// {
+//     Q = Button.Ability1,
+//     E = Button.Interact,
+//     Shift = Button.SecondaryFire,
+//     Ctrl = Button.PrimaryFire,
+//     M1 = Button.Ability2,
+//     B = Button.Jump,
+//     Z = Button.Ultimate
+// }
+
+// Boolean IsHostSpectator(): !ArrayContains(AllPlayers(), HostPlayer());
+
+// class Math {
+//     public static Number PI: Pi();
+//     public static Number E: 2.71828182845904523536;
+//     public static Number Floor(Number n): RoundToInteger(n, Rounding.Down);
+//     public static Number Ceiling(Number n): RoundToInteger(n, Rounding.Up);
+//     public static Number Near(Number n): RoundToInteger(n);
+//     public static Number Quotient(Number n, Number d): Floor(n/d);
+//     public static Number Clamp(Number n, Number min, Number max): Max(min, Min(n, max));
+//     public static Number IsInRange(Number n, Number min, Number max): n >= min && n <= max;
+//     public static Vector KinematicMotion3D(Vector startPos, Vector startVelocity, Vector acceleration, Number time):
+//         startPos + startVelocity*time + 0.5*acceleration*time*time;
+//     public static Number KinematicMotion1D(Number startPos, Number startVelocity, Number acceleration, Number time):
+//         startPos + startVelocity*time + 0.5*acceleration*time*time;
+// }
+
+// class ComponentColor {
+//     public Number Red;
+//     public Number Green;
+//     public Number Blue;
+//     public Number Alpha;
+//     public ComponentColor(Number red=255, Number green=255, Number blue=255, Number alpha=255) {
+//         this.Red    = red;
+//         this.Green  = green;
+//         this.Blue   = blue;
+//         this.Alpha  = alpha;
+//     }
+//     public ComponentColor(Color c) {
+//         Number cIndex = IndexOfArrayValue(Colors.AllColors, c);
+//         this.Red    = Colors.AllColorComponents[cIndex][0];
+//         this.Green  = Colors.AllColorComponents[cIndex][1];
+//         this.Blue   = Colors.AllColorComponents[cIndex][2];
+//         this.Alpha  = Colors.AllColorComponents[cIndex][3];
+//     }
+//     public Color Out(): CustomColor(Red, Green, Blue, Alpha);
+// }
+
+// class Colors {
+//     public static Color Gradient(ComponentColor color1, ComponentColor color2, Number fraction):
+//         CustomColor(
+//             LinearInterpolate(color1.Red,   color2.Red,   fraction),
+//             LinearInterpolate(color1.Green, color2.Green, fraction),
+//             LinearInterpolate(color1.Blue,  color2.Blue,  fraction),
+//             LinearInterpolate(color1.Alpha, color2.Alpha, fraction)
+//         );
+
+//     public static Color[] AllColors: 
+//         [Color.White, Color.Yellow, Color.Green, Color.Purple, Color.Red,
+//          Color.Blue, Color.Aqua, Color.Orange, Color.SkyBlue, Color.Turquoise,
+//          Color.LimeGreen, Color.Gray, Color.Violet, Color.Rose, Color.Black];
+//     public static String[] AllColorNames:
+//         ["White", "Yellow", "Green", "Purple", "Red",
+//          "Blue", "Aqua", "Orange", "SkyBlue", "Turquoise",
+//          "LimeGreen", "Gray", "Violet", "Rose", "Black"];
+//     public static Number[][] AllColorComponents: 
+//         [[255, 255, 255, 255], [255, 255,   0, 255], [ 69, 255,  87, 255], 
+//          [161,  73, 197, 255], [200,   0,  19, 255], [ 39, 170, 255, 255], 
+//          [  0, 234, 234, 255], [236, 153,   0, 255], [108, 190, 244, 255], 
+//          [  0, 230, 151, 255], [160, 232,  27, 255], [127, 127, 127, 255], 
+//          [100,  50, 255, 255], [255,  50, 145, 255], [  0,   0,   0, 255]];
+// }
+
+// class EasingFunctions {
+//     private static Number c1: 1.70158;
+//     private static Number c2: c1 * 1.525;
+//     private static Number c3: c1 + 1;
+//     private static Number c4: (2 * Math.PI) / 3;
+//     private static Number c5: (2 * Math.PI) / 4.5;
+//     private static Number n1: 7.5625;
+//     private static Number d1: 2.75;
+//     private static Number pow2(Number n): n * n;
+//     private static Number pow3(Number n): n * n * n;
+//     private static Number pow4(Number n): n * n * n * n;
+//     private static Number pow5(Number n): n * n * n * n * n;
+    
+//     public static Number EaseInSine(Number frac): 1 - CosineFromRadians(frac*Math.PI/2);
+
+//     public static Number EaseOutSine(Number frac): SineFromRadians(frac*Math.PI/2);
+
+//     public static Number EaseInOutSine(Number frac): -(CosineFromDegrees(Math.PI*frac) - 1) / 2;
+
+//     public static Number EaseInQuad(Number frac): pow2(frac);
+
+//     public static Number EaseOutQuad(Number frac): 1 - pow2(1 - frac);
+    
+//     public static Number EaseInOutQuad(Number frac):
+//         frac < 0.5 
+//             ? 2 * pow2(frac)
+//             : 1 - pow2(-2 * frac + 2) / 2;
+
+//     public static Number EaseInCubic(Number frac): pow3(frac);
+//     public static Number EaseOutCubic(Number frac): 1 - pow3(1 - frac);
+    
+//     public static Number EaseInOutCubic(Number frac):
+//         frac < 0.5 
+//             ? 4 * pow3(frac) 
+//             : 1 - pow3(-2 * frac + 2) / 2;
+
+//     public static Number EaseInQuart(Number frac): pow4(frac);
+    
+//     public static Number EaseOutQuart(Number frac): 1 - pow4(1 - frac);
+    
+//     public static Number EaseInOutQuart(Number frac):
+//         frac < 0.5 
+//         ? 8 * pow4(frac)
+//         : 1 - pow4(-2 * frac + 2) / 2;
+    
+//     public static Number EaseInQuint(Number frac): pow5(frac);
+    
+//     public static Number EaseOutQuint(Number frac): 1 - pow5(1 - frac);
+    
+//     public static Number EaseInOutQuint(Number frac):
+//         frac < 0.5 
+//             ? 16 * pow5(frac)
+//             : 1 - pow5(-2 * frac + 2) / 2;
+    
+//     public static Number EaseInExpo(Number frac): frac == 0 ? 0 : 2^(10 * frac - 10);
+    
+//     public static Number EaseOutExpo(Number frac): frac == 1 ? 1 : 1 - 2^(-10 * frac);
+    
+//     public static Number EaseInOutExpo(Number frac):
+//         frac == 0 ? 0 
+//         : frac == 1 ? 1 
+//         : frac < 0.5 ? 
+//             2^(20 * frac - 10) / 2 
+//             : (2 - 2^(-20 * frac + 10)) / 2;
+    
+//     public static Number EaseInCirc(Number frac): 1 - SquareRoot(1 - pow2(frac));
+    
+//     public static Number EaseOutCirc(Number frac): SquareRoot(1 - pow2(frac - 1));
+    
+//     public static Number EaseInOutCirc(Number frac):
+//         frac < 0.5
+//             ? (1 - SquareRoot(1 - pow2(2 * frac))) / 2
+//             : (SquareRoot(1 - pow2(-2 * frac + 2)) + 1) / 2;
+
+//     public static Number EaseInBack(Number frac): c3 * pow3(frac) - c1 * pow2(frac);
+    
+//     public static Number EaseOutBack(Number frac): 1 + c3 * pow3(frac - 1) + c1 * pow2(frac - 1);
+    
+//     public static Number EaseInOutBack(Number frac):
+//         frac < 0.5
+//             ? (pow2(2 * frac) * ((c2 + 1) * 2 * frac - c2)) / 2
+//             : (pow2(2 * frac - 2) * ((c2 + 1) * (frac * 2 - 2) + c2) + 2) / 2;
+    
+//     public static Number EaseInElastic(Number frac):
+//         frac == 0 ? 0 
+//         : frac == 1 ? 1
+//         : -(2^(10 * frac - 10)) * SineFromRadians((frac * 10 - 10.75) * c4);
+    
+//     public static Number EaseOutElastic(Number frac):
+//         frac == 0 ? 0 
+//         : frac == 1 ? 1
+//         : 2^(-10 * frac) * SineFromRadians((frac * 10 - 0.75) * c4) + 1;
+    
+//     public static Number EaseInOutElastic(Number frac):
+//         frac == 0 ? 0 
+//         : frac == 1 ? 1 
+//         : frac < 0.5
+//             ? -(2^(20 * frac - 10) * SineFromRadians((20 * frac - 11.125) * c5)) / 2
+//             : (2^(-20 * frac + 10) * SineFromRadians((20 * frac - 11.125) * c5)) / 2 + 1;
+    
+//     public static Number EaseInBounce(Number frac):
+//         1 - EaseOutBounce(1 - frac);
+    
+//     public static Number EaseOutBounce(Number frac):
+//         frac < 1/d1 ?
+//             n1 * pow2(frac)
+//         : frac < 2/d1 ?
+//             n1 * pow2(frac - 1.5/d1) + 0.75
+//         : frac < 2.5/d1 ?
+//             n1 * pow2(frac - 2.25/d1) + 0.9375 :
+//             n1 * pow2(frac - 2.625/d1) + 0.984375;
+    
+//     public static Number EaseInOutBounce(Number frac):
+//         frac < 0.5
+//             ? (1 - EaseOutBounce(1 - 2 * frac)) / 2
+//             : (1 + EaseOutBounce(2 * frac - 1)) / 2;
+// }

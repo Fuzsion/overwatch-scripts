@@ -120,9 +120,8 @@ rule: "[Owner] :: Create Bots"
 Event.OngoingPlayer
 if (!IsDummyBot() && HasSpawned() && IsAlive() && 
     (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr()))) 
-                                            < RoundToInteger((6 - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()))))
-                                            / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))), 
-                                            Rounding.Down)))
+                                            < Floor((6 - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()))))
+                                            / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))))
 {
     // divides 6 by the amount of human players
     playerSlot = LastOf(FilteredArray(playerAmount, 
@@ -139,9 +138,8 @@ rule: "[Owner] :: Destroy Bots"
 Event.OngoingPlayer
 if (!IsDummyBot() && 
     (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr()))) 
-                                            > RoundToInteger((6 - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))
-                                            / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))), 
-                                            Rounding.Down)))
+                                            > Floor((6 - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))
+                                            / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))))
 {
     DestroyDummyBot(TeamOf(), 
                     FirstOf(FilteredArray(playerAmount, 
@@ -164,17 +162,20 @@ if (!IsDummyBot() && !EventWasEnvironment() && IsTrueForAny(AllLivingPlayers(Tea
     healthOf = Health(closestPlayer);
     ammoOf[0] = Ammo(closestPlayer, 0);
     ammoOf[1] = Ammo(closestPlayer, 1);
-    SetFacing(closestPlayer, Facing(), Relative.ToWorld);
     Kill(closestPlayer);
     Teleport(player, positionOf);
+    PlayEffect(player, PlayEffect.EchoStickyBombExplosionEffect, Color.Team1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 0.8, null, null, true));
     SetFacing(player, facingDir, Relative.ToWorld);
-    Resurrect();
-    Wait(0.032);
-    CancelPrimaryAction(bots);
     SetPlayerHealth(player, healthOf);
     SetAmmo(player, 0, ammoOf[0]);
     SetAmmo(player, 1, ammoOf[1]);
+    Resurrect();
+    MinWait();
+    CancelPrimaryAction(bots);
     isRezzing = false;
+
+    // if (CountOf(FilteredArray(AllDeadPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player)) == (6 / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())))))
+    //     DisableRespawning(bots);
 }
 
 rule: "[Owner] :: Start healOT"
@@ -214,30 +215,27 @@ if (!IsDummyBot() && IsAlive() && !isRezzing)
 }
 
 rule: "[Owner] :: Dead"
-Event.OnDeath
-if (!isRezzing)
+Event.OngoingPlayer
+if (!IsDummyBot() && IsDead() && !isRezzing)
 {
     ownerAlive = false;
-}
 
-rule: "[Owner] :: Bot Respawning"
-Event.OngoingPlayer
-if (!ownerAlive)
-{
     define bots = ownerBots;
-    WaitUntil(ownerAlive, 16);
+    WaitUntil(ownerAlive, 9999);
     Respawn(bots);
     EnableRespawning(bots);
 }
 
 rule: "[Owner] :: Prevent Bot Spawning"
 Event.OngoingPlayer
-if (CountOf(FilteredArray(AllDeadPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player)) > 0 && !ownerAlive)
+if (!ownerAlive)
 {
     define bots = ownerBots;
     DisableRespawning(bots);
 }
+
 // FilteredArray(AllDeadPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player)
+
 rule: "[Owner] :: Kill Bots if Owner falls off Map"
 Event.OnDeath
 if (!IsDummyBot() && EventWasEnvironment())
@@ -247,10 +245,10 @@ if (!IsDummyBot() && EventWasEnvironment())
 }
 
 rule: "[Owner] :: Respawn Failsafe"
-Event.OnDeath
+Event.OngoingPlayer
 if (!IsDummyBot() && IsDead() && !isRezzing)
 {
-    WaitIfTrue(RESPAWN_TIME + 5);
+    WaitIfTrue(RESPAWN_TIME + 1);
     Respawn();
 }
 
@@ -344,13 +342,14 @@ disabled rule: "---------------- Bot Rules ----------------"{}
 
 rule: "[Bot] :: Init"
 Event.OngoingPlayer
-if (IsDummyBot())
+if (IsDummyBot() || (IsDummyBot() && !IsDuplicating()))
 {
     StartForcingDummyBotName(player, <"<0> Clone", owner>);
     SetRespawnMaxTime(player, RESPAWN_TIME);
 
     Wait(0.5);
-    CreateEffect(all, Effect.EchoCloningEffect, Position: player);
+    CreateEffect(AllyPlayers(), Effect.EchoCloningEffect, Position: player, Color: Color.Team1);
+    CreateEffect(EnemyPlayers(), Effect.EchoCloningEffect, Position: player, Color: Color.Team2);
     CreateEffect(all, Effect.EchoCloningSound, Position: player, Radius: 20);
 }
 
@@ -377,7 +376,7 @@ if (IsDummyBot() && IsDead())
 
 rule: "[Bot] :: Incorrect Hero"
 Event.OngoingPlayer
-if (IsDummyBot() && !(EntityExists(owner) && HeroOf() == HeroOf(owner) && TeamOf() == TeamOf(owner)))
+if (IsDummyBot() && (!EntityExists(owner) || HeroOf() != HeroOf(owner) || TeamOf() != TeamOf(owner)))
 {
     Wait(0.080);
     DestroyDummyBot(TeamOf(), SlotOf());
@@ -713,28 +712,28 @@ rule: "[HUD] :: Update Damage Dealt"
 Event.OnDamageDealt
 if (Victim() != player)
 {
-    (owner == null ? player : owner).damageDealt += RoundToInteger(EventDamage(), Rounding.Nearest);
+    (owner == null ? player : owner).damageDealt += Round(EventDamage());
 }
 
 rule: "[HUD] :: Update Damage Recieved"
 Event.OnDamageTaken
 if (Attacker() != player)
 {
-    (owner == null ? player : owner).damageTaken += RoundToInteger(EventDamage(), Rounding.Nearest);
+    (owner == null ? player : owner).damageTaken += Round(EventDamage());
 }
 
 rule: "[HUD] :: Update Heal Dealt"
 Event.OnHealingDealt
 if (Healee() != player)
 {
-    (owner == null ? player : owner).healDealt += RoundToInteger(EventHealing(), Rounding.Nearest);
+    (owner == null ? player : owner).healDealt += Round(EventHealing());
 }
 
 rule: "[HUD] :: Update Heal Recieved"
 Event.OnHealingTaken
 if (Healer() != player)
 {
-    (owner == null ? player : owner).healTaken += RoundToInteger(EventHealing(), Rounding.Nearest);
+    (owner == null ? player : owner).healTaken += Round(EventHealing());
 }
 
 rule: "[HUD] :: Bot Under Attack"
@@ -774,9 +773,11 @@ if (!IsDummyBot())
 }
 
 define percentage: (NormalizedHealth() * 100);
-define r: (percentage <= 50) ? 255 : RoundToInteger(256 - (percentage - 50) * 5.12, Rounding.Down);
-define g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Down);
+define r: (percentage <= 50) ? 255 : Floor(256 - (percentage - 50) * 5.12);
+define g: (percentage >= 50) ? 255 : Floor(percentage * 5.12);
 define healthColor: CustomColor(r, g, 0, 255);
+
+// define healthColor: Colors.Gradient(new ComponentColor(Color.Red), new ComponentColor(Color.Green), NormalizedHealth());
 
 rule: "[HUD] :: Bot Stats"
 Event.OngoingPlayer
@@ -786,50 +787,51 @@ if (IsDummyBot() && HasSpawned())
     // MaxHealth() updates dynamically, using a variable lets me get around this. this will break when echo clones someone or if dva is out of mech
     maxHealth = MaxHealth();
 
+    // todo: change the subheader info into an array of heroes instead of using or/and conditions
     CreateHudText(owner, 
-    /* header */        HeroIconString(HeroOf()),
+    /* header */        HeroIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf()),
     /* subheader */     <"<0><1><2><3><4><5><6><7>",
     (IsHero(Hero.Tracer) || IsHero(Hero.Symmetra) || IsHero(Hero.Junkrat)) || 
     (IsDuplicatingHero(Hero.Tracer) || IsDuplicatingHero(Hero.Symmetra) || IsDuplicatingHero(Hero.Junkrat)) ?
-    <"<0><1> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1), AbilityCharge(player, Button.Ability1)> : "",
+    AbilityCharge(player, Button.Ability1) > 0 ? <"<0><1> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1), AbilityCharge(player, Button.Ability1)> : " 0 " : "",
 
     (!IsHero(Hero.Soldier76) && !IsHero(Hero.Zenyatta) && !IsHero(Hero.Bastion) && !IsHero(Hero.Tracer) && !IsHero(Hero.Symmetra) && !IsHero(Hero.Junkrat)) &&
     (!IsDuplicatingHero(Hero.Soldier76) && !IsDuplicatingHero(Hero.Zenyatta) && !IsDuplicatingHero(Hero.Bastion) && !IsDuplicatingHero(Hero.Tracer) && !IsDuplicatingHero(Hero.Symmetra) && !IsDuplicatingHero(Hero.Junkrat)) ? 
-    <"<0>", AbilityCooldown(player, Button.Ability1) != 0 ? <" <0> ", RoundToInteger(AbilityCooldown(player, Button.Ability1))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1)> : "",
+    <"<0>", AbilityCooldown(player, Button.Ability1) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.Ability1))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1)> : "",
 
     (IsHero(Hero.Brigitte)) || (IsDuplicatingHero(Hero.Brigitte)) ?
-    <" <0><1> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2), AbilityCharge(player, Button.Ability2)> : "",
+    AbilityCharge(player, Button.Ability2) > 0 ? <" <0><1> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2), AbilityCharge(player, Button.Ability2)> : "  0 " : "",
 
     (!IsHero(Hero.Brigitte) && !IsHero(Hero.Zenyatta)) && 
     (!IsDuplicatingHero(Hero.Brigitte) && !IsDuplicatingHero(Hero.Zenyatta)) ? 
-    <" <0>", AbilityCooldown(player, Button.Ability2) != 0 ? <" <0> ", RoundToInteger(AbilityCooldown(player, Button.Ability2))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2)> : "",
+    <" <0>", AbilityCooldown(player, Button.Ability2) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.Ability2))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2)> : "",
 
     (IsHero(Hero.Dva) || IsHero(Hero.Orisa) || IsHero(Hero.Reinhardt) || IsHero(Hero.Sigma) || IsHero(Hero.WreckingBall) || IsHero(Hero.Doomfist) || 
     (!IsDuplicating() && IsHero(Hero.Echo)) || IsHero(Hero.Soldier76) || IsHero(Hero.Sombra) || IsHero(Hero.Brigitte) || IsHero(Hero.Lucio)) || 
     (IsDuplicatingHero(Hero.Dva) || IsDuplicatingHero(Hero.Orisa) || IsDuplicatingHero(Hero.Reinhardt) || IsDuplicatingHero(Hero.Sigma) || IsDuplicatingHero(Hero.WreckingBall) || IsDuplicatingHero(Hero.Doomfist) || 
     IsDuplicatingHero(Hero.Soldier76) || IsDuplicatingHero(Hero.Sombra) || IsDuplicatingHero(Hero.Brigitte) || IsDuplicatingHero(Hero.Lucio)) ?
-    <" <0>", AbilityCooldown(player, Button.SecondaryFire) != 0 ? <" <0> ", RoundToInteger(AbilityCooldown(player, Button.SecondaryFire))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.SecondaryFire)> : "",
+    <" <0>", AbilityCooldown(player, Button.SecondaryFire) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.SecondaryFire))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.SecondaryFire)> : "",
 
     (IsHero(Hero.Brigitte)) || 
     (IsDuplicatingHero(Hero.Brigitte)) ?
-    <" <0>", AbilityCooldown(player, Button.PrimaryFire) != 0 ? <" <0> ", RoundToInteger(AbilityCooldown(player, Button.PrimaryFire))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.PrimaryFire)> : "",
+    <" <0>", AbilityCooldown(player, Button.PrimaryFire) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.PrimaryFire))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.PrimaryFire)> : "",
 
     (IsHero(Hero.Hanzo)) || 
     (IsDuplicatingHero(Hero.Hanzo)) ?
-    <" <0>", AbilityCooldown(player, Button.Jump) != 0 ? <" <0> ", RoundToInteger(AbilityCooldown(player, Button.Jump))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Jump)> : "",
+    <" <0>", AbilityCooldown(player, Button.Jump) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.Jump))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Jump)> : "",
 
     (IsHero(Hero.WreckingBall)) || 
     (IsDuplicatingHero(Hero.WreckingBall)) ?
-    <" <0>", AbilityCooldown(player, Button.Crouch) != 0 ? <" <0>", RoundToInteger(AbilityCooldown(player, Button.Crouch))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Crouch)> : "">, 
+    <" <0>", AbilityCooldown(player, Button.Crouch) != 0 ? <" <0>", Round(AbilityCooldown(player, Button.Crouch))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Crouch)> : "">, 
 
-    /* text */          IsAlive() ? <"<0> HP <1>", RoundToInteger(Health(), Rounding.Up), attacked ? IconString(Icon.Warning) : ""> : "Dead",
+    /* text */          IsAlive() ? <"<0> HP <1>", Ceiling(Health()), attacked ? IconString(Icon.Warning) : ""> : "Dead",
                         Location.Left, SlotOf() + 1, 
 
     /* sub color */     (Health() > maxHealth) && !IsDuplicating()
-                            ? Color.Blue 
+                            ? Color.Blue
                             : healthColor, Color.White, 
     /* text color */    (Health() > maxHealth) && !IsDuplicating()
-                            ? Color.Blue 
+                            ? Color.Blue
                             : healthColor, 
                         HudTextRev.VisibleToSortOrderStringAndColor);
 }
@@ -948,73 +950,75 @@ if (IsButtonHeld(host, Button.Melee) && IsButtonHeld(host, Button.Interact))
 
 // rule: "[DBG] :: CC All Bots"
 // Event.OngoingPlayer
-// if (IsInteractHeld())
+// if (!IsDummyBot() && IsInteractHeld())
 // {
 //     SetStatus(FilteredArray(AllPlayers(), IsDummyBot(Curr())), null, Status.Stunned, 5);
 // }
 
 // rule: "[DBG] :: CC Owner Bots"
 // Event.OngoingPlayer
-// if (IsInteractHeld())
+// if (!IsDummyBot() && IsInteractHeld())
 // {
 //     SetStatus(ownerBots, null, Status.Asleep, 5);
 // }
 
 // rule: "[DBG] :: CC"
 // Event.OngoingPlayer
-// if (IsInteractHeld())
+// if (!IsDummyBot() && IsInteractHeld())
 // {
 //     SetStatus(player, null, Status.Asleep, 12);
 // }
 
 // rule: "[DBG] :: Kill All Bots"
 // Event.OngoingPlayer
-// if (IsInteractHeld())
+// if (!IsDummyBot() && IsInteractHeld())
 // {
 //     Kill(FilteredArray(AllPlayers(), IsDummyBot(Curr())));
 // }
 
 // rule: "[DBG] :: Kill Owner Bots"
 // Event.OngoingPlayer
-// if (IsInteractHeld())
+// if (!IsDummyBot() && IsInteractHeld())
 // {
 //     Kill(ownerBots);
 // }
 
 // rule: "[DBG] :: Kill"
 // Event.OngoingPlayer
-// if (IsInteractHeld())
+// if (!IsDummyBot() && IsInteractHeld())
 // {
 //     Kill();
 // }
 
 // rule: "[DBG] :: Kill All"
 // Event.OngoingPlayer
-// if (IsInteractHeld())
+// if (!IsDummyBot() && IsInteractHeld())
 // {
 //     Kill(all);
 // }
 
-rule: "[DBG] :: Kill Team 2"
-Event.OngoingPlayer
-if (IsInteractHeld())
-{
-    Kill(AllPlayers(Team.Team2));
-}
-
-// rule: "[DBG] :: Damage"
+// rule: "[DBG] :: Kill Team 2"
 // Event.OngoingPlayer
-// if (IsInteractHeld())
+// if (IsButtonHeld(host, Button.Interact))
 // {
-//     Damage(player, player, 100);
+//     Kill(PlayersInSlot(0, Team.Team2));
+//     MinWait();
+//     Kill(FilteredArray(AllPlayers(Team.Team2), IsDummyBot(Curr()) && Curr().owner == player));
 // }
+
+rule: "[DBG] :: Damage"
+Event.OngoingPlayer
+if (/* !IsDummyBot() &&  */IsInteractHeld())
+{
+    Damage(player, player, 25);
+}
 
 rule: "[DBG] :: Server Stats"
 {
     CreateHudText(host, null, null, "Server Load", Location.Right, 21);
-    CreateHudText(host, null, "Cur", <"<0>%", RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest)>, Location.Right, 22, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-    CreateHudText(host, null, "Avg", <"<0>%", RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest)>, Location.Right, 23, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-    CreateHudText(host, null, "Peak", <"<0>%", RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, Location.Right, 24, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+    CreateHudText(host, null, "Cur", <"<0>%", Round(ServerLoad() / 2.55)>, Location.Right, 22, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+    CreateHudText(host, null, "Avg", <"<0>%", Round(ServerLoadAverage() / 2.55)>, Location.Right, 23, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+    CreateHudText(host, null, "Peak", <"<0>%", Round(ServerLoadPeak() / 2.55)>, Location.Right, 24, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
     CreateHudText(host, null, null, "Entity/Text Count", Location.Right, 25);
     CreateHudText(host, null, "Ent", EntityCount(), Location.Right, 26, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
     CreateHudText(host, null, "Txt", TextCount() - 7, Location.Right, 27, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
