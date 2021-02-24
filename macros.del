@@ -1,4 +1,5 @@
 define player:                                              EventPlayer();
+define local:                                               LocalPlayer();
 define all:                                                 AllPlayers();
 define allLiving:                                           AllLivingPlayers();
 define host:                                                HostPlayer();
