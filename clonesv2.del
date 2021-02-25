@@ -6,59 +6,59 @@ define living_bots: FilteredArray(AllLivingPlayers(TeamOf()), IsDummyBot(Curr())
 define human_player_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));
 
 // global
-globalvar define DISTANCE; // maximum distance until bot teleports to owner
-globalvar define OOS_TIME; // out of los time before teleport
-globalvar define TIMER_DUR; // duration of the combat timer
-globalvar define RESPAWN_TIME; // respawn time
-globalvar define FAILSAFE_TIME; // respawn failsafe time
-globalvar define GENJI_DAMAGE;
-globalvar define slot_arr; // amount of players and bots per team (from 0 - 5)
-globalvar define inspector; // inspector toggle
-globalvar define genji_nerf; // bool genji nerf
-globalvar define heal_toggle; // bool heal over time
+globalvar Number DISTANCE; // maximum distance until bot teleports to owner
+globalvar Number OOS_TIME; // out of los time before teleport
+globalvar Number TIMER_DUR; // duration of the combat timer
+globalvar Number RESPAWN_TIME; // respawn time
+// globalvar Number FAILSAFE_TIME; // respawn failsafe time
+globalvar Number GENJI_DAMAGE;
+globalvar define slot_arr; // amount of slots per team (from 0 - 9)
+globalvar Boolean inspector; // inspector toggle
+globalvar Boolean genji_nerf; // bool genji nerf
+globalvar Boolean heal_toggle; // bool heal over time
 
 // all
-playervar define cced; // bool for cc status is applied
-playervar define player_slot; // slot of player to create bots for
+playervar Boolean cced; // bool for cc status is applied
+playervar Number player_slot; // slot of player to create bots for
 playervar define genji_ao; // genji damage modification
-playervar define max_health; // maximum health a bot spawned with
+playervar Number max_health; // maximum health a bot spawned with
 
 // stats
-playervar define kills; // amount of kills owner and bots have
-playervar define deaths; // amount of deaths owner and bots have
-playervar define damage_dealt; // amount of damage owner and bots have done
-playervar define damage_taken; // amount of damage owner and bots have taken
-playervar define heal_dealt; // amount of healing owner and bots have done
-playervar define heal_taken; // amount of healing owner and bots have recieved
+playervar Number kills; // amount of kills owner and bots have
+playervar Number deaths; // amount of deaths owner and bots have
+playervar Number damage_dealt; // amount of damage owner and bots have done
+playervar Number damage_taken; // amount of damage owner and bots have taken
+playervar Number heal_dealt; // amount of healing owner and bots have done
+playervar Number heal_taken; // amount of healing owner and bots have recieved
 
 // owner
-playervar define owner; // player who owns a set of bots
-playervar define owner_alive; // whether the owner is alive
-playervar define is_rezzing; // checks if the owner is replacing a bot
-playervar define new_player; // closest bot to owner upon death
-playervar define position_of; // position of the new_player
-playervar define facing; // facing direction of the new_player
-playervar define health_of; // health of the new_player
-playervar define ammo_of; // ammo of new_player
+playervar Player owner; // player who owns a set of bots
+playervar Boolean owner_alive; // whether the owner is alive
+playervar Boolean is_rezzing; // checks if the owner is replacing a bot
+playervar Player new_player; // closest bot to owner upon death
+playervar Vector position_of; // position of the new_player
+playervar Vector facing; // facing direction of the new_player
+playervar Number health_of; // health of the new_player
+playervar Number ammo_of; // ammo of new_player
 playervar define heal_ot; // heal over time for the owner
-playervar define timer; // time out of combat
-playervar define attacked; // bool for if bot is attacked
-playervar define attack_timer; // attacked timer
+playervar Number timer; // time out of combat
+playervar Boolean attacked; // bool for if bot is attacked
+playervar Number attack_timer; // attacked timer
 
 // bot
-playervar define bot_alive; // bot is alive
+playervar Boolean bot_alive; // bot is alive
 
-globalvar define BOT_AMOUNT;
-globalvar define S_BOT_AMOUNT;
-globalvar define pf_arr;
-globalvar define sf_arr;
-globalvar define sfr_arr;
-globalvar define a1_arr;
-globalvar define a1c_arr;
-globalvar define a2_arr;
-globalvar define a2c_arr;
-globalvar define j_arr;
-globalvar define c_arr;
+globalvar Boolean BOT_AMOUNT;
+globalvar Number S_BOT_AMOUNT;
+globalvar Hero[] pf_arr;
+globalvar Hero[] sf_arr;
+globalvar Hero[] sfr_arr;
+globalvar Hero[] a1_arr;
+globalvar Hero[] a1c_arr;
+globalvar Hero[] a2_arr;
+globalvar Hero[] a2c_arr;
+globalvar Hero[] j_arr;
+globalvar Hero[] c_arr;
 
 rule: "Initial Global"
 {
@@ -67,7 +67,7 @@ rule: "Initial Global"
 
     pf_arr = [Hero.Brigitte];
     sf_arr = [Hero.Orisa, Hero.Reinhardt, Hero.Sigma, Hero.WreckingBall, Hero.Doomfist, Hero.Sombra, Hero.Soldier76, Hero.Brigitte, Hero.Lucio];
-    sfr_arr = [Hero.Dva, Hero.Bastion];
+    sfr_arr = [Hero.Dva, Hero.Bastion]; // resources array
     a1_arr = [Hero.Soldier76, Hero.Zenyatta, Hero.Bastion, Hero.Tracer, Hero.Symmetra, Hero.Junkrat]; // array of heroes where ability 1 does not have a cooldown or uses charges instead
     a1c_arr = [Hero.Tracer, Hero.Symmetra, Hero.Junkrat];
     a2_arr = [Hero.Brigitte, Hero.Zenyatta]; // array of heroes where ability 2 does not have a cooldown or uses charges instead
@@ -495,7 +495,7 @@ if (UltimateChargePercent(owner) != 100)
 
 void TeleportBot() playervar "Teleport Sub"
 {
-    Teleport(player, owner + WorldVectorOf(Vector(0, 0, -0.5), owner));
+    Teleport(player, (PositionOf(owner) + Up()) + WorldVectorOf(Vector(0, 0, -0.5), owner));
 
     AbortIf(IsHero(Hero.Sombra) && IsUsingAbility1());
 
@@ -871,46 +871,97 @@ if (IsDummyBot() && HasSpawned())
     max_health = MaxHealth();
 
     CreateHudText(owner, 
-    Header:         HeroIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf()),
+    Header:         HeroIconString(IsDuplicating() 
+                        ? HeroBeingDuplicated() 
+                        : HeroOf()),
     Subheader:      <"<0><1><2><3><4><5><6><7><8>",
     ArrayContains(a1c_arr, HeroOf()) || 
-    ArrayContains(a1c_arr, HeroBeingDuplicated()) ?
-    AbilityCharge(player, Button.Ability1) > 0 ? <"<0><1> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1), AbilityCharge(player, Button.Ability1)> : " 0 " : "",
+    ArrayContains(a1c_arr, HeroBeingDuplicated()) 
+        ? AbilityCharge(player, Button.Ability1) > 0 
+            ? <"<0><1> ", AbilityIconString(IsDuplicating() 
+                                                ? HeroBeingDuplicated() 
+                                                : HeroOf(), Button.Ability1), AbilityCharge(player, Button.Ability1)> 
+            : " 0 " 
+        : "",
 
     !ArrayContains(a1_arr, HeroOf()) && 
-    !ArrayContains(a1_arr, HeroBeingDuplicated()) ? 
-    <"<0>", AbilityCooldown(player, Button.Ability1) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.Ability1))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1)> : "",
+    !ArrayContains(a1_arr, HeroBeingDuplicated()) 
+        ? <"<0>", AbilityCooldown(player, Button.Ability1) != 0 
+            ? <" <0> ", Round(AbilityCooldown(player, Button.Ability1))> 
+            : AbilityIconString(IsDuplicating() 
+                                    ? HeroBeingDuplicated() 
+                                    : HeroOf(), Button.Ability1)> 
+        : "",
 
     ArrayContains(a2c_arr, HeroOf()) || 
-    ArrayContains(a2c_arr, HeroBeingDuplicated()) ?
-    AbilityCharge(player, Button.Ability2) > 0 ? <" <0><1> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2), AbilityCharge(player, Button.Ability2)> : "  0 " : "",
+    ArrayContains(a2c_arr, HeroBeingDuplicated()) 
+        ? AbilityCharge(player, Button.Ability2) > 0 
+            ? <" <0><1> ", AbilityIconString(IsDuplicating() 
+                                                ? HeroBeingDuplicated() 
+                                                : HeroOf(), Button.Ability2), AbilityCharge(player, Button.Ability2)> 
+            : "  0 " 
+        : "",
 
     !ArrayContains(a2_arr, HeroOf()) &&
-    !ArrayContains(a2_arr, HeroBeingDuplicated()) ? 
-    <" <0>", AbilityCooldown(player, Button.Ability2) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.Ability2))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2)> : "",
+    !ArrayContains(a2_arr, HeroBeingDuplicated()) 
+        ? <" <0>", AbilityCooldown(player, Button.Ability2) != 0 
+            ? <" <0> ", Round(AbilityCooldown(player, Button.Ability2))> 
+            : AbilityIconString(IsDuplicating() 
+                                    ? HeroBeingDuplicated() 
+                                    : HeroOf(), Button.Ability2)> 
+        : "",
 
     (ArrayContains(sf_arr, HeroOf())) || 
     (ArrayContains(sf_arr, HeroBeingDuplicated())) || 
-    (!IsDuplicating() && IsHero(Hero.Echo)) ?
-    <" <0>", AbilityCooldown(player, Button.SecondaryFire) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.SecondaryFire))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.SecondaryFire)> : "",
+    (!IsDuplicating() && IsHero(Hero.Echo)) 
+        ? <" <0>", AbilityCooldown(player, Button.SecondaryFire) != 0 
+                        ? <" <0> ", Round(AbilityCooldown(player, Button.SecondaryFire))> 
+                        : AbilityIconString(IsDuplicating() 
+                                                ? HeroBeingDuplicated() 
+                                                : HeroOf(), Button.SecondaryFire)> 
+        : "",
 
     ArrayContains(sfr_arr, HeroOf()) || 
-    ArrayContains(sfr_arr, HeroBeingDuplicated()) ?
-    <" <0><1> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.SecondaryFire), Round(AbilityResource(player, Button.SecondaryFire))> : "",
+    ArrayContains(sfr_arr, HeroBeingDuplicated()) 
+        ? <" <0><1> ", AbilityIconString(IsDuplicating() 
+                                            ? HeroBeingDuplicated() 
+                                            : HeroOf(), Button.SecondaryFire), Round(AbilityResource(player, Button.SecondaryFire))> 
+        : "",
 
     ArrayContains(pf_arr, HeroOf()) || 
-    ArrayContains(pf_arr, HeroBeingDuplicated()) ?
-    <" <0>", AbilityCooldown(player, Button.PrimaryFire) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.PrimaryFire))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.PrimaryFire)> : "",
+    ArrayContains(pf_arr, HeroBeingDuplicated()) 
+        ? <" <0>", AbilityCooldown(player, Button.PrimaryFire) != 0 
+                        ? <" <0> ", Round(AbilityCooldown(player, Button.PrimaryFire))> 
+                        : AbilityIconString(IsDuplicating() 
+                                                ? HeroBeingDuplicated() 
+                                                : HeroOf(), Button.PrimaryFire)> 
+        : "",
 
     ArrayContains(j_arr, HeroOf()) ||
-    ArrayContains(j_arr, HeroBeingDuplicated()) ?
-    <" <0>", AbilityCooldown(player, Button.Jump) != 0 ? <" <0> ", Round(AbilityCooldown(player, Button.Jump))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Jump)> : "",
+    ArrayContains(j_arr, HeroBeingDuplicated()) 
+        ? <" <0>", AbilityCooldown(player, Button.Jump) != 0 
+                        ? <" <0> ", Round(AbilityCooldown(player, Button.Jump))> 
+                        : AbilityIconString(IsDuplicating() 
+                                                ? HeroBeingDuplicated() 
+                                                : HeroOf(), Button.Jump)> 
+        : "",
 
     ArrayContains(c_arr, HeroOf()) ||
-    ArrayContains(c_arr, HeroBeingDuplicated()) ?
-    <" <0>", AbilityCooldown(player, Button.Crouch) != 0 ? <" <0>", Round(AbilityCooldown(player, Button.Crouch))> : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Crouch)> : "">, 
+    ArrayContains(c_arr, HeroBeingDuplicated()) 
+        ? <" <0>", AbilityCooldown(player, Button.Crouch) != 0 
+                        ? <" <0>", Round(AbilityCooldown(player, Button.Crouch))> 
+                        : AbilityIconString(IsDuplicating() 
+                                                ? HeroBeingDuplicated() 
+                                                : HeroOf(), Button.Crouch)> 
+        : "">, 
 
-    Text:           IsAlive() ? <"<2><0> HP <1>", Ceiling(Health()), attacked ? IconString(Icon.Warning) : "", IsDuplicating() ? <"<0> ", AbilityIconString(Hero.Echo, Button.Ultimate)> : ""> : "Dead",
+    Text:           IsAlive() 
+                        ? <"<2><0> HP <1>", Ceiling(Health()), attacked 
+                                                                    ? IconString(Icon.Warning) 
+                                                                    : "", IsDuplicating() 
+                                                                                ? <"<0> ", AbilityIconString(Hero.Echo, Button.Ultimate)> 
+                                                                                : ""> 
+                        : "Dead",
     Location:       Location.Left, 
     SortOrder:      SlotOf() + 1, 
     HeaderColor:    (Health() > max_health) && !IsDuplicating()
