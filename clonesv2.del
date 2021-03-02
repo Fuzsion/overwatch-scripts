@@ -178,14 +178,16 @@ disabled rule: "---------------- Owner Rules ----------------"{}
             /////////////    OWNER RULES    /////////////
             /////////////                   /////////////
 
+
+Player[] owned_bots: CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())));           // amount of owners bots
+Player[] human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr())));                                     // amount of slots per team subtracting the count of all human players on a team
+Player[] spawned_human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));       // count of all human players on a team that have spawned
 rule: "[Owner] :: Create Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
 if (HasSpawned())
 if (IsAlive())
-if (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())))  // amount of owners bots
-    < (TEAM_SIZE - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()))))           // amount of slots per team subtracting the count of all human players on a team
-    / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))  // count of all human players on a team that have spawned
+if (owned_bots < (TEAM_SIZE - human_cnt) / spawned_human_cnt)
 {
     bot_slot = LastOf(FilteredArray(slot_arr, 
                     !EntityExists(PlayersInSlot(Curr(), TeamOf())) || 
@@ -203,9 +205,7 @@ if (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Cu
 rule: "[Owner] :: Destroy Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())))              // amount of owners bots
-    > (TEAM_SIZE - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())))) // amount of slots per team subtracting the count of all spawned human players on a team
-    / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))              // count of all human players on a team that have spawned
+if (owned_bots > (TEAM_SIZE - spawned_human_cnt) / spawned_human_cnt)
 {
     DestroyDummyBot(TeamOf(), 
                     FirstOf(FilteredArray(slot_arr, 
