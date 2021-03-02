@@ -3,7 +3,7 @@ import "macros.del";
 import "clonesv2lobbydbg.json";
 Player[] owner_bots: FilteredArray(AllyPlayers(), IsDummyBot(Curr()) && Curr().owner == player);
 Player[] living_bots: FilteredArray(AllLivingPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player);
-Player[] human_player_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));
+// Player[] human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));
 
 // global
 globalvar Number DISTANCE; // maximum distance until bot teleports to owner
@@ -13,13 +13,13 @@ globalvar Number RESPAWN_TIME; // respawn time
 // globalvar Number FAILSAFE_TIME; // respawn failsafe time
 globalvar Number GENJI_DAMAGE;
 globalvar Number[] slot_arr; // amount of slots per team (from 0 - 9)
-globalvar Boolean inspector; // inspector toggle
-globalvar Boolean genji_nerf; // bool genji nerf
-globalvar Boolean heal_toggle; // bool heal over time
+globalvar Bool inspector; // inspector toggle
+globalvar Bool genji_nerf; // Bool genji nerf
+globalvar Bool heal_toggle; // Bool heal over time
 
 // all
-playervar Boolean cced; // bool for cc status is applied
-playervar Number player_slot; // slot of player to create bots for
+playervar Bool cced; // Bool for cc status is applied
+playervar Number bot_slot; // slot of player to create bots for
 playervar Any genji_ao; // genji damage modification
 playervar Number max_health; // maximum health a bot spawned with
 
@@ -33,8 +33,8 @@ playervar Number heal_taken; // amount of healing owner and bots have recieved
 
 // owner
 playervar Player owner; // player who owns a set of bots
-playervar Boolean owner_alive; // whether the owner is alive
-playervar Boolean is_rezzing; // checks if the owner is replacing a bot
+playervar Bool owner_alive; // whether the owner is alive
+playervar Bool is_rezzing; // checks if the owner is replacing a bot
 playervar Player new_player; // closest bot to owner upon death
 playervar Vector position_of; // position of the new_player
 playervar Vector facing; // facing direction of the new_player
@@ -42,14 +42,14 @@ playervar Number health_of; // health of the new_player
 playervar Number ammo_of; // ammo of new_player
 playervar Any heal_ot; // heal over time for the owner
 playervar Number timer; // time out of combat
-playervar Boolean attacked; // bool for if bot is attacked
+playervar Bool attacked; // Bool for if bot is attacked
 playervar Number attack_timer; // attacked timer
 
 // bot
-playervar Boolean bot_alive; // bot is alive
+playervar Bool bot_alive; // bot is alive
 
-globalvar Number BOT_AMOUNT;
-globalvar Number S_BOT_AMOUNT;
+globalvar Number TEAM_SIZE;
+globalvar Number S_TEAM_SIZE;
 globalvar Hero[] pf_arr;
 globalvar Hero[] sf_arr;
 globalvar Hero[] sfr_arr;
@@ -65,45 +65,46 @@ rule: "Initial Global"
     DisableInspectorRecording();
     DisableAnnouncer();
 
-    pf_arr = [Hero.Brigitte];
-    sf_arr = [Hero.Orisa, Hero.Reinhardt, Hero.Sigma, Hero.WreckingBall, Hero.Doomfist, Hero.Sombra, Hero.Soldier76, Hero.Brigitte, Hero.Lucio];
-    sfr_arr = [Hero.Dva, Hero.Bastion]; // resources array
-    a1_arr = [Hero.Soldier76, Hero.Zenyatta, Hero.Bastion, Hero.Tracer, Hero.Symmetra, Hero.Junkrat]; // array of heroes where ability 1 does not have a cooldown or uses charges instead
-    a1c_arr = [Hero.Tracer, Hero.Symmetra, Hero.Junkrat];
+    pf_arr = [Hero.Brigitte]; // primary fire
+    sf_arr = [Hero.Orisa, Hero.Reinhardt, Hero.Sigma, Hero.WreckingBall, Hero.Doomfist, Hero.Sombra, Hero.Soldier76, Hero.Brigitte, Hero.Lucio]; // secondary fire
+    sfr_arr = [Hero.Dva, Hero.Bastion]; // secondary fire resources
+    a1_arr = [Hero.Soldier76, Hero.Zenyatta, Hero.Bastion, Hero.Tracer, Hero.Symmetra, Hero.Junkrat]; // ability 1 does not have a cooldown or uses charges instead
+    a1c_arr = [Hero.Tracer, Hero.Symmetra, Hero.Junkrat]; // ability 1 charges
     a2_arr = [Hero.Brigitte, Hero.Zenyatta]; // array of heroes where ability 2 does not have a cooldown or uses charges instead
-    a2c_arr = [Hero.Brigitte];
-    j_arr = [Hero.Hanzo];
-    c_arr = [Hero.WreckingBall];
+    a2c_arr = [Hero.Brigitte]; // ability 2 charges
+    j_arr = [Hero.Hanzo]; // jump
+    c_arr = [Hero.WreckingBall]; // crouch
 
-    S_BOT_AMOUNT = WorkshopSettingCombo("General", "Team Size (10 or higher is very likely to crash the server!)", 0, ["6", "8", "10", "12"/* , "14", "16", "18" */], 1);
+    S_TEAM_SIZE = WorkshopSettingCombo("General", "Team Size (Changes how many bots can be on a team. 10 and 12 can crash the server!) (6)", 0, ["6", "8", "10", "12"/* , "14", "16", "18" */], 1);
 
-    if (S_BOT_AMOUNT == 0) {
-        BOT_AMOUNT = 6;
+    if (S_TEAM_SIZE == 0) {
         slot_arr = [0, 1, 2, 3, 4, 5];
+        TEAM_SIZE = 6;
     }
-    else if (S_BOT_AMOUNT == 1) {
+    else if (S_TEAM_SIZE == 1) {
         slot_arr = [0, 1, 2, 3, 4, 5, 6, 7];
-        BOT_AMOUNT = 8;
+        TEAM_SIZE = 8;
     }
-    else if (S_BOT_AMOUNT == 2) {
+    else if (S_TEAM_SIZE == 2) {
         slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-        BOT_AMOUNT = 10;
+        TEAM_SIZE = 10;
     }
-    else if (S_BOT_AMOUNT == 3) {
+    else if (S_TEAM_SIZE == 3) {
         slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-        BOT_AMOUNT = 12;
+        TEAM_SIZE = 12;
     }
-    // else if (S_BOT_AMOUNT == 4) {
+    // below breaks the bot creation for some reason
+    // else if (S_TEAM_SIZE == 4) {
     //     slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-    //     BOT_AMOUNT = 14;
+    //     TEAM_SIZE = 14;
     // }
-    // else if (S_BOT_AMOUNT == 5) {
+    // else if (S_TEAM_SIZE == 5) {
     //     slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    //     BOT_AMOUNT = 16;
+    //     TEAM_SIZE = 16;
     // }
-    // else if (S_BOT_AMOUNT == 6) {
+    // else if (S_TEAM_SIZE == 6) {
     //     slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-    //     BOT_AMOUNT = 18;
+    //     TEAM_SIZE = 18;
     // }
 
 
@@ -125,7 +126,7 @@ rule: "Initial Global"
 rule: "Initial Player Join"
 Event.OnPlayerJoin
 {
-    player_slot = [];
+    bot_slot = [];
 }
 
 rule: "[All] :: Human Init"
@@ -177,68 +178,100 @@ disabled rule: "---------------- Owner Rules ----------------"{}
             /////////////    OWNER RULES    /////////////
             /////////////                   /////////////
 
-// todo: rewrite create/destroy bots since the logic is not my own
 rule: "[Owner] :: Create Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
 if (HasSpawned())
 if (IsAlive())
-    // divides amount of available slots by the amount of human players
-if (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr()))) 
-                                            < Floor((BOT_AMOUNT - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()))))
-                                            / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())))))
+if (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())))  // amount of owners bots
+    < (TEAM_SIZE - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()))))           // amount of slots per team subtracting the count of all human players on a team
+    / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))  // count of all human players on a team that have spawned
 {
-    // sets the slot for the bot to be created in, either if there is no dummy bot at the end of the slot_arr or if the previous owner doesnt exist. returns a number
-    player_slot = LastOf(FilteredArray(slot_arr, 
-                        !EntityExists(PlayersInSlot(Curr(), TeamOf())) || (IsDummyBot(Curr()) && !EntityExists(Curr().owner))));
+    bot_slot = LastOf(FilteredArray(slot_arr, 
+                    !EntityExists(PlayersInSlot(Curr(), TeamOf())) || 
+                    (IsDummyBot(Curr()) && !EntityExists(Curr().owner)))); // sets the slot for the bot to be created in if there is no entity present and no dummy bot exists at the end of the slot_arr. returns a number
 
+    CreateDummyBot(HeroOf(), TeamOf(), bot_slot, PositionOf() + WorldVectorOf(Vector(0, 0, -0.5), player), FacingDirectionOf()); // create the bot
 
-    CreateDummyBot(HeroOf(), TeamOf(), player_slot, PositionOf() + WorldVectorOf(Vector(0, 0, -0.5), player), FacingDirectionOf());
-    PlayersInSlot(player_slot, TeamOf()).owner = player;
+    PlayersInSlot(bot_slot, TeamOf()).owner = player; // assign the owner
 
-    Wait(0.064);
+    Wait(0.15); // somewhat long wait to help alleviate server stuttering for bot creation
+
     LoopIfConditionIsTrue();
 }
 
 rule: "[Owner] :: Destroy Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr()))) 
-                                            > Floor((BOT_AMOUNT - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))
-                                            / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())))))
+if (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())))              // amount of owners bots
+    > (TEAM_SIZE - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())))) // amount of slots per team subtracting the count of all spawned human players on a team
+    / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))              // count of all human players on a team that have spawned
 {
     DestroyDummyBot(TeamOf(), 
                     FirstOf(FilteredArray(slot_arr, 
-                                          IsDummyBot(PlayersInSlot(Curr(), TeamOf())) && PlayersInSlot(Curr(), TeamOf()).owner == player && EntityExists(PlayersInSlot(Curr(), TeamOf())))));
+                            IsDummyBot(PlayersInSlot(Curr(), TeamOf())) && PlayersInSlot(Curr(), TeamOf()).owner == player && EntityExists(PlayersInSlot(Curr(), TeamOf())))));
 
-    Wait(0.064);
+    Wait(0.15); // somewhat long wait to help alleviate server stuttering for bot deletion
+
     LoopIfConditionIsTrue();
 }
 
+
+// playervar Player[] owned_bots;
+// playervar Player[] human_cnt;
+// playervar Player[] spawned_human_cnt;
+// playervar Number bot_amount;
+
 // rule: "[Owner] :: Create Bots"
-// Event.OnPlayerJoin
+// Event.OngoingPlayer
+// // Event.OnPlayerJoin
 // if (!IsDummyBot())
+// if (HasSpawned())
+// if (IsAlive())
+// if (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())))  // amount of owners bots
+//     < Floor((TEAM_SIZE - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()))))     // amount of slots per team subtracting the count of all human players on a team
+//     / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))))) // count of all human players on a team that have spawned
 // {
-//     WaitUntil(HasSpawned() && IsAlive(), 999999);
+//     // WaitUntil(HasSpawned() && IsAlive(), 999999);
 
-//     while (CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())))
-//                                                 < Floor((BOT_AMOUNT - CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr())))))
-//                                                 / human_player_cnt)
+//     owned_bots = CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())));
+//     human_cnt = CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()))); 
+//     spawned_human_cnt = CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))); 
+
+//     bot_amount = Floor((TEAM_SIZE - human_cnt) / human_cnt);
+
+//     for (Number i = 0; i < bot_amount; i++) 
 //     {
-//         Wait(0.032);
+//         bot_slot = LastOf(FilteredArray(slot_arr, 
+//                     !EntityExists(PlayersInSlot(Curr(), TeamOf())) || 
+//                     (IsDummyBot(Curr()) && !EntityExists(Curr().owner)))); // sets the slot for the bot to be created in if there is no entity present and no dummy bot exists at the end of the slot_arr. returns a number
 
-//         player_slot = LastOf(FilteredArray(slot_arr, !EntityExists(PlayersInSlot(Curr(), TeamOf())) || (IsDummyBot(Curr()) && !EntityExists(Curr().owner))));
+//         CreateDummyBot(HeroOf(), TeamOf(), bot_slot, PositionOf() + WorldVectorOf(Vector(0, 0, -0.5), player), FacingDirectionOf()); // create the bot
 
-//         CreateDummyBot(HeroOf(), TeamOf(), player_slot, PositionOf() + WorldVectorOf(Vector(0, 0, -0.5), player), FacingDirectionOf());
-    
-//         PlayersInSlot(player_slot, TeamOf()).owner = player;
+//         PlayersInSlot(bot_slot, TeamOf()).owner = player; // assigns the owner
+
+//         Wait(0.15); // to help alleviate server stuttering for bot creation, may fuck up the amount of bots to create if someone joins during the bot creation loop
 //     }
 // }
 
 // rule: "[Owner] :: Destroy Bots"
-// Event.OngoingPlayer
+// Event.OnPlayerLeave
+// if (!IsDummyBot())
 // {
+//     Player[] owned_bots = CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())));
+//     Player[] spawned_human_cnt = CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr()))); 
 
+//     if (owned_bots > Floor((TEAM_SIZE - spawned_human_cnt) / spawned_human_cnt))
+//     {
+//         for (Number i = owned_bots; i > Floor((TEAM_SIZE - spawned_human_cnt) / spawned_human_cnt); i++) 
+//         {
+//             DestroyDummyBot(TeamOf(), 
+//                             FirstOf(FilteredArray(slot_arr, 
+//                                     IsDummyBot(PlayersInSlot(Curr(), TeamOf())) && PlayersInSlot(Curr(), TeamOf()).owner == player && EntityExists(PlayersInSlot(Curr(), TeamOf())))));
+            
+//             Wait(0.064);
+//         }
+//     }
 // }
 
 rule: "[Owner] :: Replace Healthiest Bot"
@@ -459,7 +492,7 @@ Event.OngoingPlayer
 if (IsDummyBot())
 if (!IsDuplicating())
 {
-    for (define i = 0; i < 3; i++)
+    for (Number i = 0; i < 2; i++)
         DestroyEffect(clone_effects[i]);
 
     StartForcingDummyBotName(player, <"<0> Clone", owner>);
@@ -468,11 +501,9 @@ if (!IsDuplicating())
 
     Wait(1);
     CreateEffect(all, Effect.EchoCloningEffect, Position: player, Color: Color.White);
-    // clone_effects[0] = LastCreatedEntity();
-    // CreateEffect(EnemyPlayers(), Effect.EchoCloningEffect, Position: player, Color: Color.Team2);
-    // clone_effects[1] = LastCreatedEntity();
+    clone_effects[0] = LastCreatedEntity();
     CreateEffect(all, Effect.EchoCloningSound, Position: player, Radius: 20);
-    clone_effects[2] = LastCreatedEntity();
+    clone_effects[1] = LastCreatedEntity();
 }
 
 rule: "[Bot] :: Alive"
@@ -485,6 +516,8 @@ if (IsAlive())
     EnableRespawning();
 
     SetWeapon(player, Weapon(owner));
+
+    Communicate(player, Communication.WithYou);
 }
 
 rule: "[Bot] :: Dead"
@@ -540,6 +573,7 @@ if (UltimateChargePercent(owner) != 100)
 
 void TeleportBot() playervar "Teleport Sub"
 {
+    // Teleport(player, PositionOf(owner) + WorldVectorOf(Vector(0, 0, -0.5), owner));
     Teleport(player, PositionOf(owner) + WorldVectorOf(Vector(0, 0, -0.5), owner));
 
     AbortIf(IsHero(Hero.Sombra) && IsUsingAbility1());
@@ -822,6 +856,12 @@ disabled rule: "---------------- HUD Text ----------------"{}
             /////////////    HUD TEXT    /////////////
             /////////////                /////////////
 
+rule: "[HUD] :: Kills"
+Event.OnFinalBlow
+{
+    (owner == null ? player : owner).kills++;
+}
+
 rule: "[HUD] :: Update Kills"
 Event.OnFinalBlow
 {
@@ -838,6 +878,7 @@ if (!is_rezzing)
 rule: "[HUD] :: Update Damage Dealt"
 Event.OnDamageDealt
 if (Victim() != player)
+if (EventDamage() > 0)
 {
     (owner == null ? player : owner).damage_dealt += Round(EventDamage());
 }
@@ -845,6 +886,7 @@ if (Victim() != player)
 rule: "[HUD] :: Update Damage Recieved"
 Event.OnDamageTaken
 if (Attacker() != player)
+if (EventDamage() > 0)
 {
     (owner == null ? player : owner).damage_taken += Round(EventDamage());
 }
@@ -852,6 +894,7 @@ if (Attacker() != player)
 rule: "[HUD] :: Update Heal Dealt"
 Event.OnHealingDealt
 if (Healee() != player)
+if (EventHealing() > 0)
 {
     (owner == null ? player : owner).heal_dealt += Round(EventHealing());
 }
@@ -859,6 +902,7 @@ if (Healee() != player)
 rule: "[HUD] :: Update Heal Recieved"
 Event.OnHealingTaken
 if (Healer() != player)
+if (EventHealing() > 0)
 {
     (owner == null ? player : owner).heal_taken += Round(EventHealing());
 }
@@ -1116,7 +1160,7 @@ Event.OngoingPlayer
 Player.Echo
 if (IsDuplicating())
 {
-    for (define i = 0; i < 3; i++)
+    for (Number i = 0; i < 3; i++)
         DestroyEffect(clone_effects[i]);
 }
 
@@ -1206,13 +1250,13 @@ if (IsButtonHeld(host, Button.Interact))
 //     Kill(all);
 // }
 
-rule: "[DBG] :: Ult"
-Event.OngoingPlayer
-if (!IsDummyBot())
-if (IsInteractHeld())
-{
-    SetUltimateCharge(player, 100);
-}
+// rule: "[DBG] :: Ult"
+// Event.OngoingPlayer
+// if (!IsDummyBot())
+// if (IsInteractHeld())
+// {
+//     SetUltimateCharge(player, 100);
+// }
 
 // rule: "[DBG] :: Kill Team 2"
 // Event.OngoingPlayer
