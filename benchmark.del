@@ -1,7 +1,0 @@
-import "macros.del";
-globalvar define camPath;
-
-rule: "Init"
-    {
-        
-    }
