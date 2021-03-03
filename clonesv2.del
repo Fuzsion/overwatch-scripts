@@ -68,9 +68,8 @@ rule: "Initial Global"
     pf_arr = [Hero.Brigitte]; // primary fire
     sf_arr = [Hero.Orisa, Hero.Reinhardt, Hero.Sigma, Hero.WreckingBall, Hero.Doomfist, Hero.Sombra, Hero.Soldier76, Hero.Brigitte, Hero.Lucio]; // secondary fire
     sfr_arr = [Hero.Dva, Hero.Bastion]; // secondary fire resources
-    a1_arr = [Hero.Soldier76, Hero.Zenyatta, Hero.Bastion, Hero.Tracer, Hero.Symmetra, Hero.Junkrat]; // ability 1 does not have a cooldown or uses charges instead
     a1c_arr = [Hero.Tracer, Hero.Symmetra, Hero.Junkrat]; // ability 1 charges
-    a2_arr = [Hero.Brigitte, Hero.Zenyatta]; // array of heroes where ability 2 does not have a cooldown or uses charges instead
+    // a2_arr = [Hero.Brigitte]; // uses charges instead
     a2c_arr = [Hero.Brigitte]; // ability 2 charges
     j_arr = [Hero.Hanzo]; // jump
     c_arr = [Hero.WreckingBall]; // crouch
@@ -106,7 +105,6 @@ rule: "Initial Global"
     //     slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
     //     TEAM_SIZE = 18;
     // }
-
 
     TIMER_DUR = WorkshopSettingReal("General", "In Combat Timer (6)", 6, 0, 30, 2);
     RESPAWN_TIME = WorkshopSettingInteger("General", "Bot Respawn Time (15)", 15, 0, 90, 3);
@@ -187,7 +185,7 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (HasSpawned())
 if (IsAlive())
-if (owned_bots < (TEAM_SIZE - human_cnt) / spawned_human_cnt)
+if (owned_bots < Floor((TEAM_SIZE - human_cnt) / spawned_human_cnt))
 {
     bot_slot = LastOf(FilteredArray(slot_arr, 
                     !EntityExists(PlayersInSlot(Curr(), TeamOf())) || 
@@ -205,11 +203,11 @@ if (owned_bots < (TEAM_SIZE - human_cnt) / spawned_human_cnt)
 rule: "[Owner] :: Destroy Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (owned_bots > (TEAM_SIZE - spawned_human_cnt) / spawned_human_cnt)
+if (owned_bots > Floor((TEAM_SIZE - spawned_human_cnt) / spawned_human_cnt))
 {
     DestroyDummyBot(TeamOf(), 
                     FirstOf(FilteredArray(slot_arr, 
-                            IsDummyBot(PlayersInSlot(Curr(), TeamOf())) && PlayersInSlot(Curr(), TeamOf()).owner == player && EntityExists(PlayersInSlot(Curr(), TeamOf())))));
+                    IsDummyBot(PlayersInSlot(Curr(), TeamOf())) && PlayersInSlot(Curr(), TeamOf()).owner == player && EntityExists(PlayersInSlot(Curr(), TeamOf())))));
 
     Wait(0.15); // somewhat long wait to help alleviate server stuttering for bot deletion
 
@@ -362,6 +360,7 @@ if (!is_rezzing)
     WaitUntil(owner_alive, 9999);
     Respawn(bots);
     EnableRespawning(bots);
+    EnableNameplates(bots, all);
 }
 
 rule: "[Owner] :: Prevent Bot Spawning"
@@ -370,6 +369,7 @@ if (!owner_alive)
 {
     Player[] bots = owner_bots;
     DisableRespawning(bots);
+    DisableNameplates(bots, all); // overwatch has a bug where if the players spawning is disabled and is dead their corpse will have a nameplate
 }
 
 // FilteredArray(AllDeadPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player)
@@ -499,7 +499,7 @@ if (!IsDuplicating())
     SetRespawnMaxTime(player, RESPAWN_TIME);
     SetUltimateAbilityEnabled(player, false);
 
-    Wait(1);
+    Wait(2);
     CreateEffect(all, Effect.EchoCloningEffect, Position: player, Color: Color.White);
     clone_effects[0] = LastCreatedEntity();
     CreateEffect(all, Effect.EchoCloningSound, Position: player, Radius: 20);
@@ -543,13 +543,12 @@ if (!EntityExists(owner) || HeroOf() != HeroOf(owner) || TeamOf() != TeamOf(owne
 rule: "[Bot] :: Enable Ult"
 Event.OngoingPlayer
 if (IsDummyBot())
+if (!IsDuplicating(owner))
 if (UltimateChargePercent(owner) == 100)
 if (bot_alive)
 {
     SetUltimateAbilityEnabled(player, true);
     SetUltimateCharge(player, 100);
-    // Wait(0.08);
-    // LoopIf(UltimateChargePercent() != 100);
 }
 
 rule: "[Bot] :: Disable ult"
@@ -615,7 +614,7 @@ rule: "[IE] :: Aim & Movement"
 Event.OngoingPlayer
 if (bot_alive)
 {
-    StartThrottleInDirection(player, WorldVectorOf(ThrottleOf(owner), owner, LocalVector.Rotation), ThrottleOf(owner) != Vector(0,0,0));
+    StartThrottleInDirection(player, WorldVectorOf(ThrottleOf(owner), owner), ThrottleOf(owner) != Vector(0,0,0));
 
     StartFacing(player, DirectionTowards(EyePosition(),
     UpdateEveryFrame(RayCastHitPosition(EyePosition(owner), EyePosition(owner) + FacingDirectionOf(owner) * 100, AllLivingPlayers(OppositeTeamOf(TeamOf(owner))), AllLivingPlayers(TeamOf(owner)), true))), 
@@ -945,8 +944,8 @@ if (!IsDummyBot())
 }
 
 Number percentage: (NormalizedHealth() * 100);
-Number r: (percentage <= 75) ? 255 : Floor(256 - (percentage - 50) * 5.12);
-Number g: (percentage >= 75) ? 255 : Floor(percentage * 5.12);
+Number r: (percentage <= 87.5) ? 255 : Floor(256 - (percentage - 50) * 5.12);
+Number g: (percentage >= 87.5) ? 255 : Floor(percentage * 5.12);
 Color health_color: CustomColor(r, g, 0, 255);
 
 // Color health_color: Colors.Gradient(new ComponentColor(Color.Red), new ComponentColor(Color.Green), NormalizedHealth());
@@ -956,60 +955,83 @@ Event.OngoingPlayer
 if (IsDummyBot())
 if (HasSpawned())
 {
-    // MaxHealth() updates dynamically, using a variable lets me get around this. this will break when echo clones someone or if dva is out of mech
+    // MaxHealth() updates dynamically, using a variable lets me get around this. this will break if dva is out of mech
     max_health = MaxHealth();
 
     CreateHudText(owner, 
-    Header:         HeroIconString(IsDuplicating() 
-                        ? HeroBeingDuplicated() 
-                        : HeroOf()),
-    Subheader:      <"<0><1><2><3><4><5><6><7><8>",
+    Header:         <"<0><1>",  /* <0> */ IsDuplicating() 
+                                                ? <"<0> ", AbilityIconString(Hero.Echo, Button.Ultimate)> 
+                                                : "", 
+                                /* <1> */ HeroIconString(IsDuplicating() 
+                                                        ? HeroBeingDuplicated() 
+                                                        : HeroOf())>,
+    Subheader:      <"<0><1><2><3><4><5><6><7><8><9>",
+    // ability 1 charges
     ArrayContains(a1c_arr, HeroOf()) || 
     ArrayContains(a1c_arr, HeroBeingDuplicated()) 
         ? AbilityCharge(player, Button.Ability1) > 0 
             ? <"<0><1> ", AbilityIconString(IsDuplicating() 
                                                 ? HeroBeingDuplicated() 
                                                 : HeroOf(), Button.Ability1), AbilityCharge(player, Button.Ability1)> 
-            : <" <0> ", IconString(Icon.No)>
+            : <" <0>  ", IconString(Icon.No)>
         : "",
 
-    !ArrayContains(a1_arr, HeroOf()) && 
-    !ArrayContains(a1_arr, HeroBeingDuplicated()) 
+    // ability 1
+    !ArrayContains(a1c_arr, HeroOf()) && 
+    !ArrayContains(a1c_arr, HeroBeingDuplicated()) && 
+    !IsHero(Hero.Lucio) && !IsDuplicatingHero(Hero.Lucio) 
         ? <"<0>", AbilityCooldown(player, Button.Ability1) != 0 
-            ? <" <0> ", Round(AbilityCooldown(player, Button.Ability1))> 
-            : AbilityIconString(IsDuplicating() 
-                                    ? HeroBeingDuplicated() 
-                                    : HeroOf(), Button.Ability1)> 
+            ? Round(AbilityCooldown(player, Button.Ability1)) < 10 
+                ? <"  <0>  ", Round(AbilityCooldown(player, Button.Ability1))> 
+                : <" <0> ", Round(AbilityCooldown(player, Button.Ability1))>
+            : IsUsingAbility1()
+                ? "      "
+                : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1)> 
         : "",
 
+    // lucio ability 1
+    IsHero(Hero.Lucio) || IsDuplicatingHero(Hero.Lucio)
+        ? <"<0>", AbilityCooldown(player, Button.Ability1) != 0 
+            ? <"   <0>    ", Round(AbilityCooldown(player, Button.Ability1))> 
+            : IsUsingAbility1()
+                ? <"<0> >", AbilityIconString(HeroOf(), Button.Ability1)>
+                : <"<0> +", AbilityIconString(HeroOf(), Button.Ability1)>> 
+        : "",
+
+    // ability 2 charges
     ArrayContains(a2c_arr, HeroOf()) || 
     ArrayContains(a2c_arr, HeroBeingDuplicated()) 
         ? AbilityCharge(player, Button.Ability2) > 0 
-            ? <" <0><1> ", AbilityIconString(IsDuplicating() 
-                                                ? HeroBeingDuplicated() 
-                                                : HeroOf(), Button.Ability2), AbilityCharge(player, Button.Ability2)> 
-            : <"  <0> ", IconString(Icon.No)>
+            ? <" <0><1> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2), AbilityCharge(player, Button.Ability2)> 
+            : <"  <0>  ", IconString(Icon.No)>
         : "",
 
-    !ArrayContains(a2_arr, HeroOf()) &&
-    !ArrayContains(a2_arr, HeroBeingDuplicated()) 
+    // ability 2
+    !ArrayContains(a2c_arr, HeroOf()) &&
+    !ArrayContains(a2c_arr, HeroBeingDuplicated()) 
         ? <" <0>", AbilityCooldown(player, Button.Ability2) != 0 
-            ? <" <0> ", Round(AbilityCooldown(player, Button.Ability2))> 
-            : AbilityIconString(IsDuplicating() 
-                                    ? HeroBeingDuplicated() 
-                                    : HeroOf(), Button.Ability2)> 
+            ? Round(AbilityCooldown(player, Button.Ability1)) < 10 
+                ? <"  <0>  ", Round(AbilityCooldown(player, Button.Ability2))> 
+                : <" <0> ", Round(AbilityCooldown(player, Button.Ability2))>
+            : IsUsingAbility2()
+                ? "      "
+                : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2)> 
         : "",
 
+    // secondary fire
     (ArrayContains(sf_arr, HeroOf())) || 
     (ArrayContains(sf_arr, HeroBeingDuplicated())) || 
     (!IsDuplicating() && IsHero(Hero.Echo)) 
         ? <" <0>", AbilityCooldown(player, Button.SecondaryFire) != 0 
-                        ? <" <0> ", Round(AbilityCooldown(player, Button.SecondaryFire))> 
-                        : AbilityIconString(IsDuplicating() 
-                                                ? HeroBeingDuplicated() 
-                                                : HeroOf(), Button.SecondaryFire)> 
+            ? Round(AbilityCooldown(player, Button.SecondaryFire)) < 10 
+                ? <"  <0>  ", Round(AbilityCooldown(player, Button.SecondaryFire))> 
+                : <" <0> ", Round(AbilityCooldown(player, Button.SecondaryFire))>
+            : IsFiringSecondary()
+                ? "      "
+                : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.SecondaryFire)> 
         : "",
 
+    // secondary fire resources
     ArrayContains(sfr_arr, HeroOf()) || 
     ArrayContains(sfr_arr, HeroBeingDuplicated()) 
         ? <" <0><1> ", AbilityIconString(IsDuplicating()
@@ -1017,39 +1039,45 @@ if (HasSpawned())
                                             : HeroOf(), Button.SecondaryFire), Round(AbilityResource(player, Button.SecondaryFire))> 
         : "",
 
+    // primary fire
     ArrayContains(pf_arr, HeroOf()) || 
     ArrayContains(pf_arr, HeroBeingDuplicated()) 
         ? <" <0>", AbilityCooldown(player, Button.PrimaryFire) != 0 
-                        ? <" <0> ", Round(AbilityCooldown(player, Button.PrimaryFire))> 
-                        : AbilityIconString(IsDuplicating() 
-                                                ? HeroBeingDuplicated() 
-                                                : HeroOf(), Button.PrimaryFire)> 
+            ? Round(AbilityCooldown(player, Button.PrimaryFire)) < 10 
+                ? <"  <0>  ", Round(AbilityCooldown(player, Button.PrimaryFire))> 
+                : <" <0> ", Round(AbilityCooldown(player, Button.PrimaryFire))>
+            : IsFiringPrimary()
+                ? "      "
+                : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.PrimaryFire)> 
         : "",
 
+    // jump
     ArrayContains(j_arr, HeroOf()) ||
     ArrayContains(j_arr, HeroBeingDuplicated()) 
         ? <" <0>", AbilityCooldown(player, Button.Jump) != 0 
-                        ? <" <0> ", Round(AbilityCooldown(player, Button.Jump))> 
-                        : AbilityIconString(IsDuplicating() 
-                                                ? HeroBeingDuplicated() 
-                                                : HeroOf(), Button.Jump)> 
+            ? Round(AbilityCooldown(player, Button.Jump)) < 10 
+                ? <"  <0>  ", Round(AbilityCooldown(player, Button.Jump))> 
+                : <" <0> ", Round(AbilityCooldown(player, Button.Jump))>
+            : AbilityIconString(IsDuplicating() 
+                                    ? HeroBeingDuplicated() 
+                                    : HeroOf(), Button.Jump)> 
         : "",
 
+    // crouch
     ArrayContains(c_arr, HeroOf()) ||
     ArrayContains(c_arr, HeroBeingDuplicated()) 
         ? <" <0>", AbilityCooldown(player, Button.Crouch) != 0 
-                        ? <" <0>", Round(AbilityCooldown(player, Button.Crouch))> 
-                        : AbilityIconString(IsDuplicating() 
-                                                ? HeroBeingDuplicated() 
-                                                : HeroOf(), Button.Crouch)> 
+            ? Round(AbilityCooldown(player, Button.Crouch)) < 10 
+                ? <"  <0>  ", Round(AbilityCooldown(player, Button.Crouch))> 
+                : <" <0> ", Round(AbilityCooldown(player, Button.Crouch))>
+            : AbilityIconString(IsDuplicating() 
+                                    ? HeroBeingDuplicated() 
+                                    : HeroOf(), Button.Crouch)> 
         : "">, 
-
     Text:           IsAlive() 
-                        ? <"<2><0> HP <1>", Ceiling(Health()), attacked 
-                                                                    ? IconString(Icon.Warning) 
-                                                                    : "", IsDuplicating() 
-                                                                                ? <"<0> ", AbilityIconString(Hero.Echo, Button.Ultimate)> 
-                                                                                : ""> 
+                        ? <"<0> HP <1>", Ceiling(Health()), attacked 
+                                                                ? IconString(Icon.Warning) 
+                                                                : ""> 
                         : "Dead",
     Location:       Location.Left, 
     SortOrder:      SlotOf() + 1, 
@@ -1076,16 +1104,6 @@ disabled rule: "---------------- Hero Specifics (HS) ----------------"{}
 //     DisableAbility2();
 // }
 
-rule: "[HS] :: Sombra Stealth After Bot Spawns"
-Event.OngoingPlayer
-Player.Sombra
-if (IsDummyBot())
-if (IsAlive())
-if (IsUsingAbility1(owner))
-{
-    PressButton(player, Button.Ability1);
-}
-
 rule: "[HS] :: Sombra Unstealth Bots"
 Event.OngoingPlayer
 Player.Sombra
@@ -1095,27 +1113,40 @@ if (IsUsingAbility1())
     PressButton(player, Button.Ability1);
 }
 
+// brute fucking force
+rule: "[HS] :: Sombra Stealth After Bot Spawns"
+Event.OngoingPlayer
+Player.Sombra
+if (bot_alive)
+if (IsUsingAbility1(owner))
+{
+    Wait(0.15);
+    PressButton(player, Button.Ability1);
+    LoopIf(!IsUsingAbility1());
+}
+
+rule: "[HS] :: Mei Ice Block After Bot Spawn"
+Event.OngoingPlayer
+Player.Mei
+if (bot_alive)
+if (IsUsingAbility1(owner))
+{
+    Wait(0.15);
+    PressButton(player, Button.Ability1);
+    LoopIf(!IsUsingAbility1());
+}
+
 rule: "[HS] :: Mei Cancel Ice Block"
 Event.OngoingPlayer
 Player.Mei
-if (!IsDummyBot())
-if (!IsUsingAbility1())
+if (bot_alive)
+if (!IsUsingAbility1(owner))
 {
-    Player[] bots = living_bots;
-    CancelPrimaryAction(bots);
+    // Wait(0.15);
+    CancelPrimaryAction();
+    // LoopIf(IsUsingAbility1());
 }
 
-rule: "[HS] :: Mei Ice Block After Bot Spawns"
-Event.OngoingPlayer
-Player.Mei
-if (IsUsingAbility1(owner))
-if (bot_alive)
-if (!IsUsingAbility1())
-{
-    PressButton(player, Button.Ability1);
-    Wait(0.16);
-    LoopIfConditionIsTrue();
-}
 
 rule: "[HS] :: Baptiste Reload Fix"
 Event.OngoingPlayer
@@ -1127,7 +1158,7 @@ if (Ammo(player, 0) == 0 || Ammo(player, 1) == 0)
     PressButton(player, Button.Reload);
 }
 
-rule: "[HS] :: Reaper Cancel TP if bot failed"
+rule: "[HS] :: Reaper Cancel TP"
 Event.OngoingPlayer
 Player.Reaper
 if (!IsDummyBot())
@@ -1155,14 +1186,40 @@ if (!IsUsingAbility1())
     StopDamageModification(genji_ao);
 }
 
+rule: "[HS] :: Echo Clone Ult"
+Event.OngoingPlayer
+Player.Echo
+if (IsDummyBot())
+if (IsDuplicating())
+if (IsDuplicating(owner))
+if (UltimateChargePercent(owner) == 100)
+if (bot_alive)
+{
+    SetUltimateAbilityEnabled(player, true);
+    SetUltimateCharge(player, 100);
+}
+
 rule: "[HS] :: Echo Clone"
 Event.OngoingPlayer
 Player.Echo
+if (IsDummyBot())
 if (IsDuplicating())
 {
+    max_health = MaxHealth();
+
     for (Number i = 0; i < 3; i++)
         DestroyEffect(clone_effects[i]);
 }
+
+rule: "[HS] :: Echo No Clone"
+Event.OngoingPlayer
+Player.Echo
+if (IsDummyBot())
+if (!IsDuplicating())
+{
+    max_health = MaxHealth();
+}
+
 
 disabled rule: "---------------- Debug ----------------"{}
 
@@ -1226,13 +1283,13 @@ if (IsButtonHeld(host, Button.Interact))
 //     Kill(FilteredArray(AllPlayers(), IsDummyBot(Curr())));
 // }
 
-// rule: "[DBG] :: Kill Owner Bots"
-// Event.OngoingPlayer
-// if (!IsDummyBot())
-// if (IsInteractHeld())
-// {
-//     Kill(owner_bots);
-// }
+rule: "[DBG] :: Kill Owner Bots"
+Event.OngoingPlayer
+if (!IsDummyBot())
+if (IsButtonHeld(player, Button.Interact))
+{
+    Kill(owner_bots);
+}
 
 // rule: "[DBG] :: Kill"
 // Event.OngoingPlayer

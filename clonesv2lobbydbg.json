@@ -70,6 +70,12 @@
         "Wrecking Ball": {
           "Adaptive Shield Cooldown Time": 125.0
         }
+      },
+
+      "Team 1": {
+        "General": {
+          "Spawn With Ultimate Ready": true
+        }
       }
     }, 
     "Extensions": {
