@@ -178,8 +178,8 @@ disabled rule: "---------------- Owner Rules ----------------"{}
 
 
 Player[] owned_bots: CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())));           // amount of owners bots
-Player[] human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr())));                                     // amount of slots per team subtracting the count of all human players on a team
-Player[] spawned_human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));       // count of all human players on a team that have spawned
+Player[] human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr())));                                     // amount of all human players on a team
+Player[] spawned_human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));       // amount of all human players on a team that have spawned
 rule: "[Owner] :: Create Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
