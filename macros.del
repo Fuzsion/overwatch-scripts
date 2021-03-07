@@ -12,9 +12,9 @@ Number      Time():                                               TotalTimeElaps
 Any         WaitIfTrue(Number time):                              Wait(time, WaitBehavior.AbortWhenFalse);
 Player[]    EnemyPlayers():                                       AllPlayers(OppositeTeamOf(TeamOf()));
 Player[]    AllyPlayers():                                        AllPlayers(TeamOf());
-Boolean     IsHero(in Hero hero):                                 HeroOf() == hero;
-Boolean     IsDuplicatingHero(in Hero hero):                      HeroBeingDuplicated() == hero;
-Boolean     IsMap(in Map map):                                    CurrentMap() == map;
+Bool        IsHero(in Hero hero):                                 HeroOf() == hero;
+Bool        IsDuplicatingHero(in Hero hero):                      HeroBeingDuplicated() == hero;
+Bool        IsMap(in Map map):                                    CurrentMap() == map;
 Any         Curr():                                               ArrayElement();
 
 Number      Floor(Number number):                                 RoundToInteger(number, Rounding.Down);
