@@ -5,17 +5,20 @@ Player[] owner_bots: FilteredArray(AllyPlayers(), IsDummyBot(Curr()) && Curr().o
 Player[] living_bots: FilteredArray(AllLivingPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player);
 // Player[] human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));
 
-// global
-globalvar Number DISTANCE; // maximum distance until bot teleports to owner
-globalvar Number OOS_TIME; // out of los time before teleport
-globalvar Number TIMER_DUR; // duration of the combat timer
-globalvar Number RESPAWN_TIME; // respawn time
+globalvar Number S_DISTANCE; // maximum distance until bot teleports to owner
+globalvar Number S_OOS_TIME; // out of los time before teleport
+globalvar Number S_TIMER_DUR; // duration of the combat timer
+globalvar Number S_RESPAWN_TIME; // respawn time
 // globalvar Number FAILSAFE_TIME; // respawn failsafe time
-globalvar Number GENJI_DAMAGE;
-globalvar Number[] slot_arr; // amount of slots per team (from 0 - 9)
+globalvar Number S_GENJI_DAMAGE;
+globalvar Bool s_genji_nerf; // Bool genji nerf
+globalvar Bool s_heal_toggle; // Bool heal over time
+globalvar Bool s_echo_effect;
+globalvar Bool s_aim_effect;
+
+
+globalvar Number[] slot_arr; // amount of slots per team
 globalvar Bool inspector; // inspector toggle
-globalvar Bool genji_nerf; // Bool genji nerf
-globalvar Bool heal_toggle; // Bool heal over time
 
 // all
 playervar Bool cced; // Bool for cc status is applied
@@ -35,11 +38,6 @@ playervar Number heal_taken; // amount of healing owner and bots have recieved
 playervar Player owner; // player who owns a set of bots
 playervar Bool owner_alive; // whether the owner is alive
 playervar Bool is_rezzing; // checks if the owner is replacing a bot
-playervar Player new_player; // closest bot to owner upon death
-playervar Vector position_of; // position of the new_player
-playervar Vector facing; // facing direction of the new_player
-playervar Number health_of; // health of the new_player
-playervar Number ammo_of; // ammo of new_player
 playervar Any heal_ot; // heal over time for the owner
 playervar Number timer; // time out of combat
 playervar Bool attacked; // Bool for if bot is attacked
@@ -47,9 +45,12 @@ playervar Number attack_timer; // attacked timer
 
 // bot
 playervar Bool bot_alive; // bot is alive
-
 globalvar Number TEAM_SIZE;
 globalvar Number S_TEAM_SIZE;
+
+// globalvar Any[] buttons;
+// playervar Any button;
+
 globalvar Hero[] pf_arr;
 globalvar Hero[] sf_arr;
 globalvar Hero[] sfr_arr;
@@ -73,8 +74,9 @@ rule: "Initial Global"
     a2c_arr = [Hero.Brigitte]; // ability 2 charges
     j_arr = [Hero.Hanzo]; // jump
     c_arr = [Hero.WreckingBall]; // crouch
+    // buttons = [Button.PrimaryFire, Button.SecondaryFire, Button.Ability1, Button.Ability2, Button.Melee, Button.Crouch, Button.Interact, Button.Jump, Button.Reload, Button.Ultimate];
 
-    S_TEAM_SIZE = WorkshopSettingCombo("General", "Team Size (Changes how many bots can be on a team. 10 and 12 can crash the server!) (6)", 0, ["6", "8", "10", "12"/* , "14", "16", "18" */], 1);
+    S_TEAM_SIZE = WorkshopSettingCombo("General", "Team Size (Changes the maximum bots per team. Higher than 9 can crash the server!) (5)", 0, ["5", "7", "9", "11"/* , "13", "15", "17" */], 1);
 
     if (S_TEAM_SIZE == 0) {
         slot_arr = [0, 1, 2, 3, 4, 5];
@@ -92,7 +94,6 @@ rule: "Initial Global"
         slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         TEAM_SIZE = 12;
     }
-    // below breaks the bot creation for some reason
     // else if (S_TEAM_SIZE == 4) {
     //     slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
     //     TEAM_SIZE = 14;
@@ -106,25 +107,21 @@ rule: "Initial Global"
     //     TEAM_SIZE = 18;
     // }
 
-    TIMER_DUR = WorkshopSettingReal("General", "In Combat Timer (6)", 6, 0, 30, 2);
-    RESPAWN_TIME = WorkshopSettingInteger("General", "Bot Respawn Time (15)", 15, 0, 90, 3);
-    heal_toggle = WorkshopSettingToggle("General", "Heal Over Time out of combat (On)", true, 4);
+    S_TIMER_DUR = WorkshopSettingReal("General", "In Combat Timer (6)", 6, 0, 30, 2);
+    S_RESPAWN_TIME = WorkshopSettingInteger("General", "Bot Respawn Time (15)", 15, 0, 90, 3);
+    s_heal_toggle = WorkshopSettingToggle("General", "Heal Over Time out of combat (On)", true, 4);
+    s_echo_effect = WorkshopSettingToggle("General", "Bots have an Echo Cloning Effect (On)", true, 5);
+    s_aim_effect = WorkshopSettingToggle("General", "Show bot aim beams (Off)", false, 6);
 
-    DISTANCE = WorkshopSettingReal("Teleport", "Teleport Distance (12)", 12, 0, 100, 1);
-    OOS_TIME = WorkshopSettingReal("Teleport", "Out of LOS Teleport Time (0.25)", 0.25, 0, 5, 2);
+    S_DISTANCE = WorkshopSettingReal("Teleport", "Teleport Distance (12)", 12, 0, 100, 1);
+    S_OOS_TIME = WorkshopSettingReal("Teleport", "Out of LOS Teleport Time (0.25)", 0.25, 0, 5, 2);
 
-    genji_nerf = WorkshopSettingToggle("Genji", "Genji Ability 1 Damage Modification (On)", true, 1);
-    GENJI_DAMAGE = WorkshopSettingReal("Genji", "Genji Ability 1 Damage Percentage (33.34)", 33.34, 0, 100, 2);
+    s_genji_nerf = WorkshopSettingToggle("Genji", "Genji Ability 1 Damage Modification (On)", true, 1);
+    S_GENJI_DAMAGE = WorkshopSettingReal("Genji", "Genji Ability 1 Damage Percentage (33.34)", 33.34, 0, 100, 2);
 
     CreateHudText(all, null, null, "ㅤMimic | Created by scort#11221", Location.Right, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleTo);
     CreateHudText(all, null, "ㅤv1.0.0 | Code: WRYEP", null, Location.Right, 0.2);
     CreateHudText(all, null, " \n\n\n", null, Location.Left, 0.01);
-}
-
-rule: "Initial Player Join"
-Event.OnPlayerJoin
-{
-    bot_slot = [];
 }
 
 rule: "[All] :: Human Init"
@@ -179,19 +176,21 @@ disabled rule: "---------------- Owner Rules ----------------"{}
 
 Player[] owned_bots: CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())));           // amount of owners bots
 Player[] human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr())));                                     // amount of all human players on a team
-Player[] spawned_human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));       // amount of all human players on a team that have spawned
+
+// Player[] spawned_human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));       // amount of all human players on a team that have spawned
 rule: "[Owner] :: Create Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
 if (HasSpawned())
 if (IsAlive())
-if (owned_bots < Floor((TEAM_SIZE - human_cnt) / spawned_human_cnt))
+if (owned_bots < Floor((TEAM_SIZE - human_cnt) / human_cnt))
 {
-    bot_slot = LastOf(FilteredArray(slot_arr, 
+    bot_slot = FirstOf(FilteredArray(slot_arr, 
                     !EntityExists(PlayersInSlot(Curr(), TeamOf())) || 
                     (IsDummyBot(Curr()) && !EntityExists(Curr().owner)))); // sets the slot for the bot to be created in if there is no entity present and no dummy bot exists at the end of the slot_arr. returns a number
 
-    CreateDummyBot(HeroOf(), TeamOf(), bot_slot, PositionOf() + WorldVectorOf(Vector(0, 0, -0.5), player), FacingDirectionOf()); // create the bot
+    Vector position = (PositionOf() + Vector(0, 0.2, 0));
+    CreateDummyBot(HeroOf(), TeamOf(), bot_slot, RayCastHitPosition(position, position + WorldVectorOf(Vector(0, 0, -1.5), player)), FacingDirectionOf()); // create the bot
 
     PlayersInSlot(bot_slot, TeamOf()).owner = player; // assign the owner
 
@@ -203,10 +202,10 @@ if (owned_bots < Floor((TEAM_SIZE - human_cnt) / spawned_human_cnt))
 rule: "[Owner] :: Destroy Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (owned_bots > Floor((TEAM_SIZE - spawned_human_cnt) / spawned_human_cnt))
+if (owned_bots > Floor((TEAM_SIZE - human_cnt) / human_cnt))
 {
     DestroyDummyBot(TeamOf(), 
-                    FirstOf(FilteredArray(slot_arr, 
+                    LastOf(FilteredArray(slot_arr, 
                     IsDummyBot(PlayersInSlot(Curr(), TeamOf())) && PlayersInSlot(Curr(), TeamOf()).owner == player && EntityExists(PlayersInSlot(Curr(), TeamOf())))));
 
     Wait(0.15); // somewhat long wait to help alleviate server stuttering for bot deletion
@@ -280,20 +279,20 @@ if (IsTrueForAny(AllLivingPlayers(TeamOf()), Curr().owner == player && IsDummyBo
 {
     Player[] bots = owner_bots;
     is_rezzing = true;
-    new_player = FilteredArray(AllLivingPlayers(), Curr() != player && Curr().owner == player);
+    Player new_player = FilteredArray(AllLivingPlayers(), Curr() != player && Curr().owner == player);
     new_player = LastOf(SortedArray(new_player, NormalizedHealth(Curr())));
-    position_of = PositionOf(new_player);
-    facing = FacingDirectionOf(new_player);
-    health_of = Health(new_player);
-    ammo_of[0] = Ammo(new_player, 0);
-    ammo_of[1] = Ammo(new_player, 1);
+    Vector position_of = PositionOf(new_player);
+    Vector facing = FacingDirectionOf(new_player);
+    Number health_of = Health(new_player);
+    Number ammo0 = Ammo(new_player, 0);
+    Number ammo1 = Ammo(new_player, 1);
     Kill(new_player);
     Teleport(player, position_of);
     PlayEffect(player, PlayEffect.EchoStickyBombExplosionEffect, Color.Team1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 0.8, null, null, true));
     SetFacing(player, facing, Relative.ToWorld);
     SetPlayerHealth(player, health_of);
-    SetAmmo(player, 0, ammo_of[0]);
-    SetAmmo(player, 1, ammo_of[1]);
+    SetAmmo(player, 0, ammo0);
+    SetAmmo(player, 1, ammo1);
     Resurrect();
     MinWait();
     CancelPrimaryAction(bots);
@@ -305,7 +304,7 @@ if (IsTrueForAny(AllLivingPlayers(TeamOf()), Curr().owner == player && IsDummyBo
 
 rule: "[Owner] :: Start heal_ot"
 Event.OngoingPlayer
-if (heal_toggle)
+if (s_heal_toggle)
 if (!IsDummyBot())
 if (timer == 0)
 if (Health() < MaxHealth())
@@ -319,13 +318,13 @@ if (Health() < MaxHealth())
 
 rule: "[Owner] :: Stop heal_ot"
 Event.OnDamageTaken
-if (heal_toggle)
+if (s_heal_toggle)
 if (!IsDummyBot())
 if (!IsHero(Hero.Mercy))
 if (!IsHero(Hero.Lucio))
 {
     // start timer
-    timer = TIMER_DUR;
+    timer = S_TIMER_DUR;
     StopChasingVariable(timer);
     ChaseVariableAtRate(timer, 0, 1, RateChaseReevaluation.None);
     StopHealOverTime(heal_ot);
@@ -357,7 +356,7 @@ if (!is_rezzing)
     owner_alive = false;
 
     Player[] bots = owner_bots;
-    WaitUntil(owner_alive, 9999);
+    WaitUntil(owner_alive, 99999); // wait until the owner is alive
     Respawn(bots);
     EnableRespawning(bots);
     EnableNameplates(bots, all);
@@ -389,7 +388,7 @@ if (!IsDummyBot())
 if (IsDead())
 if (!is_rezzing)
 {
-    WaitIfTrue(RESPAWN_TIME + 1);
+    WaitIfTrue(S_RESPAWN_TIME + 1);
     Respawn();
 }
 
@@ -492,18 +491,34 @@ Event.OngoingPlayer
 if (IsDummyBot())
 if (!IsDuplicating())
 {
-    for (Number i = 0; i < 2; i++)
-        DestroyEffect(clone_effects[i]);
-
-    StartForcingDummyBotName(player, <"<0> Clone", owner>);
-    SetRespawnMaxTime(player, RESPAWN_TIME);
+    StartForcingDummyBotName(player, <"<0>", owner>);
+    SetRespawnMaxTime(player, S_RESPAWN_TIME);
     SetUltimateAbilityEnabled(player, false);
 
-    Wait(2);
-    CreateEffect(all, Effect.EchoCloningEffect, Position: player, Color: Color.White);
-    clone_effects[0] = LastCreatedEntity();
-    CreateEffect(all, Effect.EchoCloningSound, Position: player, Radius: 20);
-    clone_effects[1] = LastCreatedEntity();
+    if (s_aim_effect)
+    {
+        CreateBeamEffect(IsAlive() ? owner : null, BeamType.TorbjornTurretSightBeam, EyePosition(), 
+            UpdateEveryFrame(RayCastHitPosition(EyePosition(), EyePosition() + FacingDirectionOf() * 100, AllLivingPlayers(OppositeTeamOf(TeamOf())), AllLivingPlayers(TeamOf()), true)), 
+            TeamOf() == Team.Team1 
+                ? Color.Team1
+                : Color.Team2);
+    }
+
+    if (s_echo_effect)
+    {
+        for (Number i = 0; i < 2; i++)
+            DestroyEffect(clone_effects[i]);
+
+        Wait(2);
+
+        CreateEffect(all, Effect.EchoCloningEffect, Position: player, Color: 
+        TeamOf() == Team.Team1 
+                ? Color.Team1
+                : Color.Team2);
+        clone_effects[0] = LastCreatedEntity();
+        CreateEffect(all, Effect.EchoCloningSound, Position: player, Radius: 20);
+        clone_effects[1] = LastCreatedEntity();
+    }
 }
 
 rule: "[Bot] :: Alive"
@@ -573,7 +588,9 @@ if (UltimateChargePercent(owner) != 100)
 void TeleportBot() playervar "Teleport Sub"
 {
     // Teleport(player, PositionOf(owner) + WorldVectorOf(Vector(0, 0, -0.5), owner));
-    Teleport(player, PositionOf(owner) + WorldVectorOf(Vector(0, 0, -0.5), owner));
+
+    Vector position = (PositionOf(owner) + Vector(0, 0.2, 0));
+    Teleport(player, RayCastHitPosition(position, position + WorldVectorOf(Vector(0, 0, -1.5), owner)));
 
     AbortIf(IsHero(Hero.Sombra) && IsUsingAbility1());
 
@@ -586,7 +603,7 @@ Event.OngoingPlayer
 if (bot_alive)
 if (IsAlive(owner))
 if (!cced)
-if (DistanceBetween(owner, player) > DISTANCE)
+if (DistanceBetween(owner, player) > S_DISTANCE)
 {
     TeleportBot();
 }
@@ -599,7 +616,7 @@ if (!cced)
 if (!IsInLineOfSight(owner, player))
 {
     if (!IsInSpawnRoom())
-        WaitIfTrue(OOS_TIME);
+        WaitIfTrue(S_OOS_TIME);
 
     TeleportBot();
 }
@@ -650,14 +667,45 @@ if (Weapon() == 2)
 
                     // button pressed //
 
+// rule: "[IE] :: Buttons"
+// Event.OngoingPlayer
+// if (!IsDummyBot())
+// if (IsTrueForAny(buttons, IsButtonHeld(player, Curr())))
+// if (IsAlive())
+// if (!is_rezzing)
+// {
+//     Number count = CountOf(buttons);
+//     Player[] bots = owner_bots;
+
+//     while (IsTrueForAny(buttons, IsButtonHeld(player, Curr())))
+//     {
+//         for (Number i = 0; i < count; i++)
+//         {
+//             button = buttons[i];
+
+//             if (IsButtonHeld(player, button)) 
+//             {
+//                 StartHoldingButton(bots, button);
+//             }
+//             else
+//             {
+//                 StopHoldingButton(bots, button);
+//             }
+//         }
+
+//         Wait(0.125);
+//     }
+// }
+
+
 rule: "[IE] :: Pressed Primary"
 Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.PrimaryFire))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.PrimaryFire);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.PrimaryFire);
 }
 
 rule: "[IE] :: Pressed Secondary"
@@ -665,9 +713,9 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.SecondaryFire))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.SecondaryFire);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.SecondaryFire);
 }
 
 rule: "[IE] :: Pressed Ability 1"
@@ -675,9 +723,9 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.Ability1))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.Ability1);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.Ability1);
 }
 
 rule: "[IE] :: Pressed Ability 2"
@@ -685,9 +733,9 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.Ability2))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.Ability2);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.Ability2);
 }
 
 rule: "[IE] :: Pressed Jump"
@@ -695,9 +743,9 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.Jump))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.Jump);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.Jump);
 }
 
 rule: "[IE] :: Pressed Crouch"
@@ -705,9 +753,9 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.Crouch))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.Crouch);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.Crouch);
 }
 
 rule: "[IE] :: Pressed Melee"
@@ -715,9 +763,9 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.Melee))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.Melee);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.Melee);
 }
 
 rule: "[IE] :: Pressed Reload"
@@ -725,9 +773,9 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.Reload))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.Reload);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.Reload);
 }
 
 rule: "[IE] :: Pressed Ultimate"
@@ -735,9 +783,9 @@ Event.OngoingPlayer
 if (!IsDummyBot())
 if (IsButtonHeld(player, Button.Ultimate))
 if (IsAlive())
-if (!cced)
 {
-    StartHoldingButton(living_bots, Button.Ultimate);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.Ultimate);
 }
 
 rule: "[IE] :: Pressed Interact"
@@ -746,7 +794,8 @@ if (!IsDummyBot())
 if (IsButtonHeld(player, Button.Interact))
 if (IsAlive())
 {
-    StartHoldingButton(living_bots, Button.Interact);
+    Player[] bots = owner_bots;
+    StartHoldingButton(bots, Button.Interact);
 }
 
                         // release //
@@ -754,67 +803,61 @@ if (IsAlive())
 rule: "[IE] :: Released Primary"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (!IsButtonHeld(player, Button.PrimaryFire) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.PrimaryFire) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.PrimaryFire);
-    // SetAbilityCooldown(bots, Button.PrimaryFire, AbilityCooldown(player, Button.PrimaryFire));
 }
 
 rule: "[IE] :: Released Secondary"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (!IsButtonHeld(player, Button.SecondaryFire) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.SecondaryFire) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.SecondaryFire);
-    // SetAbilityCooldown(bots, Button.SecondaryFire, AbilityCooldown(player, Button.SecondaryFire));
 }
 
 rule: "[IE] :: Released Ability 1"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (!IsButtonHeld(player, Button.Ability1) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.Ability1) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.Ability1);
-    // SetAbilityCooldown(bots, Button.Ability1, AbilityCooldown(player, Button.Ability1));
 }
 
 rule: "[IE] :: Released Ability 2"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (!IsButtonHeld(player, Button.Ability2) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.Ability2) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.Ability2);
-    // SetAbilityCooldown(bots, Button.Ability2, AbilityCooldown(player, Button.Ability2));
 }
 
 rule: "[IE] :: Released Jump"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (!IsButtonHeld(player, Button.Jump) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.Jump) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.Jump);
-    // SetAbilityCooldown(bots, Button.Jump, AbilityCooldown(player, Button.Jump));
 }
 
 rule: "[IE] :: Released Crouch"
 Event.OngoingPlayer
 if (!IsDummyBot()) 
-if (!IsButtonHeld(player, Button.Crouch) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.Crouch) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.Crouch);
-    // SetAbilityCooldown(bots, Button.Crouch, AbilityCooldown(player, Button.Crouch));
 }
 
 rule: "[IE] :: Released Melee"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (!IsButtonHeld(player, Button.Melee) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.Melee) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.Melee);
@@ -823,7 +866,7 @@ if (!IsButtonHeld(player, Button.Melee) || IsDead() || cced)
 rule: "[IE] :: Released Reload"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (!IsButtonHeld(player, Button.Reload) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.Reload) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.Reload);
@@ -832,7 +875,7 @@ if (!IsButtonHeld(player, Button.Reload) || IsDead() || cced)
 rule: "[IE] :: Released Ultimate"
 Event.OngoingPlayer
 if (!IsDummyBot())
-if (!IsButtonHeld(player, Button.Ultimate) || IsDead() || cced)
+if (!IsButtonHeld(player, Button.Ultimate) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.Ultimate);
@@ -845,7 +888,6 @@ if (!IsButtonHeld(player, Button.Interact) || IsDead())
 {
     Player[] bots = owner_bots;
     StopHoldingButton(bots, Button.Interact);
-    // SetAbilityCooldown(bots, Button.Jump, AbilityCooldown(player, Button.Jump));
 }
 
 
@@ -856,12 +898,6 @@ disabled rule: "---------------- HUD Text ----------------"{}
             /////////////                /////////////
 
 rule: "[HUD] :: Kills"
-Event.OnFinalBlow
-{
-    (owner == null ? player : owner).kills++;
-}
-
-rule: "[HUD] :: Update Kills"
 Event.OnFinalBlow
 {
     (owner == null ? player : owner).kills++;
@@ -911,7 +947,7 @@ Event.OnDamageTaken
 if (IsDummyBot())
 {
     attacked = true;
-    attack_timer = TIMER_DUR;
+    attack_timer = S_TIMER_DUR;
     StopChasingVariable(attack_timer);
     ChaseVariableAtRate(attack_timer, 0, 1, RateChaseReevaluation.None);
 }
@@ -944,8 +980,8 @@ if (!IsDummyBot())
 }
 
 Number percentage: (NormalizedHealth() * 100);
-Number r: (percentage <= 87.5) ? 255 : Floor(256 - (percentage - 50) * 5.12);
-Number g: (percentage >= 87.5) ? 255 : Floor(percentage * 5.12);
+Number r: (percentage <= 50) ? 255 : Floor(256 - (percentage - 50) * 5.12);
+Number g: (percentage >= 50) ? 255 : Floor(percentage * 5.12);
 Color health_color: CustomColor(r, g, 0, 255);
 
 // Color health_color: Colors.Gradient(new ComponentColor(Color.Red), new ComponentColor(Color.Green), NormalizedHealth());
@@ -982,20 +1018,20 @@ if (HasSpawned())
     !IsHero(Hero.Lucio) && !IsDuplicatingHero(Hero.Lucio) 
         ? <"<0>", AbilityCooldown(player, Button.Ability1) != 0 
             ? Round(AbilityCooldown(player, Button.Ability1)) < 10 
-                ? <"  <0>  ", Round(AbilityCooldown(player, Button.Ability1))> 
-                : <" <0> ", Round(AbilityCooldown(player, Button.Ability1))>
+                ? <"  <0>   ", Round(AbilityCooldown(player, Button.Ability1))> 
+                : <"  <0>  ", Round(AbilityCooldown(player, Button.Ability1))>
             : IsUsingAbility1()
-                ? "      "
-                : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1)> 
+                ? "       "
+                : <"<0> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability1)>> 
         : "",
 
     // lucio ability 1
     IsHero(Hero.Lucio) || IsDuplicatingHero(Hero.Lucio)
         ? <"<0>", AbilityCooldown(player, Button.Ability1) != 0 
-            ? <"   <0>    ", Round(AbilityCooldown(player, Button.Ability1))> 
+            ? <"    <0>    ", Round(AbilityCooldown(player, Button.Ability1))> 
             : IsUsingAbility1()
-                ? <"<0> >", AbilityIconString(HeroOf(), Button.Ability1)>
-                : <"<0> +", AbilityIconString(HeroOf(), Button.Ability1)>> 
+                ? <"<0> > ", AbilityIconString(HeroOf(), Button.Ability1)>
+                : <"<0> + ", AbilityIconString(HeroOf(), Button.Ability1)>> 
         : "",
 
     // ability 2 charges
@@ -1009,32 +1045,32 @@ if (HasSpawned())
     // ability 2
     !ArrayContains(a2c_arr, HeroOf()) &&
     !ArrayContains(a2c_arr, HeroBeingDuplicated()) 
-        ? <" <0>", AbilityCooldown(player, Button.Ability2) != 0 
-            ? Round(AbilityCooldown(player, Button.Ability1)) < 10 
-                ? <"  <0>  ", Round(AbilityCooldown(player, Button.Ability2))> 
-                : <" <0> ", Round(AbilityCooldown(player, Button.Ability2))>
+        ? <"<0>", AbilityCooldown(player, Button.Ability2) != 0 
+            ? Round(AbilityCooldown(player, Button.Ability2)) < 10 
+                ? <"   <0>   ", Round(AbilityCooldown(player, Button.Ability2))> 
+                : <"  <0>  ", Round(AbilityCooldown(player, Button.Ability2))>
             : IsUsingAbility2()
-                ? "      "
-                : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2)> 
+                ? "        "
+                : <" <0> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Ability2)>> 
         : "",
 
     // secondary fire
     (ArrayContains(sf_arr, HeroOf())) || 
     (ArrayContains(sf_arr, HeroBeingDuplicated())) || 
     (!IsDuplicating() && IsHero(Hero.Echo)) 
-        ? <" <0>", AbilityCooldown(player, Button.SecondaryFire) != 0 
+        ? <"<0>", AbilityCooldown(player, Button.SecondaryFire) != 0 
             ? Round(AbilityCooldown(player, Button.SecondaryFire)) < 10 
-                ? <"  <0>  ", Round(AbilityCooldown(player, Button.SecondaryFire))> 
-                : <" <0> ", Round(AbilityCooldown(player, Button.SecondaryFire))>
+                ? <"   <0>   ", Round(AbilityCooldown(player, Button.SecondaryFire))> 
+                : <"  <0>  ", Round(AbilityCooldown(player, Button.SecondaryFire))>
             : IsFiringSecondary()
-                ? "      "
-                : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.SecondaryFire)> 
+                ? "        "
+                : <" <0> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.SecondaryFire)>> 
         : "",
 
     // secondary fire resources
     ArrayContains(sfr_arr, HeroOf()) || 
     ArrayContains(sfr_arr, HeroBeingDuplicated()) 
-        ? <" <0><1> ", AbilityIconString(IsDuplicating()
+        ? <"<0><1> ", AbilityIconString(IsDuplicating()
                                             ? HeroBeingDuplicated() 
                                             : HeroOf(), Button.SecondaryFire), Round(AbilityResource(player, Button.SecondaryFire))> 
         : "",
@@ -1042,37 +1078,33 @@ if (HasSpawned())
     // primary fire
     ArrayContains(pf_arr, HeroOf()) || 
     ArrayContains(pf_arr, HeroBeingDuplicated()) 
-        ? <" <0>", AbilityCooldown(player, Button.PrimaryFire) != 0 
+        ? <"<0>", AbilityCooldown(player, Button.PrimaryFire) != 0 
             ? Round(AbilityCooldown(player, Button.PrimaryFire)) < 10 
-                ? <"  <0>  ", Round(AbilityCooldown(player, Button.PrimaryFire))> 
-                : <" <0> ", Round(AbilityCooldown(player, Button.PrimaryFire))>
-            : IsFiringPrimary()
-                ? "      "
-                : AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.PrimaryFire)> 
+                ? <"   <0>   ", Round(AbilityCooldown(player, Button.PrimaryFire))> 
+                : <"  <0>  ", Round(AbilityCooldown(player, Button.PrimaryFire))>
+            : IsFiringPrimary() && IsFiringSecondary() // secondary condition for brig since she is the only one in the array
+                ? "       "
+                : <" <0> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.PrimaryFire)>> 
         : "",
 
     // jump
     ArrayContains(j_arr, HeroOf()) ||
     ArrayContains(j_arr, HeroBeingDuplicated()) 
-        ? <" <0>", AbilityCooldown(player, Button.Jump) != 0 
+        ? <"<0>", AbilityCooldown(player, Button.Jump) != 0 
             ? Round(AbilityCooldown(player, Button.Jump)) < 10 
-                ? <"  <0>  ", Round(AbilityCooldown(player, Button.Jump))> 
-                : <" <0> ", Round(AbilityCooldown(player, Button.Jump))>
-            : AbilityIconString(IsDuplicating() 
-                                    ? HeroBeingDuplicated() 
-                                    : HeroOf(), Button.Jump)> 
+                ? <"   <0>   ", Round(AbilityCooldown(player, Button.Jump))> 
+                : <"  <0>  ", Round(AbilityCooldown(player, Button.Jump))>
+            : <" <0> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Jump)>>
         : "",
 
     // crouch
     ArrayContains(c_arr, HeroOf()) ||
     ArrayContains(c_arr, HeroBeingDuplicated()) 
-        ? <" <0>", AbilityCooldown(player, Button.Crouch) != 0 
+        ? <"<0>", AbilityCooldown(player, Button.Crouch) != 0 
             ? Round(AbilityCooldown(player, Button.Crouch)) < 10 
-                ? <"  <0>  ", Round(AbilityCooldown(player, Button.Crouch))> 
-                : <" <0> ", Round(AbilityCooldown(player, Button.Crouch))>
-            : AbilityIconString(IsDuplicating() 
-                                    ? HeroBeingDuplicated() 
-                                    : HeroOf(), Button.Crouch)> 
+                ? <"   <0>   ", Round(AbilityCooldown(player, Button.Crouch))> 
+                : <"  <0>  ", Round(AbilityCooldown(player, Button.Crouch))>
+            : <" <0> ", AbilityIconString(IsDuplicating() ? HeroBeingDuplicated() : HeroOf(), Button.Crouch)>>
         : "">, 
     Text:           IsAlive() 
                         ? <"<0> HP <1>", Ceiling(Health()), attacked 
@@ -1083,7 +1115,9 @@ if (HasSpawned())
     SortOrder:      SlotOf() + 1, 
     HeaderColor:    (Health() > max_health) && !IsDuplicating()
                         ? Color.Blue
-                        : health_color, 
+                        : IsAlive() 
+                            ? health_color
+                            : CustomColor(0, 0, 0, 255), 
     SubheaderColor: Color.White, 
     TextColor:      (Health() > max_health) && !IsDuplicating()
                         ? Color.Blue
@@ -1171,10 +1205,10 @@ if (!IsUsingAbility2())
 rule: "[HS] :: Genji On"
 Event.OngoingPlayer
 Player.Genji
-if (genji_nerf)
+if (s_genji_nerf)
 if (IsUsingAbility1())
 {
-    StartDamageModification(EnemyPlayers(), player, GENJI_DAMAGE);
+    StartDamageModification(EnemyPlayers(), player, S_GENJI_DAMAGE);
     genji_ao = LastDamageModificationID();
 }
 
@@ -1244,11 +1278,11 @@ if (IsButtonHeld(host, Button.Interact))
     }
 }
 
-// rule: "[DBG] :: Aim Effect"
+// rule: "[DBG] :: Bot Teleport Visual"
 // Event.OngoingPlayer
+// if (!IsDummyBot())
 // {
-//     CreateEffect(owner, Effect.Sphere, Color.Red, UpdateEveryFrame(RayCastHitPosition(EyePosition(), EyePosition() + FacingDirectionOf() * 100, AllLivingPlayers(OppositeTeamOf(TeamOf())), AllLivingPlayers(TeamOf()), true)), 0.1);
-//     CreateEffect(player, Effect.Sphere, Color.Blue, UpdateEveryFrame(RayCastHitPosition(EyePosition(), EyePosition() + FacingDirectionOf() * 100, AllLivingPlayers(OppositeTeamOf(TeamOf())), AllLivingPlayers(TeamOf()), true)), 0.2);
+//     CreateEffect(player, Effect.Sphere, Color.Red, RayCastHitPosition((PositionOf() + Vector(0, 0.2, 0)), (PositionOf() + Vector(0, 0.2, 0)) + WorldVectorOf(Vector(0, 0, -3), player)), 0.1);
 // }
 
 // rule: "[DBG] :: CC All Bots"
@@ -1283,13 +1317,13 @@ if (IsButtonHeld(host, Button.Interact))
 //     Kill(FilteredArray(AllPlayers(), IsDummyBot(Curr())));
 // }
 
-rule: "[DBG] :: Kill Owner Bots"
-Event.OngoingPlayer
-if (!IsDummyBot())
-if (IsButtonHeld(player, Button.Interact))
-{
-    Kill(owner_bots);
-}
+// rule: "[DBG] :: Kill Owner Bots"
+// Event.OngoingPlayer
+// if (!IsDummyBot())
+// if (IsButtonHeld(player, Button.Interact))
+// {
+//     Kill(owner_bots);
+// }
 
 // rule: "[DBG] :: Kill"
 // Event.OngoingPlayer
