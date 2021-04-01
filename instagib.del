@@ -2,144 +2,336 @@ import "macros.del";
 import "instagibSettings.json";
 import "jacob script\ruler.del";
 
-define weaponStart: WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
+any weaponStart: WorldVectorOf(Right() - Vector(0, 0.3, 0), player) * 0.18;
 
-// bhop
-playervar define bhopSpeed;
-playervar define isChasing;
-
-// primary
-playervar define primaryHit;
-
-// secondary
-playervar define secondaryEyePos;
-playervar define secondaryOrb;
-
-// grapple
-playervar define usingGrapple;
-playervar define grappleHit;
-playervar define grappleHitPlayer;
+// .########..##.....##..#######..########.
+// .##.....##.##.....##.##.....##.##.....##
+// .##.....##.##.....##.##.....##.##.....##
+// .########..#########.##.....##.########.
+// .##.....##.##.....##.##.....##.##.......
+// .##.....##.##.....##.##.....##.##.......
+// .########..##.....##..#######..##.......
+globalvar num BHOP_MAX_SPEED;
+globalvar num BHOP_SPEED_RATE;
+playervar num bhopSpeed;
+playervar bool isChasing;
+// playervar vec horizontalFacingVector;
 
 
-// constants :: bhop
-globalvar define BHOP_MAX_SPEED;
-globalvar define BHOP_SPEED_RATE;
+// ..######...########.....###....########..########..##.......########
+// .##....##..##.....##...##.##...##.....##.##.....##.##.......##......
+// .##........##.....##..##...##..##.....##.##.....##.##.......##......
+// .##...####.########..##.....##.########..########..##.......######..
+// .##....##..##...##...#########.##........##........##.......##......
+// .##....##..##....##..##.....##.##........##........##.......##......
+// ..######...##.....##.##.....##.##........##........########.########
+globalvar num GRAPPLE_PULL_SPEED;
+globalvar num GRAPPLE_RANGE;
+globalvar bool[] grappleOption;
+playervar bool usingGrapple;
+playervar vec grappleHit;
+playervar player grappleHitPlayer;
+playervar any grappleBeam;
+playervar any grappleSphere;
 
-// constants :: grapple
-globalvar define GRAPPLE_PULL_SPEED;
-globalvar define GRAPPLE_RANGE;
 
-// constants :: secondary
-globalvar define SECONDARY_PSPEED;
-globalvar define SECONDARY_RADIUS;
 
-// constants: misc
-globalvar define MATCH_TIME_LIMIT;
+// ..######..########..######...#######..##....##.########.....###....########..##....##
+// .##....##.##.......##....##.##.....##.###...##.##.....##...##.##...##.....##..##..##.
+// .##.......##.......##.......##.....##.####..##.##.....##..##...##..##.....##...####..
+// ..######..######...##.......##.....##.##.##.##.##.....##.##.....##.########.....##...
+// .......##.##.......##.......##.....##.##..####.##.....##.#########.##...##......##...
+// .##....##.##.......##....##.##.....##.##...###.##.....##.##.....##.##....##.....##...
+// ..######..########..######...#######..##....##.########..##.....##.##.....##....##...
+globalvar num SECONDARY_PSPEED;
+globalvar num SECONDARY_RADIUS;
+playervar vec secondaryEyePos;
+playervar any secondaryOrb;
+// playervar bool secondaryInAir;
+playervar vec rcStart;
+playervar vec rcEnd;
 
-// toggle
-globalvar define matchStarted;
 
-// dodge
-globalvar define DODGE_FORCE;
-playervar define throttleOf;
-playervar define canDodge;
+// .##.....##.####..######...######.
+// .###...###..##..##....##.##....##
+// .####.####..##..##.......##......
+// .##.###.##..##...######..##......
+// .##.....##..##........##.##......
+// .##.....##..##..##....##.##....##
+// .##.....##.####..######...######.
+playervar vec primaryHit;
+playervar bool bhopping;
+globalvar num MATCH_TIME_LIMIT;
+globalvar bool customXhair;
+globalvar bool primaryDelay;
+globalvar num PRI_DELAY;
+globalvar num PICKUP_RAD;
 
-/////////////////////
-/////// buffs ///////
-/////////////////////
 
-globalvar define buffsEnabled;
-globalvar define buffsSpawnImmediately;
-globalvar define validMap;
-globalvar define buffEffect;
-globalvar define buffPos;
-globalvar define buffIcon;
-globalvar define cdText;
-globalvar define cdType;
-playervar define hudText;
-playervar define lifeKills;
-playervar define spreeInWorld;
-playervar define spreeEffect;
-playervar define spreeHud;
-playervar define hasSpawned;
-globalvar define grappleEnabled;
-globalvar define dodgeEnabled;
-globalvar define secondaryEnabled;
-globalvar define primaryFxEnabled;
-globalvar define bhopEnabled;
-globalvar define buffHudText;
-globalvar define cdIP;
+// .##.....##....###....########..######..##.....##....########...#######...#######..##........######.
+// .###...###...##.##......##....##....##.##.....##....##.....##.##.....##.##.....##.##.......##....##
+// .####.####..##...##.....##....##.......##.....##....##.....##.##.....##.##.....##.##.......##......
+// .##.###.##.##.....##....##....##.......#########....########..##.....##.##.....##.##........######.
+// .##.....##.#########....##....##.......##.....##....##.....##.##.....##.##.....##.##.............##
+// .##.....##.##.....##....##....##....##.##.....##....##.....##.##.....##.##.....##.##.......##....##
+// .##.....##.##.....##....##.....######..##.....##....########...#######...#######..########..######.
+globalvar bool matchStarted;
+playervar bool hasSpawned;
+globalvar bool grappleEnabled;
+globalvar bool dodgeEnabled;
+globalvar bool secondaryEnabled;
+globalvar bool primaryFxEnabled;
+globalvar bool bhopEnabled;
 
-//// wallbang ////
 
-globalvar define spawnWallbang;
-globalvar define spawnWithWallbang;
-globalvar define NUM_WALLBANGS;
-globalvar define WALLBANG_DUR;
-globalvar define WALLBANG_CD;
-globalvar define wallbangCD;
-playervar define wallbangEnabled;
-playervar define wallbangEffect;
-playervar define wallbangDur;
+// .########...#######..########...######...########
+// .##.....##.##.....##.##.....##.##....##..##......
+// .##.....##.##.....##.##.....##.##........##......
+// .##.....##.##.....##.##.....##.##...####.######..
+// .##.....##.##.....##.##.....##.##....##..##......
+// .##.....##.##.....##.##.....##.##....##..##......
+// .########...#######..########...######...########
+globalvar num DODGE_FORCE;
+playervar vec throttleOf;
+playervar bool canDodge;
 
-//// ricochet ////
 
-globalvar define spawnRicochet;
-globalvar define spawnWithRicochet;
-globalvar define NUM_RICOCHETS;
-globalvar define RICOCHET_CD;
-globalvar define RICOCHET_DUR;
-globalvar define ricochetCD;
-playervar define ricochetEnabled;
-playervar define ricochetDur;
-playervar define eyePos;
-playervar define facing;
+// .########..##.....##.########.########..######.
+// .##.....##.##.....##.##.......##.......##....##
+// .##.....##.##.....##.##.......##.......##......
+// .########..##.....##.######...######....######.
+// .##.....##.##.....##.##.......##.............##
+// .##.....##.##.....##.##.......##.......##....##
+// .########...#######..##.......##........######.
+globalvar any[] sphereInProgressEffect;
+globalvar bool buffsEnabled;
+globalvar bool buffsSpawnImmediately;
+globalvar bool validMap;
+globalvar any buffEffect;
+globalvar vec buffPos;
+globalvar any buffIcon;
+globalvar any cdText;
+globalvar num cdType;
+playervar any hudText;
+globalvar bool buffHudText;
+globalvar bool cdIP;
+playervar num bIndex;
+globalvar color buffColor;
+globalvar any[] collectedBuffEffect;
+globalvar bool[] canPickupBuff;
+globalvar player[] buffUser;
+// playervar bool buffEnabled;
+playervar num bCnt;
 
-//// buckshot ////
 
-globalvar define spawnBuckshot;
-globalvar define spawnWithBuckshot;
-globalvar define BUCKSHOT_SPREAD;
-globalvar define BUCKSHOT_CD;
-globalvar define BUCKSHOT_DUR;
-globalvar define buckshotCD;
-playervar define buckshotEnabled;
-playervar define buckshotDur;
+// .##....##.####.##.......##...........######..########..########..########.########
+// .##...##...##..##.......##..........##....##.##.....##.##.....##.##.......##......
+// .##..##....##..##.......##..........##.......##.....##.##.....##.##.......##......
+// .#####.....##..##.......##...........######..########..########..######...######..
+// .##..##....##..##.......##................##.##........##...##...##.......##......
+// .##...##...##..##.......##..........##....##.##........##....##..##.......##......
+// .##....##.####.########.########.....######..##........##.....##.########.########
+playervar num lifeKills;
+playervar any spreeInWorld;
+playervar any spreeEffect;
+playervar any spreeHud;
+playervar color streakColor;
+playervar str streakStr;
 
-//// smart Lock ////
 
-globalvar define spawnLock;
-globalvar define spawnWithLock;
-globalvar define LOCK_CD;
-globalvar define LOCK_DUR;
-globalvar define lockCD;
-playervar define lockEnabled;
-playervar define lockDur;
+// .##......##....###....##.......##.......########.....###....##....##..######..
+// .##..##..##...##.##...##.......##.......##.....##...##.##...###...##.##....##.
+// .##..##..##..##...##..##.......##.......##.....##..##...##..####..##.##.......
+// .##..##..##.##.....##.##.......##.......########..##.....##.##.##.##.##...####
+// .##..##..##.#########.##.......##.......##.....##.#########.##..####.##....##.
+// .##..##..##.##.....##.##.......##.......##.....##.##.....##.##...###.##....##.
+// ..###..###..##.....##.########.########.########..##.....##.##....##..######..
+globalvar num wallbangPBar;
+globalvar bool wallbangTimer;
+globalvar str wallbangText;
+globalvar bool spawnWallbang;
+globalvar bool spawnWithWallbang;
+globalvar num NUM_WALLBANGS;
+globalvar num WALLBANG_DUR;
+globalvar num WALLBANG_CD;
+globalvar num wallbangCD;
+playervar bool wallbangEnabled;
+playervar any wallbangEffect;
+playervar num wallbangDur;
+// playervar define whText;
 
-globalvar define serverLoad;
-globalvar define customXhair;
-globalvar define PICKUP_RAD;
-globalvar define primaryDelay;
-globalvar define PRI_DELAY;
 
-globalvar define spawnElectro;
-globalvar define spawnWithElectro;
-globalvar define ELECTRO_DELAY;
-globalvar define electroCD;
-globalvar define ELECTRO_CD;
-globalvar define ELECTRO_DUR;
-globalvar define electroPBar;
-playervar define electroEnabled;
-playervar define electroDur;
+// .########..####..######...#######...######..##.....##.########.########
+// .##.....##..##..##....##.##.....##.##....##.##.....##.##..........##...
+// .##.....##..##..##.......##.....##.##.......##.....##.##..........##...
+// .########...##..##.......##.....##.##.......#########.######......##...
+// .##...##....##..##.......##.....##.##.......##.....##.##..........##...
+// .##....##...##..##....##.##.....##.##....##.##.....##.##..........##...
+// .##.....##.####..######...#######...######..##.....##.########....##...
+globalvar num ricochetPBar;
+globalvar bool ricochetTimer;
+globalvar str ricochetText;
+globalvar bool spawnRicochet;
+globalvar bool spawnWithRicochet;
+globalvar num NUM_RICOCHETS;
+globalvar num RICOCHET_CD;
+globalvar num RICOCHET_DUR;
+globalvar num ricochetCD;
+playervar bool ricochetEnabled;
+playervar num ricochetDur;
+playervar vec eyePos;
+playervar vec facing;
 
-playervar define bhopping;
+
+// .########..##.....##..######..##....##..######..##.....##..#######..########
+// .##.....##.##.....##.##....##.##...##..##....##.##.....##.##.....##....##...
+// .##.....##.##.....##.##.......##..##...##.......##.....##.##.....##....##...
+// .########..##.....##.##.......#####.....######..#########.##.....##....##...
+// .##.....##.##.....##.##.......##..##.........##.##.....##.##.....##....##...
+// .##.....##.##.....##.##....##.##...##..##....##.##.....##.##.....##....##...
+// .########...#######...######..##....##..######..##.....##..#######.....##...
+globalvar num buckshotPBar;
+globalvar bool buckshotTimer;
+globalvar str buckshotText;
+globalvar bool spawnBuckshot;
+globalvar bool spawnWithBuckshot;
+globalvar num BUCKSHOT_SPREAD;
+globalvar num BUCKSHOT_CD;
+globalvar num BUCKSHOT_DUR;
+globalvar num buckshotCD;
+playervar bool buckshotEnabled;
+playervar num buckshotDur;
+
+
+// ..######..##.....##....###....########..########....##........#######...######..##....##
+// .##....##.###...###...##.##...##.....##....##.......##.......##.....##.##....##.##...##.
+// .##.......####.####..##...##..##.....##....##.......##.......##.....##.##.......##..##..
+// ..######..##.###.##.##.....##.########.....##.......##.......##.....##.##.......#####...
+// .......##.##.....##.#########.##...##......##.......##.......##.....##.##.......##..##..
+// .##....##.##.....##.##.....##.##....##.....##.......##.......##.....##.##....##.##...##.
+// ..######..##.....##.##.....##.##.....##....##.......########..#######...######..##....##
+globalvar num lockPBar;
+globalvar bool lockTimer;
+globalvar str lockText;
+globalvar bool spawnLock;
+globalvar bool spawnWithLock;
+globalvar num LOCK_CD;
+globalvar num LOCK_DUR;
+globalvar num lockCD;
+playervar bool lockEnabled;
+playervar num lockDur;
+globalvar num LOCK_RADIUS;
+globalvar num LOCK_TIME;
+playervar player[] lockingTargets;
+playervar player[] lockedTargets;
+playervar any lockId;
+playervar any lockingId;
+
+
+// ..#######..##.....##....###....########...######..##.....##..#######..########
+// .##.....##.##.....##...##.##...##.....##.##....##.##.....##.##.....##....##...
+// .##.....##.##.....##..##...##..##.....##.##.......##.....##.##.....##....##...
+// .##.....##.##.....##.##.....##.##.....##..######..#########.##.....##....##...
+// .##..##.##.##.....##.#########.##.....##.......##.##.....##.##.....##....##...
+// .##....##..##.....##.##.....##.##.....##.##....##.##.....##.##.....##....##...
+// ..#####.##..#######..##.....##.########...######..##.....##..#######.....##...
+globalvar num quadshotPBar;
+globalvar bool quadshotTimer;
+globalvar bool spawnQuadshot;
+globalvar bool spawnWithQuadshot;
+globalvar num quadshotCD;
+globalvar num QUADSHOT_CD;
+globalvar num QUADSHOT_DUR;
+globalvar num QUADSHOT_SPREAD;
+playervar bool quadshotEnabled;
+playervar num quadshotDur;
+globalvar str quadshotText;
+
+
+// .##.....##....###....########...#######..########..####.########.########.########.
+// .##.....##...##.##...##.....##.##.....##.##.....##..##.......##..##.......##.....##
+// .##.....##..##...##..##.....##.##.....##.##.....##..##......##...##.......##.....##
+// .##.....##.##.....##.########..##.....##.########...##.....##....######...########.
+// ..##...##..#########.##........##.....##.##...##....##....##.....##.......##...##..
+// ...##.##...##.....##.##........##.....##.##....##...##...##......##.......##....##.
+// ....###....##.....##.##.........#######..##.....##.####.########.########.##.....##
+globalvar num vaporizerPBar;
+globalvar bool vaporizerTimer;
+globalvar str vaporizerText;
+globalvar bool spawnWithVaporizer;
+globalvar bool spawnVaporizer;
+globalvar num vaporizerCD;
+globalvar num VAPORIZER_CD;
+globalvar num VAPORIZER_DUR;
+globalvar num VAPORIZER_DELAY;
+playervar bool vaporizerEnabled;
+playervar num vaporizerDur;
+globalvar num VAPORIZER_ESIZE;
+playervar vec vaporizerHitPos;
+playervar num vaporizerS;
+playervar any[] vaporizerEffect;
+playervar any vaporizerIcon;
+globalvar bool vaporizerUserAffected;
+player[] vaporizerCheck: FilteredArray(vaporizerUserAffected ? AllLivingPlayers() : RemoveFromArray(AllLivingPlayers(), player), (DistanceBetween(Curr(), vaporizerHitPos) <= VAPORIZER_ESIZE) && IsInLineOfSight(Curr(), vaporizerHitPos));
+
+
+// .########.##.......########..######..########.########...#######.
+// .##.......##.......##.......##....##....##....##.....##.##.....##
+// .##.......##.......##.......##..........##....##.....##.##.....##
+// .######...##.......######...##..........##....########..##.....##
+// .##.......##.......##.......##..........##....##...##...##.....##
+// .##.......##.......##.......##....##....##....##....##..##.....##
+// .########.########.########..######.....##....##.....##..#######.
+globalvar bool spawnElectro;
+globalvar bool spawnWithElectro;
+globalvar num ELECTRO_DELAY;
+globalvar num electroCD;
+globalvar num ELECTRO_CD;
+globalvar num ELECTRO_DUR;
+globalvar num electroPBar;
+playervar bool electroEnabled;
+playervar num electroDur;
+globalvar str electroText;
+globalvar bool electroTimer;
+globalvar num ELECTRO_PSPEED;
+globalvar num ELECTRO_MESIZE;
+playervar vec electroEyePos1;
+playervar vec electroEyePos2;
+playervar vec electroEyePos3;
+playervar vec electroMHitPos;
+playervar vec electroMEffect;
+globalvar num ELECTRO_ESIZE;
+playervar vec electroHitPos;
+playervar any electroEffect;
+playervar bool minesPlaced;
+playervar color mineColor;
+
+
+// .########..########.########..##.....##..######..
+// .##.....##.##.......##.....##.##.....##.##....##.
+// .##.....##.##.......##.....##.##.....##.##.......
+// .##.....##.######...########..##.....##.##...####
+// .##.....##.##.......##.....##.##.....##.##....##.
+// .##.....##.##.......##.....##.##.....##.##....##.
+// .########..########.########...#######...######..
+globalvar bool serverLoad;
+
+
+
+
 
 /* ------------------------------------------------------------------------------- todo + notes: -------------------------------------------------------------------------------
-notes:
 dont use EntityExists() with effects
 for whatever reason; setting the buffUser to null will most likely break cooldown effects (timer inworld and growing sphere), doesnt break the timer logic, only the effects
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- */
 
+// ............##.....##....###....####.##....##...........
+// ............###...###...##.##....##..###...##...........
+// ............####.####..##...##...##..####..##...........
+// .#######....##.###.##.##.....##..##..##.##.##....#######
+// ............##.....##.#########..##..##..####...........
+// ............##.....##.##.....##..##..##...###...........
+// ............##.....##.##.....##.####.##....##...........
 disabled rule: "---------------- Main ----------------"{}
 
 rule: "[Main] :: Initial Global"
@@ -150,7 +342,7 @@ rule: "[Main] :: Initial Global"
 
     CreateHudText(all, null, MatchTime() % 60 >= 10 
                              ? <"<0>:<1>", RoundToInteger(MatchTime() / 60, Rounding.Down), RoundToInteger(MatchTime() % 60, Rounding.Down)> 
-                             : <"<0>:0<1>", RoundToInteger(MatchTime() / 60, Rounding.Down), RoundToInteger(MatchTime() % 60, Rounding.Down)>, /* spacing for crosshair */ " \n\n", Location.Top, 0.2);
+                             : <"<0>:0<1>", RoundToInteger(MatchTime() / 60, Rounding.Down), RoundToInteger(MatchTime() % 60, Rounding.Down)>, /* spacing for crosshair: */ " \n\n", Location.Top, 0.2);
 
     SetMatchTime(10);
 
@@ -695,7 +887,6 @@ Event.OnPlayerJoin
     // DisallowButton(player, Button.PrimaryFire);
     DisallowButton(player, Button.Ability1);
     DisallowButton(player, Button.Ability2);
-    SetProjectileSpeed(player, 10000);
 
     if (spawnWithWallbang)
     {
@@ -748,10 +939,10 @@ Event.OnPlayerJoin
 
     hudText = [];
     spreeInWorld = [];
-    secondaryEyePos = -10000;
-    electroEyePos1 = -10000;
-    electroEyePos2 = -10000;
-    electroEyePos3 = -10000;
+    secondaryEyePos = Vector(-10000, -10000, -1000);
+    electroEyePos1 = Vector(-10000, -10000, -1000);
+    electroEyePos2 = Vector(-10000, -10000, -1000);
+    electroEyePos3 = Vector(-10000, -10000, -1000);
     bhopSpeed = 100;
 }
 
@@ -886,7 +1077,7 @@ Event.OngoingPlayer
 if (primaryDelay)
 if (!spawnWithVaporizer)
 if (!vaporizerEnabled) 
-if (IsPrimaryHeld())
+if (IsButtonHeld(player, Button.PrimaryFire))
 {
     // AllowButton(player, Button.PrimaryFire);
     PressButton(player, Button.PrimaryFire);
@@ -897,7 +1088,6 @@ if (IsPrimaryHeld())
     LoopIfConditionIsTrue();
 }
 
-playervar define bCnt;
 rule: "[Main] :: Primary Effect"
 Event.OngoingPlayer
 if (IsFiringPrimary())
@@ -922,7 +1112,13 @@ if (bCnt == 0)
     DestroyEffect(primaryBeam[0]);
     DestroyEffect(primaryBeam[1]);
 }
-
+// .............######..########..########..########.########....##....##..#######..########.####.########..######............
+// ............##....##.##.....##.##.....##.##.......##..........###...##.##.....##....##.....##..##.......##....##...........
+// ............##.......##.....##.##.....##.##.......##..........####..##.##.....##....##.....##..##.......##.................
+// .#######.....######..########..########..######...######......##.##.##.##.....##....##.....##..######....######.....#######
+// ..................##.##........##...##...##.......##..........##..####.##.....##....##.....##..##.............##...........
+// ............##....##.##........##....##..##.......##..........##...###.##.....##....##.....##..##.......##....##...........
+// .............######..##........##.....##.########.########....##....##..#######.....##....####.##........######............
 disabled rule: "---------------- Killing Spree Notifs ----------------"{}
 
 rule: "[Killspree] :: Record Kills"
@@ -952,8 +1148,6 @@ Event.OnDeath
     lifeKills = 0;
 }
 
-playervar define streakColor;
-playervar define streakStr;
 rule: "[Killspree] :: Kill"
 Event.OnFinalBlow
 if (lifeKills == 6)
@@ -1080,6 +1274,13 @@ if (lifeKills == 24)
     DestroyInWorldText(spreeInWorld[6]);
 }
 
+// ............########..##.....##..#######..########............
+// ............##.....##.##.....##.##.....##.##.....##...........
+// ............##.....##.##.....##.##.....##.##.....##...........
+// .#######....########..#########.##.....##.########.....#######
+// ............##.....##.##.....##.##.....##.##..................
+// ............##.....##.##.....##.##.....##.##..................
+// ............########..##.....##..#######..##..................
 disabled rule: "---------------- Bhop ----------------"{}
 
 void ResetSpeed() playervar "[Bhop] :: Reset Speed"
@@ -1095,11 +1296,11 @@ rule: "[Bhop] :: Auto Hop"
 Event.OngoingPlayer
 if (bhopEnabled)
 if (IsOnGround())
-if (IsJumpHeld())
+if (IsButtonHeld(player, Button.Jump))
 {
-    DisableJump();
+    DisallowButton(player, Button.Jump);
     MinWait();
-    AllowJump();
+    AllowButton(player, Button.Jump);
 }
 
 // void StopAccelDir() playervar "[Bhop] :: Stop Accel Dir Sub"
@@ -1109,7 +1310,6 @@ if (IsJumpHeld())
 //     horizontalFacingVector = null;
 // }
 
-// playervar define horizontalFacingVector;
 // rule: "[Bhop] :: Start Accel Dir"
 // Event.OngoingPlayer
 // if (bhopping)
@@ -1193,6 +1393,13 @@ if ((IsOnGround() && !usingGrapple) && (bhopSpeed > 100))
     // StopAccelDir();
 }
 
+// ............########...#######..########...######...########...........
+// ............##.....##.##.....##.##.....##.##....##..##.................
+// ............##.....##.##.....##.##.....##.##........##.................
+// .#######....##.....##.##.....##.##.....##.##...####.######......#######
+// ............##.....##.##.....##.##.....##.##....##..##.................
+// ............##.....##.##.....##.##.....##.##....##..##.................
+// ............########...#######..########...######...########...........
 disabled rule: "---------------- Dodge ----------------"{}
 
 rule: "[Dodge] :: Action"
@@ -1200,7 +1407,7 @@ Event.OngoingPlayer
 if (dodgeEnabled)
 if (canDodge)
 if (!usingGrapple)
-if (IsAbility1Held())
+if (IsButtonHeld(player, Button.Ability1))
 {
     throttleOf = ThrottleOf() + Vector(0, 0.5, 0);
 
@@ -1222,16 +1429,19 @@ if (IsOnGround())
     canDodge = true;
 }
 
-
+// .............######..########..######...#######..##....##.########.....###....########..##....##...........
+// ............##....##.##.......##....##.##.....##.###...##.##.....##...##.##...##.....##..##..##............
+// ............##.......##.......##.......##.....##.####..##.##.....##..##...##..##.....##...####.............
+// .#######.....######..######...##.......##.....##.##.##.##.##.....##.##.....##.########.....##.......#######
+// ..................##.##.......##.......##.....##.##..####.##.....##.#########.##...##......##..............
+// ............##....##.##.......##....##.##.....##.##...###.##.....##.##.....##.##....##.....##..............
+// .............######..########..######...#######..##....##.########..##.....##.##.....##....##..............
 disabled rule: "---------------- Secondary Fire ----------------"{}
 
-// playervar define secondaryInAir;
-playervar define rcStart;
-playervar define rcEnd;
 rule: "[Secondary Fire] :: Projectile"
 Event.OngoingPlayer
 if (secondaryEnabled)
-if (IsSecondaryHeld())
+if (IsButtonHeld(player, Button.SecondaryFire))
 if (IsAlive())
 {
     rcStart = EyePosition();
@@ -1274,9 +1484,14 @@ if (DistanceBetween(secondaryEyePos, RayCastHitPosition(rcStart, rcEnd, AllLivin
     DestroyEffect(secondaryOrb[1]);
 }
 
+// .............######...########.....###....########..########..##.......########...........
+// ............##....##..##.....##...##.##...##.....##.##.....##.##.......##.................
+// ............##........##.....##..##...##..##.....##.##.....##.##.......##.................
+// .#######....##...####.########..##.....##.########..########..##.......######......#######
+// ............##....##..##...##...#########.##........##........##.......##.................
+// ............##....##..##....##..##.....##.##........##........##.......##.................
+// .............######...##.....##.##.....##.##........##........########.########...........
 disabled rule: "---------------- Grapple ----------------"{}
-playervar define grappleBeam;
-playervar define grappleSphere;
 
 void EndGrapple() playervar "[Sub] :: End Grapple"
 {
@@ -1292,7 +1507,7 @@ rule: "[Grapple] :: Grapple Start"
 Event.OngoingPlayer
 if (matchStarted)
 if (grappleEnabled)
-if (IsAbility2Held())
+if (IsButtonHeld(player, Button.Ability2))
 {
     grappleHit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * GRAPPLE_RANGE, AllLivingPlayers(), player);
     grappleHitPlayer = RayCastHitPlayer(EyePosition(), EyePosition() + Facing() * GRAPPLE_RANGE, AllLivingPlayers(), player, true);
@@ -1319,7 +1534,7 @@ if (IsAbility2Held())
     }
 
     Wait(0.5);
-    LoopIf(IsAbility2Held() && IsAlive() && !usingGrapple);
+    LoopIf(IsButtonHeld(player, Button.Ability2) && IsAlive() && !usingGrapple);
 }
 
 rule: "[Grapple] :: Pull"
@@ -1330,7 +1545,7 @@ if (usingGrapple)
 
     if (grappleHitPlayer && IsAlive(grappleHitPlayer))
         ApplyImpulse(grappleHitPlayer, Vector(0, 0.3, 0) + DirectionTowards(grappleHitPlayer, EyePosition()), GRAPPLE_PULL_SPEED, Relative.ToWorld, ContraryMotion.Incorporate);
-    else if (IsJumpHeld()) // push the player upwards more if they are holding jump
+    else if (IsButtonHeld(player, Button.Jump)) // push the player upwards more if they are holding jump
         ApplyImpulse(player, Vector(0, 0.3, 0) + DirectionTowards(EyePosition(), grappleHit), GRAPPLE_PULL_SPEED, Relative.ToWorld, ContraryMotion.Incorporate);
     else // pull inpulse
         ApplyImpulse(player, DirectionTowards(EyePosition(), grappleHit), GRAPPLE_PULL_SPEED, Relative.ToWorld, ContraryMotion.Incorporate);
@@ -1341,7 +1556,7 @@ if (usingGrapple)
 
 rule: "[Grapple] :: Grapple End Ability 2"
 Event.OngoingPlayer
-if (!IsAbility2Held())
+if (!IsButtonHeld(player, Button.Ability2))
 {
     EndGrapple();
 }
@@ -1358,8 +1573,6 @@ if (IsDead(grappleHitPlayer))
 {
     EndGrapple();
 }
-
-globalvar define grappleOption;
 
 rule: "[Grapple] :: Grapple End: Grappled Player Too Close"
 Event.OngoingPlayer
@@ -1410,19 +1623,14 @@ if (!IsInViewAngle(player, grappleHit, 120))
     EndGrapple();
 }
 
+// ............########..##.....##.########.########...........
+// ............##.....##.##.....##.##.......##.................
+// ............##.....##.##.....##.##.......##.................
+// .#######....########..##.....##.######...######......#######
+// ............##.....##.##.....##.##.......##.................
+// ............##.....##.##.....##.##.......##.................
+// ............########...#######..##.......##.................
 disabled rule: "---------------- Buff ----------------"{}
-
-globalvar define sphereInProgressEffect;
-globalvar define wallbangPBar;
-globalvar define ricochetPBar;
-globalvar define buckshotPBar;
-globalvar define lockPBar;
-globalvar define vaporizerPBar;
-globalvar define wallbangTimer;
-globalvar define ricochetTimer;
-globalvar define buckshotTimer;
-globalvar define lockTimer;
-globalvar define vaporizerTimer;
 
 void WallbangCooldown() "[Sub] :: Wallbang Cooldown" 
 {
@@ -1731,11 +1939,6 @@ void QuadshotCooldown() "[Sub] :: Quadshot Cooldown"
     }
 }
 
-globalvar define wallbangText;
-globalvar define ricochetText;
-globalvar define buckshotText;
-globalvar define lockText;
-globalvar define vaporizerText;
 rule: "[Buff] :: Wallbang Timer"
 if (wallbangTimer)
 {
@@ -1821,8 +2024,6 @@ if (vaporizerTimer)
     LoopIfConditionIsTrue();
 }
 
-globalvar define quadshotText;
-globalvar define quadshotTimer;
 rule: "[Buff] :: Quadshot Timer"
 if (quadshotTimer)
 {
@@ -1840,9 +2041,6 @@ if (quadshotTimer)
     LoopIfConditionIsTrue();
 }
 
-
-globalvar define electroText;
-globalvar define electroTimer;
 rule: "[Buff] :: Electro Timer"
 if (electroTimer)
 {
@@ -1859,13 +2057,6 @@ if (electroTimer)
     Wait(1);
     LoopIfConditionIsTrue();
 }
-
-playervar define bIndex;
-globalvar define buffColor;
-globalvar define collectedBuffEffect;
-globalvar define canPickupBuff;
-globalvar define buffUser;
-// playervar define buffEnabled;
 
 void CollectBuff() playervar "[Sub] :: Collect Buff"
 {
@@ -2024,6 +2215,13 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
     buffColor = null;
 }
 
+// ............##......##....###....##.......##.......########.....###....##....##..######.............
+// ............##..##..##...##.##...##.......##.......##.....##...##.##...###...##.##....##............
+// ............##..##..##..##...##..##.......##.......##.....##..##...##..####..##.##..................
+// .#######....##..##..##.##.....##.##.......##.......########..##.....##.##.##.##.##...####....#######
+// ............##..##..##.#########.##.......##.......##.....##.#########.##..####.##....##............
+// ............##..##..##.##.....##.##.......##.......##.....##.##.....##.##...###.##....##............
+// .............###..###..##.....##.########.########.########..##.....##.##....##..######.............
 disabled rule: "---------------- Wallbang ----------------"{}
 
 rule: "[Buff] :: Wallbang : Create Orb"
@@ -2095,7 +2293,6 @@ if (wallbangDur == 0)
     bCnt--;
 }
 
-// playervar define whText;
 // rule: "[Buff] :: Wallbang : Wallhack"
 // Event.OnPlayerJoin
 // {
@@ -2134,6 +2331,13 @@ if (IsFiringPrimary())
     DestroyEffect(wallbangEffect[0]);
 }
 
+// ............########..####..######...#######...######..##.....##.########.########...........
+// ............##.....##..##..##....##.##.....##.##....##.##.....##.##..........##..............
+// ............##.....##..##..##.......##.....##.##.......##.....##.##..........##..............
+// .#######....########...##..##.......##.....##.##.......#########.######......##.......#######
+// ............##...##....##..##.......##.....##.##.......##.....##.##..........##..............
+// ............##....##...##..##....##.##.....##.##....##.##.....##.##..........##..............
+// ............##.....##.####..######...#######...######..##.....##.########....##..............
 disabled rule: "---------------- Ricochet ----------------"{}
 
 rule: "[Buff] :: Ricochet : Create Orb"
@@ -2237,7 +2441,7 @@ if (IsFiringPrimary())
             facing = ricochets[i - 1];
         }
 
-        # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector
+        # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/4019883#4019883
         normals[i] = RayCastHitNormal(eyePos, eyePos + facing * 100, AllLivingPlayers(), player, true);
         hitPos[i] = RayCastHitPosition(eyePos, eyePos + facing * 100, AllLivingPlayers(), player, true);
         hitPosPlayer[i] = RayCastHitPlayer(eyePos, eyePos + facing * 100, AllLivingPlayers(), player, true);
@@ -2268,6 +2472,13 @@ if (IsFiringPrimary())
     }
 }
 
+// ............########..##.....##..######..##....##..######..##.....##..#######..########...........
+// ............##.....##.##.....##.##....##.##...##..##....##.##.....##.##.....##....##..............
+// ............##.....##.##.....##.##.......##..##...##.......##.....##.##.....##....##..............
+// .#######....########..##.....##.##.......#####.....######..#########.##.....##....##.......#######
+// ............##.....##.##.....##.##.......##..##.........##.##.....##.##.....##....##..............
+// ............##.....##.##.....##.##....##.##...##..##....##.##.....##.##.....##....##..............
+// ............########...#######...######..##....##..######..##.....##..#######.....##..............
 disabled rule: "---------------- Buckshot ----------------"{}
 
 rule: "[Buff] :: Buckshot : Create Orb"
@@ -2530,6 +2741,13 @@ if (IsFiringPrimary())
     }
 }
 
+// .............######..##.....##....###....########..########....##........#######...######..##....##...........
+// ............##....##.###...###...##.##...##.....##....##.......##.......##.....##.##....##.##...##............
+// ............##.......####.####..##...##..##.....##....##.......##.......##.....##.##.......##..##.............
+// .#######.....######..##.###.##.##.....##.########.....##.......##.......##.....##.##.......#####.......#######
+// ..................##.##.....##.#########.##...##......##.......##.......##.....##.##.......##..##.............
+// ............##....##.##.....##.##.....##.##....##.....##.......##.......##.....##.##....##.##...##............
+// .............######..##.....##.##.....##.##.....##....##.......########..#######...######..##....##...........
 disabled rule: "---------------- Smart Lock ----------------"{}
 
 rule: "[Buff] :: Smart Lock : Create Orb"
@@ -2601,14 +2819,6 @@ if (lockDur == 0)
 
     bCnt--;
 }
-
-
-globalvar define LOCK_RADIUS;
-globalvar define LOCK_TIME;
-playervar define lockingTargets;
-playervar define lockedTargets;
-playervar define lockId;
-playervar define lockingId;
 
 // symbols:
 // locked: ▣
@@ -2689,18 +2899,14 @@ if (IsFiringPrimary())
         DestroyEffect(lockBeams[i]);
     }
 }
-
+// ............##.....##....###....########...#######..########..####.########.########.########............
+// ............##.....##...##.##...##.....##.##.....##.##.....##..##.......##..##.......##.....##...........
+// ............##.....##..##...##..##.....##.##.....##.##.....##..##......##...##.......##.....##...........
+// .#######....##.....##.##.....##.########..##.....##.########...##.....##....######...########.....#######
+// .............##...##..#########.##........##.....##.##...##....##....##.....##.......##...##.............
+// ..............##.##...##.....##.##........##.....##.##....##...##...##......##.......##....##............
+// ...............###....##.....##.##.........#######..##.....##.####.########.########.##.....##...........
 disabled rule: "---------------- Vaporizer ----------------" {}
-
-globalvar define spawnWithVaporizer;
-globalvar define spawnVaporizer;
-globalvar define vaporizerCD;
-globalvar define VAPORIZER_CD;
-globalvar define VAPORIZER_DUR;
-globalvar define VAPORIZER_DELAY;
-playervar define vaporizerEnabled;
-playervar define vaporizerDur;
-// playervar define vaporizerDurPbar;
 
 rule: "[Buff] :: Vaporizer : Create Orb"
 if (matchStarted)
@@ -2773,14 +2979,6 @@ if (vaporizerDur == 0)
     bCnt--;
 }
 
-globalvar define VAPORIZER_ESIZE;
-playervar define vaporizerHitPos;
-playervar define vaporizerS;
-playervar define vaporizerEffect;
-playervar define vaporizerIcon;
-globalvar define vaporizerUserAffected;
-define vaporizerCheck: FilteredArray(vaporizerUserAffected ? AllLivingPlayers() : RemoveFromArray(AllLivingPlayers(), player), (DistanceBetween(Curr(), vaporizerHitPos) <= VAPORIZER_ESIZE) && IsInLineOfSight(Curr(), vaporizerHitPos));
-
 rule: "[Buff] :: Vaporizer : Action"
 Event.OngoingPlayer
 if (vaporizerEnabled)
@@ -2832,19 +3030,14 @@ if (IsFiringPrimary())
     }
 }
 
+// .............#######..##.....##....###....########...######..##.....##..#######..########...........
+// ............##.....##.##.....##...##.##...##.....##.##....##.##.....##.##.....##....##..............
+// ............##.....##.##.....##..##...##..##.....##.##.......##.....##.##.....##....##..............
+// .#######....##.....##.##.....##.##.....##.##.....##..######..#########.##.....##....##.......#######
+// ............##..##.##.##.....##.#########.##.....##.......##.##.....##.##.....##....##..............
+// ............##....##..##.....##.##.....##.##.....##.##....##.##.....##.##.....##....##..............
+// .............#####.##..#######..##.....##.########...######..##.....##..#######.....##..............
 disabled rule: "---------------- Quadshot ----------------"{}
-
-globalvar define spawnQuadshot;
-globalvar define spawnWithQuadshot;
-globalvar define quadshotCD;
-globalvar define QUADSHOT_CD;
-globalvar define QUADSHOT_DUR;
-globalvar define QUADSHOT_SPREAD;
-globalvar define quadshotPBar;
-
-playervar define quadshotEnabled;
-playervar define quadshotDur;
-
 
 rule: "[Buff] :: Quadshot : Create Orb"
 if (matchStarted)
@@ -3007,6 +3200,13 @@ if (IsFiringPrimary())
     }
 }
 
+// ............########.##.......########..######..########.########...#######............
+// ............##.......##.......##.......##....##....##....##.....##.##.....##...........
+// ............##.......##.......##.......##..........##....##.....##.##.....##...........
+// .#######....######...##.......######...##..........##....########..##.....##....#######
+// ............##.......##.......##.......##..........##....##...##...##.....##...........
+// ............##.......##.......##.......##....##....##....##....##..##.....##...........
+// ............########.########.########..######.....##....##.....##..#######............
 disabled rule: "---------------- Electro ----------------"{}
 
 rule: "[Buff] :: Electro : Create Orb"
@@ -3079,9 +3279,7 @@ if (electroDur == 0)
 
     bCnt--;
 }
-globalvar define ELECTRO_ESIZE;
-playervar define electroHitPos;
-playervar define electroEffect;
+
 rule: "[Buff] :: Electro : Action - Primary"
 Event.OngoingPlayer
 if (electroEnabled)
@@ -3114,18 +3312,11 @@ if (IsFiringPrimary())
     DestroyEffect(electroEffect);
 }
 
-globalvar define ELECTRO_PSPEED;
-globalvar define ELECTRO_MESIZE;
-playervar define electroEyePos1;
-playervar define electroEyePos2;
-playervar define electroEyePos3;
-playervar define electroMHitPos;
-playervar define electroMEffect;
 rule: "[Buff] :: Electro : Action - Launch Sticky Mines"
 Event.OngoingPlayer
 if (electroEnabled)
 if (!minesPlaced)
-if (IsReloadHeld())
+if (IsButtonHeld(player, Button.Reload))
 {
     mineColor = Color.Blue;
 
@@ -3189,8 +3380,6 @@ if (IsReloadHeld())
     mineColor = Color.SkyBlue;
 }
 
-playervar define minesPlaced;
-playervar define mineColor;
 void ExplodeMine() playervar "[Sub] :: Electro : Action - Explode Mines"
 {
     minesPlaced = false;
@@ -3248,14 +3437,14 @@ if (minesPlaced)
 
 rule: "[Debug] :: Bots"
 Event.OngoingPlayer
-if (player == host && IsInteractHeld() && !IsCrouchHeld())
+if (player == host && IsButtonHeld(player, Button.Interact) && !IsButtonHeld(player, Button.Crouch))
 {
     CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, null, null, true), Facing() * -1);
 }
 
 rule: "[Debug] :: Destroy Bots"
 Event.OngoingPlayer
-if (player == host && IsCrouchHeld() && IsInteractHeld())
+if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player, Button.Interact))
 {
     DestroyAllDummyBots();
 }

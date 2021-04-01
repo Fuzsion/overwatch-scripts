@@ -1,5 +1,12 @@
 // aliases
+type bool = Boolean;
 type Bool = Boolean;
+type num = Number;
+type vec = Vector;
+type any = Any;
+type player = Player;
+type color = Color;
+type str = String;
 
 Player      player:                                               EventPlayer();
 Player      local:                                                LocalPlayer();
