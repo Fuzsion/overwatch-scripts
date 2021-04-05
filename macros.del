@@ -13,7 +13,7 @@ Player      local:                                                LocalPlayer();
 Player[]    all:                                                  AllPlayers();
 Player[]    allLiving:                                            AllLivingPlayers();
 Player      host:                                                 HostPlayer();
-Vector      Facing():                                             FacingDirectionOf();
+Vector      Facing(Player p = EventPlayer()):                     FacingDirectionOf(p);
 Number      Time():                                               TotalTimeElapsed();
 
 Any         WaitIfTrue(Number time):                              Wait(time, WaitBehavior.AbortWhenFalse);
@@ -22,6 +22,7 @@ Player[]    AllyPlayers():                                        AllPlayers(Tea
 Bool        IsHero(in Hero hero):                                 HeroOf() == hero;
 Bool        IsDuplicatingHero(in Hero hero):                      HeroBeingDuplicated() == hero;
 Bool        IsMap(in Map map):                                    CurrentMap() == map;
+Bool        IsHostSpectating():                                   !ArrayContains(AllPlayers(), HostPlayer());
 Any         Curr():                                               ArrayElement();
 
 Number      Floor(Number number):                                 RoundToInteger(number, Rounding.Down);
@@ -36,21 +37,21 @@ Color       RainbowColor():                                      CustomColor(128
                                                                              128 + 127 * CosineFromDegrees((Time() * 100) + 240), 
                                                                              250);
 
-Number      Kills(Player Player):                                PlayerStat(Player, PlayerStat.FinalBlows);
-Number      Deaths(Player Player):                               PlayerStat(Player, PlayerStat.Deaths);
-Number      DamageDealt(Player Player):                          Round(PlayerStat(Player, PlayerStat.AllDamageDealt));
-Number      DamageTaken(Player Player):                          Round(PlayerStat(Player, PlayerStat.DamageTaken));
-Number      Accuracy(Player Player):                             Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100);
-Number      CritAccuracy(Player Player):                         Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100);
-Number      ScopedAccuracy(Player Player):                       Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.ScopedAccuracy) * 100);
-Number      ScopedCritAccuracy(Player Player):                   Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.ScopedCriticalHitAccuracy) * 100);
-Number      EnvironmentalKills(Player Player):                   PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.EnvironmentalKills);
-Number      HealingDealt(Player Player):                         Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingDealt));
-Number      HealingTaken(Player Player):                         Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.HealingReceived));
-Number      SelfHealing(Player Player):                          Round(PlayerHeroStat(Player, HeroOf(), PlayerHeroStat.SelfHealing));
-Number      UltsUsed(Player Player):                             PlayerStat(Player, PlayerStat.UltimatesUsed);
-Number      UltsEarned(Player Player):                           PlayerStat(Player, PlayerStat.UltimatesEarned);
-Number      DamageBlocked(Player Player):                        PlayerStat(Player, PlayerStat.DamageBlocked);
+Number      Kills(Player p = EventPlayer()):                                PlayerStat(p, PlayerStat.FinalBlows);
+Number      Deaths(Player p = EventPlayer()):                               PlayerStat(p, PlayerStat.Deaths);
+Number      DamageDealt(Player p = EventPlayer()):                          Round(PlayerStat(p, PlayerStat.AllDamageDealt));
+Number      DamageTaken(Player p = EventPlayer()):                          Round(PlayerStat(p, PlayerStat.DamageTaken));
+Number      Accuracy(Player p = EventPlayer()):                             Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100);
+Number      CritAccuracy(Player p = EventPlayer()):                         Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100);
+Number      ScopedAccuracy(Player p = EventPlayer()):                       Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.ScopedAccuracy) * 100);
+Number      ScopedCritAccuracy(Player p = EventPlayer()):                   Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.ScopedCriticalHitAccuracy) * 100);
+Number      EnvironmentalKills(Player p = EventPlayer()):                   PlayerHeroStat(p, HeroOf(), PlayerHeroStat.EnvironmentalKills);
+Number      HealingDealt(Player p = EventPlayer()):                         Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.HealingDealt));
+Number      HealingTaken(Player p = EventPlayer()):                         Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.HealingReceived));
+Number      SelfHealing(Player p = EventPlayer()):                          Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.SelfHealing));
+Number      UltsUsed(Player p = EventPlayer()):                             PlayerStat(p, PlayerStat.UltimatesUsed);
+Number      UltsEarned(Player p = EventPlayer()):                           PlayerStat(p, PlayerStat.UltimatesEarned);
+Number      DamageBlocked(Player p = EventPlayer()):                        PlayerStat(p, PlayerStat.DamageBlocked);
 String      AltFont(Any s):                                      <" <0> ", s>;
 
 ////////////////////////////////////
@@ -82,8 +83,6 @@ String      AltFont(Any s):                                      <" <0> ", s
 //     B = Button.Jump,
 //     Z = Button.Ultimate
 // }
-
-// Boolean IsHostSpectator(): !ArrayContains(AllPlayers(), HostPlayer());
 
 // class Math {
 //     public static Number PI: Pi();
