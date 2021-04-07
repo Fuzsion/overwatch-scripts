@@ -1,0 +1,45 @@
+import "macros.del";
+import "testSettings.json";
+
+playervar vec vel;
+playervar vec proj_pos;
+playervar num speed;
+playervar num mass;
+playervar num grav;
+playervar num airtime;
+playervar vec grav_force;
+playervar vec proj_force;
+
+rule: "init"
+Event.OngoingPlayer
+if (IsMeleeing())
+{
+    proj_pos = EyePosition();
+    speed = 25;
+    vel = FacingDirectionOf() * speed;
+    mass = 1;
+    grav = 20;
+    airtime = 0;
+    grav_force = Vector(0, -1 * grav * mass);
+    proj_force = grav_force;
+}
+
+rule: "proj"
+Event.OngoingPlayer
+if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + vel * 0.016 * 1000, EnemyPlayers(), player, true)) >= 0.25 + speed / 100)
+{
+    vel += proj_force / mass * 0.016;
+    proj_pos += vel * 0.016;
+
+    PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Orange, proj_pos, 0.1);
+
+    MinWait();
+    LoopIfConditionIsTrue();
+
+    PlayEffect(all, PlayEffect.AsheDynamiteExplosionEffect, Color.Team1, proj_pos, 5);
+    PlayEffect(all, PlayEffect.AsheDynamiteExplosionSound, Color.White, proj_pos, 100);
+    PlayEffect(all, PlayEffect.AnaBioticGrenadeExplosionSound, Color.White, proj_pos, 45);
+
+    SetStatus(PlayersWithinRadius(proj_pos, 6), null, Status.Burning);
+    StartDamageOverTime(PlayersWithinRadius(proj_pos, 6), player, 5, 25);
+}
