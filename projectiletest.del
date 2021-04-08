@@ -1,45 +1,114 @@
 import "macros.del";
 import "testSettings.json";
 
+globalvar num S_RADIUS;
+globalvar num S_DURATION;
+globalvar num S_DAMAGE;
+globalvar num S_DOT;
+// playervar num airtime;
 playervar vec vel;
 playervar vec proj_pos;
-playervar num speed;
-playervar num mass;
-playervar num grav;
-playervar num airtime;
+playervar vec new_proj_pos;
 playervar vec grav_force;
 playervar vec proj_force;
+playervar num s_speed;
+playervar num s_grav;
+playervar any e_arr;
+playervar bool landed;
+
+rule: "hud"
+Event.OngoingPlayer
+{
+    CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left);
+    // CreateHudText(player, null, null, <"airtime: <0>", airtime>, Location.Left);
+    CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left);
+}
 
 rule: "init"
 Event.OngoingPlayer
 if (IsMeleeing())
 {
+    if (EntityExists(e_arr))
+    {
+        DestroyEffect(e_arr[0]);
+        DestroyEffect(e_arr[1]);
+        DestroyEffect(e_arr[2]);
+    }
+
+    S_RADIUS = WorkshopSettingReal("Settings", "Radius (7)", 7, 0.1, 100, 1);
+    S_DURATION = WorkshopSettingReal("Settings", "Duration (7)", 7, 0.1, 100, 2);
+    S_DAMAGE = WorkshopSettingInteger("Settings", "Explosion Damage (40)", 40, 1, 600, 3);
+    S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 4);
+    s_speed = WorkshopSettingReal("Settings", "Speed (25)", 25, 0.1, 1000, 5);
+    s_grav = WorkshopSettingReal("Settings", "Weight (20)", 20, 0, 1000, 7);
+
     proj_pos = EyePosition();
-    speed = 25;
-    vel = FacingDirectionOf() * speed;
-    mass = 1;
-    grav = 20;
-    airtime = 0;
-    grav_force = Vector(0, -1 * grav * mass);
+    vel = Facing() * s_speed;
+    grav_force = Vector(0, -1 * s_grav, 0);
     proj_force = grav_force;
+    // airtime = 0;
+    landed = false;
 }
 
 rule: "proj"
 Event.OngoingPlayer
-if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + vel * 0.016 * 1000, EnemyPlayers(), player, true)) >= 0.25 + speed / 100)
+if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + vel * 0.016 * 100, EnemyPlayers(), player, true)) >= 0.25 + s_speed / 100)
+if (!landed)
 {
-    vel += proj_force / mass * 0.016;
+    vel += proj_force * 0.016;
     proj_pos += vel * 0.016;
-
-    PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Orange, proj_pos, 0.1);
+    // airtime += 0.016;
+    PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
 
     MinWait();
     LoopIfConditionIsTrue();
 
-    PlayEffect(all, PlayEffect.AsheDynamiteExplosionEffect, Color.Team1, proj_pos, 5);
+    new_proj_pos = RayCastHitPosition(proj_pos, proj_pos + Down() * 100, null, null);
+    DestroyEffect(e_arr[0]);
+    DestroyEffect(e_arr[1]);
+
+    landed = true;
+    PlayEffect(all, PlayEffect.AsheDynamiteExplosionEffect, Color.Team1, proj_pos, 0);
+    PlayEffect(all, PlayEffect.GoodExplosion, Color.Orange, proj_pos, S_RADIUS);
     PlayEffect(all, PlayEffect.AsheDynamiteExplosionSound, Color.White, proj_pos, 100);
     PlayEffect(all, PlayEffect.AnaBioticGrenadeExplosionSound, Color.White, proj_pos, 45);
 
-    SetStatus(PlayersWithinRadius(proj_pos, 6), null, Status.Burning);
-    StartDamageOverTime(PlayersWithinRadius(proj_pos, 6), player, 5, 25);
+    CreateEffect(all, Effect.Ring, Color.Orange, new_proj_pos, S_RADIUS);
+    e_arr[0] = LastCreatedEntity();
+    CreateEffect(all, Effect.Ring, Color.Red, new_proj_pos, S_RADIUS);
+    e_arr[1] = LastCreatedEntity();
+    CreateEffect(all, Effect.Sparkles, Color.Red, new_proj_pos, S_RADIUS);
+    e_arr[2] = LastCreatedEntity();
+
+    Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
+
+    Wait(S_DURATION, WaitBehavior.RestartWhenTrue);
+
+    landed = false;
+    // airtime = 0;
+    DestroyEffect(e_arr[0]);
+    DestroyEffect(e_arr[1]);
+    DestroyEffect(e_arr[2]);
 }
+
+rule: "damage"
+Event.OngoingPlayer
+if (landed)
+{
+    SetStatus(PlayersWithinRadius(new_proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
+    Damage(PlayersWithinRadius(new_proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
+    Wait(0.25); // 'tick' rate
+    LoopIfConditionIsTrue();
+}
+
+rule: "[Debug] :: Bots"
+if (IsButtonHeld(host, Button.Interact) && !IsButtonHeld(host, Button.Crouch))
+{
+    CreateDummyBot(HeroOf(host), OppositeTeamOf(TeamOf(host)), -1, RayCastHitPosition(EyePosition(host), EyePosition(host) + Facing(host) * 100, null, null, true), Facing(host) * -1);
+}
+rule: "[Debug] :: Destroy Bots"
+if (IsButtonHeld(host, Button.Crouch) && IsButtonHeld(host, Button.Interact))
+{
+    DestroyAllDummyBots();
+}
+
