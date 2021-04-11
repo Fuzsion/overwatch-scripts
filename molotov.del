@@ -52,7 +52,7 @@ if (IsMeleeing())
 
 rule: "proj"
 Event.OngoingPlayer
-if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + vel * 0.016 * 100, EnemyPlayers(), player, true)) >= 0.25 + s_speed / 100)
+if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + s_speed / 100)
 if (!landed)
 {
     vel += proj_force * 0.016;
