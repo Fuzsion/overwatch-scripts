@@ -11,10 +11,20 @@ playervar vec proj_pos;
 playervar vec new_proj_pos;
 playervar vec grav_force;
 playervar vec proj_force;
-playervar num s_speed;
-playervar num s_grav;
+globalvar num S_SPEED;
+globalvar num S_GRAV;
 playervar any e_arr;
 playervar bool landed;
+
+rule: "init"
+{
+    S_RADIUS = WorkshopSettingReal("Settings", "Radius (7)", 7, 0.1, 100, 1);
+    S_DURATION = WorkshopSettingReal("Settings", "Duration (7)", 7, 0.1, 100, 2);
+    S_DAMAGE = WorkshopSettingInteger("Settings", "Explosion Damage (40)", 40, 1, 600, 3);
+    S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 4);
+    S_SPEED = WorkshopSettingReal("Settings", "Speed (25)", 25, 0.1, 1000, 5);
+    S_GRAV = WorkshopSettingReal("Settings", "Weight (20)", 20, 0, 1000, 7);
+}
 
 rule: "hud"
 Event.OngoingPlayer
@@ -24,7 +34,7 @@ Event.OngoingPlayer
     CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left);
 }
 
-rule: "init"
+rule: "proj init"
 Event.OngoingPlayer
 if (IsMeleeing())
 {
@@ -33,18 +43,12 @@ if (IsMeleeing())
         DestroyEffect(e_arr[0]);
         DestroyEffect(e_arr[1]);
         DestroyEffect(e_arr[2]);
+        DestroyEffect(e_arr[3]);
     }
 
-    S_RADIUS = WorkshopSettingReal("Settings", "Radius (7)", 7, 0.1, 100, 1);
-    S_DURATION = WorkshopSettingReal("Settings", "Duration (7)", 7, 0.1, 100, 2);
-    S_DAMAGE = WorkshopSettingInteger("Settings", "Explosion Damage (40)", 40, 1, 600, 3);
-    S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 4);
-    s_speed = WorkshopSettingReal("Settings", "Speed (25)", 25, 0.1, 1000, 5);
-    s_grav = WorkshopSettingReal("Settings", "Weight (20)", 20, 0, 1000, 7);
-
     proj_pos = EyePosition();
-    vel = Facing() * s_speed;
-    grav_force = Vector(0, -1 * s_grav, 0);
+    vel = Facing() * S_SPEED;
+    grav_force = Vector(0, -1 * S_GRAV, 0);
     proj_force = grav_force;
     // airtime = 0;
     landed = false;
@@ -52,7 +56,7 @@ if (IsMeleeing())
 
 rule: "proj"
 Event.OngoingPlayer
-if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + s_speed / 100)
+if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + S_SPEED / 100)
 if (!landed)
 {
     vel += proj_force * 0.016;
@@ -63,11 +67,11 @@ if (!landed)
     MinWait();
     LoopIfConditionIsTrue();
 
+    landed = true;
     new_proj_pos = RayCastHitPosition(proj_pos, proj_pos + Down() * 100, null, null);
     DestroyEffect(e_arr[0]);
     DestroyEffect(e_arr[1]);
 
-    landed = true;
     PlayEffect(all, PlayEffect.AsheDynamiteExplosionEffect, Color.Team1, proj_pos, 0);
     PlayEffect(all, PlayEffect.GoodExplosion, Color.Orange, proj_pos, S_RADIUS);
     PlayEffect(all, PlayEffect.AsheDynamiteExplosionSound, Color.White, proj_pos, 100);
@@ -79,26 +83,41 @@ if (!landed)
     e_arr[1] = LastCreatedEntity();
     CreateEffect(all, Effect.Sparkles, Color.Red, new_proj_pos, S_RADIUS);
     e_arr[2] = LastCreatedEntity();
+    CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, new_proj_pos, 60);
+    e_arr[3] = LastCreatedEntity();
 
     Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
 
     Wait(S_DURATION, WaitBehavior.RestartWhenTrue);
 
     landed = false;
-    // airtime = 0;
     DestroyEffect(e_arr[0]);
     DestroyEffect(e_arr[1]);
     DestroyEffect(e_arr[2]);
+    DestroyEffect(e_arr[3]);
 }
 
 rule: "damage"
 Event.OngoingPlayer
 if (landed)
 {
-    SetStatus(PlayersWithinRadius(new_proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
-    Damage(PlayersWithinRadius(new_proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
-    Wait(0.25); // 'tick' rate
-    LoopIfConditionIsTrue();
+    while (true)
+    {
+        SetStatus(
+        PlayersWithinRadius(new_proj_pos, 
+                            S_RADIUS, 
+                            LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
+        Damage(
+            PlayersWithinRadius(new_proj_pos, 
+                                S_RADIUS, 
+                                LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
+
+        if (!landed)
+            break;
+
+        # 'tick' rate
+        Wait(0.25);
+    }
 }
 
 rule: "[Debug] :: Bots"
