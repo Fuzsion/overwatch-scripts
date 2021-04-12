@@ -7,10 +7,13 @@ globalvar num S_DAMAGE;
 globalvar num S_DOT;
 globalvar num S_SPEED;
 globalvar num S_GRAV;
+globalvar num S_BOUNCE_STRENGTH;
 globalvar vec proj_grav_vec;
+playervar bool inair;
+playervar num airtime;
 playervar vec vel;
 playervar vec proj_pos;
-playervar vec new_proj_pos;
+// playervar vec new_proj_pos;
 playervar any e_arr;
 playervar bool landed;
 
@@ -22,6 +25,7 @@ rule: "init"
     S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 4);
     S_SPEED = WorkshopSettingReal("Settings", "Speed (25)", 25, 0.1, 1000, 5);
     S_GRAV = WorkshopSettingReal("Settings", "Weight (20)", 20, 0, 1000, 7);
+    S_BOUNCE_STRENGTH = WorkshopSettingReal("Settings", "Bounce Strength (1.3)", 1.3, 1, 3, 8);
     proj_grav_vec = Vector(0, -S_GRAV, 0);
 }
 
@@ -31,20 +35,6 @@ Event.OngoingPlayer
     CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left);
     CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left);
 }
-
-// rule: "proj init"
-// Event.OngoingPlayer
-// if (IsMeleeing())
-// {
-//     if (EntityExists(e_arr))
-//     {
-//         DestroyEffects();
-//     }
-
-//     proj_pos = EyePosition();
-//     vel = Facing() * S_SPEED;
-//     landed = false;
-// }
 
 void DestroyEffects() playervar "destroy"
 {
@@ -57,27 +47,54 @@ void DestroyEffects() playervar "destroy"
 rule: "proj"
 Event.OngoingPlayer
 if (IsMeleeing())
-if (!landed)
 {
     if (EntityExists(e_arr))
     {
         DestroyEffects();
     }
 
+    // todo: projectile bounces off walls using reflection vector math, explodes only when the vec normal points up (0, 1, 0)
     proj_pos = EyePosition();
     vel = Facing() * S_SPEED;
+    airtime = 0;
     landed = false;
+    inair = true;
 
-    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100))
+    vec[] normals = [];
+    vec[] hp = [];
+    any[] ricochets = [];
+    vec[] hp_ricochets = [];
+    any[] ricochet_effects = [];
+
+    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) && airtime < 10) // surface detection
     {
         vel += proj_grav_vec * 0.016;
         proj_pos += vel * 0.016;
+        airtime += 0.016;
         PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
         MinWait();
+
+        for (num i = 0; i < 4 && DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100); i++)
+        {
+            if (i > 0)
+            {
+                proj_pos = hp[i - 1];
+                vel = ricochets[i - 1];
+            }
+
+            # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/4019883#4019883
+            hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
+            normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
+            hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true);
+            ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i])));
+
+            if (normals[i] == Vector(0, 1, 0))
+                break;
+        }
     }
 
     landed = true;
-    new_proj_pos = RayCastHitPosition(proj_pos, proj_pos + Down() * 100, null, null);
+    // new_proj_pos = RayCastHitPosition(proj_pos, proj_pos + Down() * 100, null, null);
     DestroyEffects();
 
     Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
@@ -88,81 +105,39 @@ if (!landed)
     PlayEffect(all, PlayEffect.AsheDynamiteExplosionSound, Color.White, proj_pos, 100);
     PlayEffect(all, PlayEffect.AnaBioticGrenadeExplosionSound, Color.White, proj_pos, 45);
 
-    CreateEffect(all, Effect.Ring, Color.Orange, new_proj_pos, S_RADIUS);
+    CreateEffect(all, Effect.Ring, Color.Orange, proj_pos, S_RADIUS);
     e_arr[0] = LastCreatedEntity();
-    CreateEffect(all, Effect.Ring, Color.Red, new_proj_pos, S_RADIUS);
+    CreateEffect(all, Effect.Ring, Color.Red, proj_pos, S_RADIUS);
     e_arr[1] = LastCreatedEntity();
-    CreateEffect(all, Effect.Sparkles, Color.Red, new_proj_pos, S_RADIUS);
+    CreateEffect(all, Effect.Sparkles, Color.Red, proj_pos, S_RADIUS);
     e_arr[2] = LastCreatedEntity();
-    CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, new_proj_pos, 60);
+    CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, proj_pos, 60);
     e_arr[3] = LastCreatedEntity();
 
     Wait(S_DURATION, WaitBehavior.RestartWhenTrue);
 
     landed = false;
+    airtime = 0;
     DestroyEffects();
 }
-
-// rule: "proj"
-// Event.OngoingPlayer
-// if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100))
-// if (!landed)
-// {
-//     vel += proj_grav_vec * 0.016;
-//     proj_pos += vel * 0.016;
-//     PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
-
-//     MinWait();
-//     LoopIfConditionIsTrue();
-
-//     landed = true;
-//     new_proj_pos = RayCastHitPosition(proj_pos, proj_pos + Down() * 100, null, null);
-//     DestroyEffects();
-
-//     Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
-
-//     // effects n shit
-//     PlayEffect(all, PlayEffect.AsheDynamiteExplosionEffect, Color.Team1, proj_pos, 0);
-//     PlayEffect(all, PlayEffect.GoodExplosion, Color.Orange, proj_pos, S_RADIUS);
-//     PlayEffect(all, PlayEffect.AsheDynamiteExplosionSound, Color.White, proj_pos, 100);
-//     PlayEffect(all, PlayEffect.AnaBioticGrenadeExplosionSound, Color.White, proj_pos, 45);
-
-//     CreateEffect(all, Effect.Ring, Color.Orange, new_proj_pos, S_RADIUS);
-//     e_arr[0] = LastCreatedEntity();
-//     CreateEffect(all, Effect.Ring, Color.Red, new_proj_pos, S_RADIUS);
-//     e_arr[1] = LastCreatedEntity();
-//     CreateEffect(all, Effect.Sparkles, Color.Red, new_proj_pos, S_RADIUS);
-//     e_arr[2] = LastCreatedEntity();
-//     CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, new_proj_pos, 60);
-//     e_arr[3] = LastCreatedEntity();
-
-//     Wait(S_DURATION, WaitBehavior.RestartWhenTrue);
-
-//     landed = false;
-//     DestroyEffects();
-// }
 
 rule: "damage"
 Event.OngoingPlayer
 if (landed)
 {
-    while (true)
-    {
-        SetStatus(
-            PlayersWithinRadius(new_proj_pos, 
-                                S_RADIUS, 
-                                LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
-        Damage(
-            PlayersWithinRadius(new_proj_pos, 
-                                S_RADIUS, 
-                                LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
 
-        if (!landed)
-            break;
+    SetStatus(
+        PlayersWithinRadius(proj_pos, 
+                            S_RADIUS, 
+                            LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
+    Damage(
+        PlayersWithinRadius(proj_pos, 
+                            S_RADIUS, 
+                            LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
 
-        # 'tick' rate
-        Wait(0.25);
-    }
+    # 'tick' rate
+    WaitIfTrue(0.25);
+    LoopIfConditionIsTrue();
 }
 
 rule: "[Debug] :: Bots"
