@@ -12,7 +12,7 @@ globalvar Number S_RESPAWN_TIME; // respawn time
 // globalvar Number FAILSAFE_TIME; // respawn failsafe time
 globalvar Number S_GENJI_DAMAGE;
 globalvar Bool s_genji_nerf; // Bool genji nerf
-globalvar Bool s_heal_toggle; // Bool heal over time
+// globalvar Bool s_heal_toggle; // Bool heal over time
 globalvar Bool s_echo_effect;
 globalvar Bool s_aim_effect;
 
@@ -76,7 +76,7 @@ rule: "Initial Global"
     c_arr = [Hero.WreckingBall]; // crouch
     // buttons = [Button.PrimaryFire, Button.SecondaryFire, Button.Ability1, Button.Ability2, Button.Melee, Button.Crouch, Button.Interact, Button.Jump, Button.Reload, Button.Ultimate];
 
-    S_TEAM_SIZE = WorkshopSettingCombo("General", "Team Size (Changes the maximum bots per team. Higher than 9 can crash the server!) (5)", 0, ["5", "7", "9", "11"/* , "13", "15", "17" */], 1);
+    S_TEAM_SIZE = WorkshopSettingCombo("General", "Maximum bots per team (Higher than 11 will make uneven teams and may crash the server!) (5)", 0, ["5", "7", "9", "11", "13", "15", "17"], 1);
 
     if (S_TEAM_SIZE == 0) {
         slot_arr = [0, 1, 2, 3, 4, 5];
@@ -94,27 +94,27 @@ rule: "Initial Global"
         slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
         TEAM_SIZE = 12;
     }
-    // else if (S_TEAM_SIZE == 4) {
-    //     slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
-    //     TEAM_SIZE = 14;
-    // }
-    // else if (S_TEAM_SIZE == 5) {
-    //     slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-    //     TEAM_SIZE = 16;
-    // }
-    // else if (S_TEAM_SIZE == 6) {
-    //     slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
-    //     TEAM_SIZE = 18;
-    // }
+    else if (S_TEAM_SIZE == 4) {
+        slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+        TEAM_SIZE = 14;
+    }
+    else if (S_TEAM_SIZE == 5) {
+        slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        TEAM_SIZE = 16;
+    }
+    else if (S_TEAM_SIZE == 6) {
+        slot_arr = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17];
+        TEAM_SIZE = 18;
+    }
 
     S_TIMER_DUR = WorkshopSettingReal("General", "In Combat Timer (6)", 6, 0, 30, 2);
     S_RESPAWN_TIME = WorkshopSettingInteger("General", "Bot Respawn Time (15)", 15, 0, 90, 3);
-    s_heal_toggle = WorkshopSettingToggle("General", "Heal Over Time out of combat (On)", true, 4);
-    s_echo_effect = WorkshopSettingToggle("General", "Bots have an Echo Cloning Effect (On)", true, 5);
+    // s_heal_toggle = WorkshopSettingToggle("General", "Heal Over Time out of combat (On)", true, 4);
+    s_echo_effect = WorkshopSettingToggle("General", "Bots use Echo Clone Effect (On)", true, 5);
     s_aim_effect = WorkshopSettingToggle("General", "Show bot aim beams (Off)", false, 6);
 
-    S_DISTANCE = WorkshopSettingReal("Teleport", "Teleport Distance (12)", 12, 0, 100, 1);
-    S_OOS_TIME = WorkshopSettingReal("Teleport", "Out of LOS Teleport Time (0.25)", 0.25, 0, 5, 2);
+    S_DISTANCE = WorkshopSettingReal("Teleport", "Teleport Distance (20)", 20, 0, 100, 1);
+    S_OOS_TIME = WorkshopSettingReal("Teleport", "Out of LOS Teleport Time (0.25)", 0.25, 0.016, 5, 2);
 
     s_genji_nerf = WorkshopSettingToggle("Genji", "Genji Ability 1 Damage Modification (On)", true, 1);
     S_GENJI_DAMAGE = WorkshopSettingReal("Genji", "Genji Ability 1 Damage Percentage (33.34)", 33.34, 0, 100, 2);
@@ -127,6 +127,7 @@ rule: "Initial Global"
 rule: "[All] :: Human Init"
 Event.OngoingPlayer
 if (!IsDummyBot())
+if (HasSpawned())
 {
     owner_alive = true;
 }
@@ -173,17 +174,15 @@ disabled rule: "---------------- Owner Rules ----------------"{}
             /////////////    OWNER RULES    /////////////
             /////////////                   /////////////
 
-
-Player[] owned_bots: CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr())));           // amount of owners bots
-Player[] human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr())));                                     // amount of all human players on a team
-
-// Player[] spawned_human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));       // amount of all human players on a team that have spawned
+Player[] owned_bots: CountOf(FilteredArray(AllyPlayers(), Curr().owner == player && IsDummyBot(Curr()) && EntityExists(Curr())));           // amount of owners bots
+Player[] human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr())));                                                             // amount of all human players on a team
+Player[] spawned_human_cnt: CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())));                               // amount of all human players on a team that have spawned
 rule: "[Owner] :: Create Bots"
 Event.OngoingPlayer
 if (!IsDummyBot())
 if (HasSpawned())
 if (IsAlive())
-if (owned_bots < Floor((TEAM_SIZE - human_cnt) / human_cnt))
+if (owned_bots < Floor((TEAM_SIZE - spawned_human_cnt) / human_cnt))
 {
     bot_slot = FirstOf(FilteredArray(slot_arr, 
                     !EntityExists(PlayersInSlot(Curr(), TeamOf())) || 
@@ -194,7 +193,7 @@ if (owned_bots < Floor((TEAM_SIZE - human_cnt) / human_cnt))
 
     PlayersInSlot(bot_slot, TeamOf()).owner = player; // assign the owner
 
-    Wait(0.15); // somewhat long wait to help alleviate server stuttering for bot creation
+    MinWait();
 
     LoopIfConditionIsTrue();
 }
@@ -208,7 +207,7 @@ if (owned_bots > Floor((TEAM_SIZE - human_cnt) / human_cnt))
                     LastOf(FilteredArray(slot_arr, 
                     IsDummyBot(PlayersInSlot(Curr(), TeamOf())) && PlayersInSlot(Curr(), TeamOf()).owner == player && EntityExists(PlayersInSlot(Curr(), TeamOf())))));
 
-    Wait(0.15); // somewhat long wait to help alleviate server stuttering for bot deletion
+    MinWait();
 
     LoopIfConditionIsTrue();
 }
@@ -279,8 +278,8 @@ if (IsTrueForAny(AllLivingPlayers(TeamOf()), Curr().owner == player && IsDummyBo
 {
     Player[] bots = owner_bots;
     is_rezzing = true;
-    Player new_player = FilteredArray(AllLivingPlayers(), Curr() != player && Curr().owner == player);
-    new_player = LastOf(SortedArray(new_player, NormalizedHealth(Curr())));
+    // Player new_player = FilteredArray(AllLivingPlayers(), Curr() != player && Curr().owner == player);
+    Player new_player = LastOf(SortedArray(FilteredArray(AllLivingPlayers(), Curr() != player && Curr().owner == player), NormalizedHealth(Curr())));
     Vector position_of = PositionOf(new_player);
     Vector facing = FacingDirectionOf(new_player);
     Number health_of = Health(new_player);
@@ -288,54 +287,14 @@ if (IsTrueForAny(AllLivingPlayers(TeamOf()), Curr().owner == player && IsDummyBo
     Number ammo1 = Ammo(new_player, 1);
     Kill(new_player);
     Teleport(player, position_of);
-    PlayEffect(player, PlayEffect.EchoStickyBombExplosionEffect, Color.Team1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 0.8, null, null, true));
     SetFacing(player, facing, Relative.ToWorld);
+    Resurrect();
+    MinWait();
     SetPlayerHealth(player, health_of);
     SetAmmo(player, 0, ammo0);
     SetAmmo(player, 1, ammo1);
-    Resurrect();
-    MinWait();
     CancelPrimaryAction(bots);
     is_rezzing = false;
-
-    // if (CountOf(FilteredArray(AllDeadPlayers(TeamOf()), IsDummyBot(Curr()) && Curr().owner == player)) == (6 / CountOf(FilteredArray(AllyPlayers(), !IsDummyBot(Curr()) && HasSpawned(Curr())))))
-    //     DisableRespawning(bots);
-}
-
-rule: "[Owner] :: Start heal_ot"
-Event.OngoingPlayer
-if (s_heal_toggle)
-if (!IsDummyBot())
-if (timer == 0)
-if (Health() < MaxHealth())
-{
-    // stop timer
-    timer = 0;
-    StopChasingVariable(timer);
-    StartHealOverTime(player, null, 10000, 10);
-    heal_ot = LastHealOverTime();
-}
-
-rule: "[Owner] :: Stop heal_ot"
-Event.OnDamageTaken
-if (s_heal_toggle)
-if (!IsDummyBot())
-if (!IsHero(Hero.Mercy))
-if (!IsHero(Hero.Lucio))
-{
-    // start timer
-    timer = S_TIMER_DUR;
-    StopChasingVariable(timer);
-    ChaseVariableAtRate(timer, 0, 1, RateChaseReevaluation.None);
-    StopHealOverTime(heal_ot);
-}
-
-rule: "[Owner] :: Stop heal_ot if Full HP"
-Event.OngoingPlayer
-if (timer == 0)
-if (Health() == MaxHealth())
-{
-    StopHealOverTime(heal_ot);
 }
 
 rule: "[Owner] :: Alive"
@@ -634,7 +593,7 @@ if (bot_alive)
     StartThrottleInDirection(player, WorldVectorOf(ThrottleOf(owner), owner), ThrottleOf(owner) != Vector(0,0,0));
 
     StartFacing(player, DirectionTowards(EyePosition(),
-    UpdateEveryFrame(RayCastHitPosition(EyePosition(owner), EyePosition(owner) + FacingDirectionOf(owner) * 100, AllLivingPlayers(OppositeTeamOf(TeamOf(owner))), AllLivingPlayers(TeamOf(owner)), true))), 
+    RayCastHitPosition(EyePosition(owner), EyePosition(owner) + FacingDirectionOf(owner) * 100, AllLivingPlayers(OppositeTeamOf(TeamOf(owner))), AllLivingPlayers(TeamOf(owner)), true)), 
     !cced ? 10000 : 0.001);
 }
 
@@ -976,7 +935,7 @@ if (!IsDummyBot())
     heal_dealt != 0 ? <"Healing Dealt: <0>\n", heal_dealt> : "", 
     heal_taken != 0 ? <"Healing Taken: <0>\n", heal_taken> : "">, 
     null, 
-    Location.Left, 15, Color.White, Color.White, Color.White);
+    Location.Left, 30, Color.White, Color.White, Color.White);
 }
 
 Number percentage: (NormalizedHealth() * 100);
@@ -1325,13 +1284,13 @@ if (IsButtonHeld(host, Button.Interact))
 //     Kill(owner_bots);
 // }
 
-// rule: "[DBG] :: Kill"
-// Event.OngoingPlayer
-// if (!IsDummyBot())
-// if (IsInteractHeld())
-// {
-//     Kill();
-// }
+rule: "[DBG] :: Kill"
+Event.OngoingPlayer
+if (!IsDummyBot())
+if (IsButtonHeld(player, Button.Interact))
+{
+    Kill();
+}
 
 // rule: "[DBG] :: Kill All"
 // Event.OngoingPlayer

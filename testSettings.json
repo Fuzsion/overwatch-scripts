@@ -2,18 +2,31 @@
     "Lobby": {
       "Allow Players Who Are In Queue": true,
       "Map Rotation": "After A Game",
-      "Max FFA Players": 12,
-      "Max Spectators": 12,
+      "Max FFA Players": 6,
+      "Max Spectators": 2,
       "Return To Lobby": "Never"
     },
     "Modes": {
       "All": {
-        "Hero Limit": "Off"
+        "Hero Limit": "Off",
+        "Game Mode Start": "Manual"
       },
       "Deathmatch": {
         "Enabled Maps": [
           "Workshop Chamber"
         ]
       }
+    },
+    "Extensions": {
+      "Beam Effects": true,
+      "Beam Sounds": true,
+      "Buff and Debuff Sounds": true,
+      "Buff Status Effects": true,
+      "Debuff Status Effects": true,
+      "Energy Explosion Effects": true,
+      "Explosion Sounds": true,
+      "Kinetic Explosion Effects": true,
+      "Play More Effects": true, 
+      "Spawn More Dummy Bots": true
     }
   }

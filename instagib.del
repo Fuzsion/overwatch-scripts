@@ -2572,10 +2572,10 @@ if (IsFiringPrimary())
 {
     vec[] normals = [];
     vec[] hp = [];
-    any hp_player = [];
-    any ricochets = [];
     vec[] hp_ricochets = [];
-    any hp_player_ricochets = [];
+    any[] hp_player = [];
+    any[] ricochets = [];
+    any[] hp_player_ricochets = [];
     any[] ricochet_effects = [];
     any ricochet_effect;
 
