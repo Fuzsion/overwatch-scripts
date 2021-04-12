@@ -7,7 +7,7 @@ globalvar num S_DAMAGE;
 globalvar num S_DOT;
 globalvar num S_SPEED;
 globalvar num S_GRAV;
-globalvar vec proj_vec;
+globalvar vec proj_grav_vec;
 playervar vec vel;
 playervar vec proj_pos;
 playervar vec new_proj_pos;
@@ -22,7 +22,7 @@ rule: "init"
     S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 4);
     S_SPEED = WorkshopSettingReal("Settings", "Speed (25)", 25, 0.1, 1000, 5);
     S_GRAV = WorkshopSettingReal("Settings", "Weight (20)", 20, 0, 1000, 7);
-    proj_vec = Vector(0, -S_GRAV, 0);
+    proj_grav_vec = Vector(0, -S_GRAV, 0);
 }
 
 rule: "hud"
@@ -32,19 +32,19 @@ Event.OngoingPlayer
     CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left);
 }
 
-rule: "proj init"
-Event.OngoingPlayer
-if (IsMeleeing())
-{
-    if (EntityExists(e_arr))
-    {
-        DestroyEffects();
-    }
+// rule: "proj init"
+// Event.OngoingPlayer
+// if (IsMeleeing())
+// {
+//     if (EntityExists(e_arr))
+//     {
+//         DestroyEffects();
+//     }
 
-    proj_pos = EyePosition();
-    vel = Facing() * S_SPEED;
-    landed = false;
-}
+//     proj_pos = EyePosition();
+//     vel = Facing() * S_SPEED;
+//     landed = false;
+// }
 
 void DestroyEffects() playervar "destroy"
 {
@@ -56,15 +56,25 @@ void DestroyEffects() playervar "destroy"
 
 rule: "proj"
 Event.OngoingPlayer
-if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100))
+if (IsMeleeing())
 if (!landed)
 {
-    vel += proj_vec * 0.016;
-    proj_pos += vel * 0.016;
-    PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
+    if (EntityExists(e_arr))
+    {
+        DestroyEffects();
+    }
 
-    MinWait();
-    LoopIfConditionIsTrue();
+    proj_pos = EyePosition();
+    vel = Facing() * S_SPEED;
+    landed = false;
+
+    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100))
+    {
+        vel += proj_grav_vec * 0.016;
+        proj_pos += vel * 0.016;
+        PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
+        MinWait();
+    }
 
     landed = true;
     new_proj_pos = RayCastHitPosition(proj_pos, proj_pos + Down() * 100, null, null);
@@ -92,6 +102,45 @@ if (!landed)
     landed = false;
     DestroyEffects();
 }
+
+// rule: "proj"
+// Event.OngoingPlayer
+// if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100))
+// if (!landed)
+// {
+//     vel += proj_grav_vec * 0.016;
+//     proj_pos += vel * 0.016;
+//     PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
+
+//     MinWait();
+//     LoopIfConditionIsTrue();
+
+//     landed = true;
+//     new_proj_pos = RayCastHitPosition(proj_pos, proj_pos + Down() * 100, null, null);
+//     DestroyEffects();
+
+//     Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
+
+//     // effects n shit
+//     PlayEffect(all, PlayEffect.AsheDynamiteExplosionEffect, Color.Team1, proj_pos, 0);
+//     PlayEffect(all, PlayEffect.GoodExplosion, Color.Orange, proj_pos, S_RADIUS);
+//     PlayEffect(all, PlayEffect.AsheDynamiteExplosionSound, Color.White, proj_pos, 100);
+//     PlayEffect(all, PlayEffect.AnaBioticGrenadeExplosionSound, Color.White, proj_pos, 45);
+
+//     CreateEffect(all, Effect.Ring, Color.Orange, new_proj_pos, S_RADIUS);
+//     e_arr[0] = LastCreatedEntity();
+//     CreateEffect(all, Effect.Ring, Color.Red, new_proj_pos, S_RADIUS);
+//     e_arr[1] = LastCreatedEntity();
+//     CreateEffect(all, Effect.Sparkles, Color.Red, new_proj_pos, S_RADIUS);
+//     e_arr[2] = LastCreatedEntity();
+//     CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, new_proj_pos, 60);
+//     e_arr[3] = LastCreatedEntity();
+
+//     Wait(S_DURATION, WaitBehavior.RestartWhenTrue);
+
+//     landed = false;
+//     DestroyEffects();
+// }
 
 rule: "damage"
 Event.OngoingPlayer
