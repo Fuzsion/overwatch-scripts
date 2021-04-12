@@ -9,7 +9,6 @@ globalvar num S_SPEED;
 globalvar num S_GRAV;
 globalvar num S_BOUNCE_STRENGTH;
 globalvar vec proj_grav_vec;
-playervar bool inair;
 playervar num airtime;
 playervar vec vel;
 playervar vec proj_pos;
@@ -58,7 +57,6 @@ if (IsMeleeing())
     vel = Facing() * S_SPEED;
     airtime = 0;
     landed = false;
-    inair = true;
 
     vec[] normals = [];
     vec[] hp = [];
