@@ -52,7 +52,6 @@ if (IsMeleeing())
         DestroyEffects();
     }
 
-    // todo: projectile bounces off walls using reflection vector math, explodes only when the vec normal points up (0, 1, 0)
     proj_pos = EyePosition();
     vel = Facing() * S_SPEED;
     airtime = 0;
@@ -60,11 +59,11 @@ if (IsMeleeing())
 
     vec[] normals = [];
     vec[] hp = [];
-    any[] ricochets = [];
     vec[] hp_ricochets = [];
+    any[] ricochets = [];
     any[] ricochet_effects = [];
 
-    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) && airtime < 10) // surface detection
+    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) && airtime < 5) // surface detection
     {
         vel += proj_grav_vec * 0.016;
         proj_pos += vel * 0.016;
@@ -85,14 +84,14 @@ if (IsMeleeing())
             normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
             hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true);
             ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i])));
+            PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
 
-            if (normals[i] == Vector(0, 1, 0))
+            if (AngleBetweenVectors(normals[i], Up()) < 40)
                 break;
         }
     }
 
     landed = true;
-    // new_proj_pos = RayCastHitPosition(proj_pos, proj_pos + Down() * 100, null, null);
     DestroyEffects();
 
     Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
@@ -123,7 +122,6 @@ rule: "damage"
 Event.OngoingPlayer
 if (landed)
 {
-
     SetStatus(
         PlayersWithinRadius(proj_pos, 
                             S_RADIUS, 
