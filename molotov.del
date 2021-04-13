@@ -8,11 +8,11 @@ globalvar num S_DOT;
 globalvar num S_SPEED;
 globalvar num S_GRAV;
 globalvar num S_BOUNCE_STRENGTH;
+globalvar num S_GROUND_ANGLE;
 globalvar vec proj_grav_vec;
 playervar num airtime;
 playervar vec vel;
 playervar vec proj_pos;
-// playervar vec new_proj_pos;
 playervar any e_arr;
 playervar bool landed;
 
@@ -24,18 +24,20 @@ rule: "init"
     S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 4);
     S_SPEED = WorkshopSettingReal("Settings", "Speed (25)", 25, 0.1, 1000, 5);
     S_GRAV = WorkshopSettingReal("Settings", "Weight (20)", 20, 0, 1000, 7);
-    S_BOUNCE_STRENGTH = WorkshopSettingReal("Settings", "Bounce Strength (1.3)", 1.3, 1, 3, 8);
+    S_BOUNCE_STRENGTH = WorkshopSettingReal("Settings", "Bounce Strength (2 = Same strength as the prior bounce) (1.6)", 1.6, 1, 3, 8);
+    S_GROUND_ANGLE = WorkshopSettingInteger("Settings", "Minimum Ground Angle for Explosion (40)", 40, 1, 180, 9);
+
     proj_grav_vec = Vector(0, -S_GRAV, 0);
 }
 
-rule: "hud"
-Event.OngoingPlayer
-{
-    CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left);
-    CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left);
-}
+// rule: "hud"
+// Event.OngoingPlayer
+// {
+//     CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left);
+//     CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left);
+// }
 
-void DestroyEffects() playervar "destroy"
+void DestroyEffects() playervar "destroy now please"
 {
     for (num i = 0; i < 4; i++)
     {
@@ -71,23 +73,26 @@ if (IsMeleeing())
         PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
         MinWait();
 
-        for (num i = 0; i < 4 && DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100); i++)
+        for (num i = 0; i < 12; i++)
         {
-            if (i > 0)
+            if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100))
             {
-                proj_pos = hp[i - 1];
-                vel = ricochets[i - 1];
+                if (i > 0)
+                {
+                    proj_pos = hp[i - 1];
+                    vel = ricochets[i - 1];
+                }
+
+                # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
+                hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
+                normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
+                hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true);
+                ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i])));
+                PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
+
+                if (AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // if the normal and Up vector is less than the specified angle the loop will break
+                    break;
             }
-
-            # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/4019883#4019883
-            hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-            normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-            hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true);
-            ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i])));
-            PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
-
-            if (AngleBetweenVectors(normals[i], Up()) < 40)
-                break;
         }
     }
 
@@ -131,19 +136,18 @@ if (landed)
                             S_RADIUS, 
                             LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
 
-    # 'tick' rate
-    WaitIfTrue(0.25);
+    WaitIfTrue(0.25); // dumb solution for a 'tick' rate but w/e
     LoopIfConditionIsTrue();
 }
 
-rule: "[Debug] :: Bots"
-if (IsButtonHeld(host, Button.Interact) && !IsButtonHeld(host, Button.Crouch))
-{
-    CreateDummyBot(HeroOf(host), OppositeTeamOf(TeamOf(host)), -1, RayCastHitPosition(EyePosition(host), EyePosition(host) + Facing(host) * 100, null, null, true), Facing(host) * -1);
-}
-rule: "[Debug] :: Destroy Bots"
-if (IsButtonHeld(host, Button.Crouch) && IsButtonHeld(host, Button.Interact))
-{
-    DestroyAllDummyBots();
-}
+// rule: "[Debug] :: Bots"
+// if (IsButtonHeld(host, Button.Interact) && !IsButtonHeld(host, Button.Crouch))
+// {
+//     CreateDummyBot(HeroOf(host), OppositeTeamOf(TeamOf(host)), -1, RayCastHitPosition(EyePosition(host), EyePosition(host) + Facing(host) * 100, null, null, true), Facing(host) * -1);
+// }
+// rule: "[Debug] :: Destroy Bots"
+// if (IsButtonHeld(host, Button.Crouch) && IsButtonHeld(host, Button.Interact))
+// {
+//     DestroyAllDummyBots();
+// }
 
