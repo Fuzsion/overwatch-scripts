@@ -20,16 +20,18 @@ playervar bool landed;
 
 rule: "init"
 {
-    s_fire = WorkshopSettingToggle("Settings", "Fire (On)", true, 0);
-    S_RADIUS = WorkshopSettingReal("Settings", "Fire Radius (7)", 7, 0.1, 100, 1);
-    S_DURATION = WorkshopSettingReal("Settings", "Fire Duration (7)", 7, 0.1, 100, 2);
-    S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 3);
-    S_DAMAGE = WorkshopSettingInteger("Settings", "Explosion Damage (40)", 40, 1, 600, 4);
-    S_SPEED = WorkshopSettingReal("Settings", "Projectile Speed (25)", 25, 0.1, 1000, 5);
-    S_GRAV = WorkshopSettingReal("Settings", "Projectile Weight/Gravity (20)", 20, 0, 1000, 7);
-    S_BOUNCE_STRENGTH = WorkshopSettingReal("Settings", "Projectile Bounce Strength (2 = Same strength as the prior bounce) (1.6)", 1.6, 1, 2, 8);
-    S_GROUND_ANGLE = WorkshopSettingInteger("Settings", "Maximum Ground Angle for Projectile Explosion (40)", 40, 1, 180, 9);
-    s_ignore_ground = WorkshopSettingToggle("Settings", "Disable Ground Detection", false, 10);
+
+    s_fire = WorkshopSettingToggle("Damage", "Fire (On)", true, 0);
+    S_RADIUS = WorkshopSettingReal("Damage", "Fire Radius (7)", 7, 0.1, 100, 1);
+    S_DURATION = WorkshopSettingReal("Damage", "Fire Duration (7)", 7, 0.1, 100, 2);
+    S_DOT = WorkshopSettingReal("Damage", "Fire Damage (9)", 9, 0.1, 100, 3);
+    S_DAMAGE = WorkshopSettingInteger("Damage", "Explosion Damage (40)", 40, 1, 600, 4);
+
+    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (30)", 30, 0.1, 1000, 0);
+    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Weight/Gravity (20)", 20, 0, 1000, 1);
+    S_BOUNCE_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same strength as the prior bounce, 1 = No bounce) (1.6)", 1.6, 1, 2, 2);
+    S_GROUND_ANGLE = WorkshopSettingInteger("Projectile", "Maximum Ground Detection Angle for Projectile Explosion (40)", 40, 1, 180, 3);
+    s_ignore_ground = WorkshopSettingToggle("Projectile", "Disable Ground Detection (Off)", false, 4);
 
     proj_grav_vec = Vector(0, -S_GRAV, 0);
 }
@@ -69,7 +71,7 @@ if (IsMeleeing())
     any[] ricochets = [];
     any[] ricochet_effects = [];
 
-    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) && airtime < 5) // surface detection
+    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) && airtime < 5) // did not hit surface
     {
         vel += proj_grav_vec * 0.016;
         proj_pos += vel * 0.016;
@@ -80,7 +82,7 @@ if (IsMeleeing())
 
         for (num i = 0; i < 12; i++)
         {
-            if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100))
+            if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)) // hit surface
             {
                 if (i > 0)
                 {
@@ -91,11 +93,11 @@ if (IsMeleeing())
                 # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
                 hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
                 normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-                hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true);
                 ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i])));
+                hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true);
                 PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
 
-                if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // if the normal and Up vector is less than the specified angle the loop will break
+                if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // breaks the loop if the normal and up vector is within the specified angle
                     break;
             }
         }
@@ -118,7 +120,7 @@ if (IsMeleeing())
         e_arr[0] = LastCreatedEntity();
         CreateEffect(all, Effect.Ring, Color.Red, proj_pos, S_RADIUS);
         e_arr[1] = LastCreatedEntity();
-        CreateEffect(all, Effect.Sparkles, Color.Red, proj_pos, S_RADIUS);
+        CreateEffect(all, Effect.Sparkles, Color.Orange, proj_pos, S_RADIUS);
         e_arr[2] = LastCreatedEntity();
         CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, proj_pos, 60);
         e_arr[3] = LastCreatedEntity();
