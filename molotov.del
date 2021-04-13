@@ -9,6 +9,8 @@ globalvar num S_SPEED;
 globalvar num S_GRAV;
 globalvar num S_BOUNCE_STRENGTH;
 globalvar num S_GROUND_ANGLE;
+globalvar bool s_fire;
+globalvar bool s_ignore_ground;
 globalvar vec proj_grav_vec;
 playervar num airtime;
 playervar vec vel;
@@ -18,14 +20,16 @@ playervar bool landed;
 
 rule: "init"
 {
-    S_RADIUS = WorkshopSettingReal("Settings", "Radius (7)", 7, 0.1, 100, 1);
-    S_DURATION = WorkshopSettingReal("Settings", "Duration (7)", 7, 0.1, 100, 2);
-    S_DAMAGE = WorkshopSettingInteger("Settings", "Explosion Damage (40)", 40, 1, 600, 3);
-    S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 4);
-    S_SPEED = WorkshopSettingReal("Settings", "Speed (25)", 25, 0.1, 1000, 5);
-    S_GRAV = WorkshopSettingReal("Settings", "Weight (20)", 20, 0, 1000, 7);
-    S_BOUNCE_STRENGTH = WorkshopSettingReal("Settings", "Bounce Strength (2 = Same strength as the prior bounce) (1.6)", 1.6, 1, 3, 8);
-    S_GROUND_ANGLE = WorkshopSettingInteger("Settings", "Minimum Ground Angle for Explosion (40)", 40, 1, 180, 9);
+    s_fire = WorkshopSettingToggle("Settings", "Fire (On)", true, 0);
+    S_RADIUS = WorkshopSettingReal("Settings", "Fire Radius (7)", 7, 0.1, 100, 1);
+    S_DURATION = WorkshopSettingReal("Settings", "Fire Duration (7)", 7, 0.1, 100, 2);
+    S_DOT = WorkshopSettingReal("Settings", "Fire Damage (9)", 9, 0.1, 100, 3);
+    S_DAMAGE = WorkshopSettingInteger("Settings", "Explosion Damage (40)", 40, 1, 600, 4);
+    S_SPEED = WorkshopSettingReal("Settings", "Projectile Speed (25)", 25, 0.1, 1000, 5);
+    S_GRAV = WorkshopSettingReal("Settings", "Projectile Weight/Gravity (20)", 20, 0, 1000, 7);
+    S_BOUNCE_STRENGTH = WorkshopSettingReal("Settings", "Projectile Bounce Strength (2 = Same strength as the prior bounce) (1.6)", 1.6, 1, 2, 8);
+    S_GROUND_ANGLE = WorkshopSettingInteger("Settings", "Maximum Ground Angle for Projectile Explosion (40)", 40, 1, 180, 9);
+    s_ignore_ground = WorkshopSettingToggle("Settings", "Disable Ground Detection", false, 10);
 
     proj_grav_vec = Vector(0, -S_GRAV, 0);
 }
@@ -71,6 +75,7 @@ if (IsMeleeing())
         proj_pos += vel * 0.016;
         airtime += 0.016;
         PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
+        // PlayEffect(all, PlayEffect.ReinhardtFireStrikeTargetImpactEffect, Color.Team2, proj_pos, 0.1);
         MinWait();
 
         for (num i = 0; i < 12; i++)
@@ -90,14 +95,11 @@ if (IsMeleeing())
                 ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i])));
                 PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
 
-                if (AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // if the normal and Up vector is less than the specified angle the loop will break
+                if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // if the normal and Up vector is less than the specified angle the loop will break
                     break;
             }
         }
     }
-
-    landed = true;
-    DestroyEffects();
 
     Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
 
@@ -107,20 +109,27 @@ if (IsMeleeing())
     PlayEffect(all, PlayEffect.AsheDynamiteExplosionSound, Color.White, proj_pos, 100);
     PlayEffect(all, PlayEffect.AnaBioticGrenadeExplosionSound, Color.White, proj_pos, 45);
 
-    CreateEffect(all, Effect.Ring, Color.Orange, proj_pos, S_RADIUS);
-    e_arr[0] = LastCreatedEntity();
-    CreateEffect(all, Effect.Ring, Color.Red, proj_pos, S_RADIUS);
-    e_arr[1] = LastCreatedEntity();
-    CreateEffect(all, Effect.Sparkles, Color.Red, proj_pos, S_RADIUS);
-    e_arr[2] = LastCreatedEntity();
-    CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, proj_pos, 60);
-    e_arr[3] = LastCreatedEntity();
+    if (s_fire)
+    {
+        landed = true;
+        DestroyEffects();
 
-    Wait(S_DURATION, WaitBehavior.RestartWhenTrue);
+        CreateEffect(all, Effect.Ring, Color.Orange, proj_pos, S_RADIUS);
+        e_arr[0] = LastCreatedEntity();
+        CreateEffect(all, Effect.Ring, Color.Red, proj_pos, S_RADIUS);
+        e_arr[1] = LastCreatedEntity();
+        CreateEffect(all, Effect.Sparkles, Color.Red, proj_pos, S_RADIUS);
+        e_arr[2] = LastCreatedEntity();
+        CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, proj_pos, 60);
+        e_arr[3] = LastCreatedEntity();
 
-    landed = false;
+        Wait(S_DURATION, WaitBehavior.RestartWhenTrue);
+
+        landed = false;
+        DestroyEffects();
+    }
+
     airtime = 0;
-    DestroyEffects();
 }
 
 rule: "damage"
