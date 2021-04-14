@@ -1,6 +1,7 @@
 // aliases
 type bool = Boolean;
-type Bool = Boolean;
+type map = Map;
+type hero = Hero;
 type num = Number;
 type vec = Vector;
 type any = Any;
@@ -8,51 +9,56 @@ type player = Player;
 type color = Color;
 type str = String;
 
-Player      player:                                               EventPlayer();
-Player      local:                                                LocalPlayer();
-Player[]    all:                                                  AllPlayers();
-Player[]    allLiving:                                            AllLivingPlayers();
-Player      host:                                                 HostPlayer();
-Vector      Facing(Player p = EventPlayer()):                     FacingDirectionOf(p);
-Number      Time():                                               TotalTimeElapsed();
+player          player:                                                                     EventPlayer();
+player          local:                                                                      LocalPlayer();
+player          host:                                                                       HostPlayer();
+player[]        all:                                                                        AllPlayers();
+player[]        all_living:                                                                 AllLivingPlayers();
+vec             Facing(player p = EventPlayer()):                                           FacingDirectionOf(p);
+num             Time():                                                                     TotalTimeElapsed();
+any             WaitIfTrue(num time):                                                       Wait(time, WaitBehavior.AbortWhenFalse);
+player[]        EnemyPlayers(player p = EventPlayer()):                                     AllPlayers(OppositeTeamOf(TeamOf(p)));
+player[]        AllyPlayers(player p = EventPlayer()):                                      AllPlayers(TeamOf(p));
+bool            IsHero(in hero hero):                                                       HeroOf() == hero;
+bool            IsDuplicatingHero(in hero hero):                                            HeroBeingDuplicated() == hero;
+bool            IsMap(in map map):                                                          CurrentMap() == map;
+bool            IsHostSpectating():                                                         !ArrayContains(all, host);
+any             Curr():                                                                     ArrayElement();
+num             Floor(num float):                                                           RoundToInteger(float, Rounding.Down);
+num             Ceiling(num float):                                                         RoundToInteger(float, Rounding.Up);
+num             Round(num float):                                                           RoundToInteger(float);
 
-Any         WaitIfTrue(Number time):                              Wait(time, WaitBehavior.AbortWhenFalse);
-Player[]    EnemyPlayers():                                       AllPlayers(OppositeTeamOf(TeamOf()));
-Player[]    AllyPlayers():                                        AllPlayers(TeamOf());
-Bool        IsHero(in Hero hero):                                 HeroOf() == hero;
-Bool        IsDuplicatingHero(in Hero hero):                      HeroBeingDuplicated() == hero;
-Bool        IsMap(in Map map):                                    CurrentMap() == map;
-Bool        IsHostSpectating():                                   !ArrayContains(AllPlayers(), HostPlayer());
-Any         Curr():                                               ArrayElement();
-
-Number      Floor(Number number):                                 RoundToInteger(number, Rounding.Down);
-Number      Ceiling(Number number):                               RoundToInteger(number, Rounding.Up);
-Number      Round(Number number):                                 RoundToInteger(number);
-
-
-
-// HUD Text
-Color       RainbowColor():                                      CustomColor(128 + 127 * CosineFromDegrees(Time() * 100),
-                                                                             128 + 127 * CosineFromDegrees((Time() * 100) + 120),
-                                                                             128 + 127 * CosineFromDegrees((Time() * 100) + 240), 
-                                                                             250);
-
-Number      Kills(Player p = EventPlayer()):                                PlayerStat(p, PlayerStat.FinalBlows);
-Number      Deaths(Player p = EventPlayer()):                               PlayerStat(p, PlayerStat.Deaths);
-Number      DamageDealt(Player p = EventPlayer()):                          Round(PlayerStat(p, PlayerStat.AllDamageDealt));
-Number      DamageTaken(Player p = EventPlayer()):                          Round(PlayerStat(p, PlayerStat.DamageTaken));
-Number      Accuracy(Player p = EventPlayer()):                             Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100);
-Number      CritAccuracy(Player p = EventPlayer()):                         Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100);
-Number      ScopedAccuracy(Player p = EventPlayer()):                       Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.ScopedAccuracy) * 100);
-Number      ScopedCritAccuracy(Player p = EventPlayer()):                   Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.ScopedCriticalHitAccuracy) * 100);
-Number      EnvironmentalKills(Player p = EventPlayer()):                   PlayerHeroStat(p, HeroOf(), PlayerHeroStat.EnvironmentalKills);
-Number      HealingDealt(Player p = EventPlayer()):                         Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.HealingDealt));
-Number      HealingTaken(Player p = EventPlayer()):                         Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.HealingReceived));
-Number      SelfHealing(Player p = EventPlayer()):                          Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.SelfHealing));
-Number      UltsUsed(Player p = EventPlayer()):                             PlayerStat(p, PlayerStat.UltimatesUsed);
-Number      UltsEarned(Player p = EventPlayer()):                           PlayerStat(p, PlayerStat.UltimatesEarned);
-Number      DamageBlocked(Player p = EventPlayer()):                        PlayerStat(p, PlayerStat.DamageBlocked);
-String      AltFont(Any s):                                      <" <0> ", s>;
+// buttons
+bool            IsAbility1Held(player p = EventPlayer()):                                   IsButtonHeld(p, Button.Ability1);
+bool            IsAbility2Held(player p = EventPlayer()):                                   IsButtonHeld(p, Button.Ability2);
+bool            IsCrouchHeld(player p = EventPlayer()):                                     IsButtonHeld(p, Button.Crouch);
+bool            IsInteractHeld(player p = EventPlayer()):                                   IsButtonHeld(p, Button.Interact);
+bool            IsJumpHeld(player p = EventPlayer()):                                       IsButtonHeld(p, Button.Jump);
+bool            IsMeleeHeld(player p = EventPlayer()):                                      IsButtonHeld(p, Button.Melee);
+bool            IsPrimaryHeld(player p = EventPlayer()):                                    IsButtonHeld(p, Button.PrimaryFire);
+bool            IsReloadHeld(player p = EventPlayer()):                                     IsButtonHeld(p, Button.Reload);
+bool            IsSecondaryHeld(player p = EventPlayer()):                                  IsButtonHeld(p, Button.SecondaryFire);
+bool            IsUltimateHeld(player p = EventPlayer()):                                   IsButtonHeld(p, Button.Ultimate);
+color           RainbowColor():                                                             CustomColor(128 + 127 * CosineFromDegrees(Time() * 100),
+                                                                                                        128 + 127 * CosineFromDegrees((Time() * 100) + 120),
+                                                                                                        128 + 127 * CosineFromDegrees((Time() * 100) + 240), 
+                                                                                                        250);
+num             Kills(player p = EventPlayer()):                                            PlayerStat(p, PlayerStat.FinalBlows);
+num             Deaths(player p = EventPlayer()):                                           PlayerStat(p, PlayerStat.Deaths);
+num             DamageDealt(player p= EventPlayer()):                                       Round(PlayerStat(p, PlayerStat.AllDamageDealt));
+num             DamageTaken(player p = EventPlayer()):                                      Round(PlayerStat(p, PlayerStat.DamageTaken));
+num             Accuracy(player p = EventPlayer()):                                         Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.WeaponAccuracy) * 100);
+num             CritAccuracy(player p = EventPlayer()):                                     Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.CriticalHitAccuracy) * 100);
+num             ScopedAccuracy(player p = EventPlayer()):                                   Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.ScopedAccuracy) * 100);
+num             ScopedCritAccuracy(player p = EventPlayer()):                               Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.ScopedCriticalHitAccuracy) * 100);
+num             EnvironmentalKills(player p = EventPlayer()):                               PlayerHeroStat(p, HeroOf(), PlayerHeroStat.EnvironmentalKills);
+num             HealingDealt(player p = EventPlayer()):                                     Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.HealingDealt));
+num             HealingTaken(player p = EventPlayer()):                                     Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.HealingReceived));
+num             SelfHealing(player p = EventPlayer()):                                      Round(PlayerHeroStat(p, HeroOf(), PlayerHeroStat.SelfHealing));
+num             UltsUsed(player p = EventPlayer()):                                         PlayerStat(p, PlayerStat.UltimatesUsed);
+num             UltsEarned(player p = EventPlayer()):                                       PlayerStat(p, PlayerStat.UltimatesEarned);
+num             DamageBlocked(player p = EventPlayer()):                                    PlayerStat(p, PlayerStat.DamageBlocked);
+str             AltFont(any s):                                                             <" <0> ", s>;
 
 ////////////////////////////////////
 // shit i do not understand below :)
