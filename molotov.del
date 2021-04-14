@@ -11,6 +11,7 @@ globalvar num S_BOUNCE_STRENGTH;
 globalvar num S_GROUND_ANGLE;
 globalvar bool s_fire;
 globalvar bool s_ignore_ground;
+globalvar bool s_show_dbg;
 globalvar vec proj_grav_vec;
 playervar num airtime;
 playervar vec vel;
@@ -29,19 +30,26 @@ rule: "init"
 
     S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (30)", 30, 0.1, 1000, 0);
     S_GRAV = WorkshopSettingReal("Projectile", "Projectile Weight/Gravity (20)", 20, 0, 1000, 1);
-    S_BOUNCE_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same strength as the prior bounce, 1 = No bounce) (1.6)", 1.6, 1, 2, 2);
+    S_BOUNCE_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same as the prior bounce | 1 = No bounce) (1.6)", 1.6, 1, 2, 2);
     S_GROUND_ANGLE = WorkshopSettingInteger("Projectile", "Maximum Ground Detection Angle for Projectile Explosion (40)", 40, 1, 180, 3);
     s_ignore_ground = WorkshopSettingToggle("Projectile", "Disable Ground Detection (Off)", false, 4);
+
+    s_show_dbg = WorkshopSettingToggle("Debug", "Show Debug Info", false, 0);
 
     proj_grav_vec = Vector(0, -S_GRAV, 0);
 }
 
-// rule: "hud"
-// Event.OngoingPlayer
-// {
-//     CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left);
-//     CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left);
-// }
+rule: "dbg"
+Event.OngoingPlayer
+if (s_show_dbg)
+{
+    CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left, 0);
+    CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left, 1);
+    CreateHudText(player, null, null, <"vel: <0>", vel>, Location.Left, 2);
+
+    CreateBeamEffect(all, BeamType.BadBeam, proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true), Color.White);
+}
+
 
 void DestroyEffects() playervar "destroy now please"
 {
@@ -69,10 +77,10 @@ if (IsMeleeing())
     vec[] hp = [];
     vec[] hp_ricochets = [];
     any[] ricochets = [];
-    any[] ricochet_effects = [];
 
     while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) && airtime < 5) // did not hit surface
     {
+        // 62.5 ticks = 1 second
         vel += proj_grav_vec * 0.016;
         proj_pos += vel * 0.016;
         airtime += 0.016;
@@ -80,7 +88,7 @@ if (IsMeleeing())
         // PlayEffect(all, PlayEffect.ReinhardtFireStrikeTargetImpactEffect, Color.Team2, proj_pos, 0.1);
         MinWait();
 
-        for (num i = 0; i < 12; i++)
+        for (num i = 0; i < 12; i++) // i < max bounces
         {
             if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)) // hit surface
             {
@@ -95,6 +103,7 @@ if (IsMeleeing())
                 normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
                 ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i])));
                 hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true);
+
                 PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
 
                 if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // breaks the loop if the normal and up vector is within the specified angle
