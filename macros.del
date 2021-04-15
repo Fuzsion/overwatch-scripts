@@ -27,6 +27,7 @@ any             Curr():                                                         
 num             Floor(num float):                                                           RoundToInteger(float, Rounding.Down);
 num             Ceiling(num float):                                                         RoundToInteger(float, Rounding.Up);
 num             Round(num float):                                                           RoundToInteger(float);
+any             Update(any value):                                                          UpdateEveryFrame(value);
 
 // buttons
 bool            IsAbility1Held(player p = EventPlayer()):                                   IsButtonHeld(p, Button.Ability1);
