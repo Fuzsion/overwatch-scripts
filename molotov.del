@@ -13,9 +13,10 @@ globalvar bool s_fire;
 globalvar bool s_ignore_ground;
 globalvar bool s_show_dbg;
 globalvar vec proj_grav_vec;
-playervar num airtime;
 playervar vec vel;
 playervar vec proj_pos;
+playervar num airtime;
+playervar num bounces;
 playervar any e_arr;
 playervar bool landed;
 
@@ -28,8 +29,8 @@ rule: "init"
     S_DOT = WorkshopSettingReal("Damage", "Fire Damage (9)", 9, 0.1, 100, 3);
     S_DAMAGE = WorkshopSettingInteger("Damage", "Explosion Damage (40)", 40, 1, 600, 4);
 
-    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (30)", 30, 0.1, 1000, 0);
-    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Weight/Gravity (20)", 20, 0, 1000, 1);
+    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (30)", 30, 0.1, 70, 0);
+    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Weight/Gravity (20)", 20, 0, 100, 1);
     S_BOUNCE_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same as the prior bounce | 1 = No bounce) (1.6)", 1.6, 1, 2, 2);
     S_GROUND_ANGLE = WorkshopSettingInteger("Projectile", "Maximum Ground Detection Angle for Projectile Explosion (40)", 40, 1, 180, 3);
     s_ignore_ground = WorkshopSettingToggle("Projectile", "Disable Ground Detection (Off)", false, 4);
@@ -46,6 +47,7 @@ if (s_show_dbg)
     CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left, 0);
     CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left, 1);
     CreateHudText(player, null, null, <"vel: <0>", vel>, Location.Left, 2);
+    CreateHudText(player, null, null, <"airtime: <0>", airtime>, Location.Left, 3);
 
     CreateBeamEffect(all, BeamType.BadBeam, proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true), Color.White);
 }
@@ -80,15 +82,13 @@ if (IsMeleeing())
 
     while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) && airtime < 5) // did not hit surface
     {
-        // 62.5 ticks = 1 second
-        vel += proj_grav_vec * 0.016;
-        proj_pos += vel * 0.016;
-        airtime += 0.016;
-        PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1);
-        // PlayEffect(all, PlayEffect.ReinhardtFireStrikeTargetImpactEffect, Color.Team2, proj_pos, 0.1);
+        vel += proj_grav_vec * 0.016; // update vel with grav vector
+        proj_pos += vel * 0.016; // update the projectile position with the vel vector
+        airtime += 0.016; // 62.5 = ow tickrate, 3750 ticks = 1 second
+        // PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1); // effect for the projectile
         MinWait();
 
-        for (num i = 0; i < 12; i++) // i < max bounces
+        for (num i = 0; i < 4; i++) // i < amount of vectors to store, its usually never more than 3
         {
             if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)) // hit surface
             {
@@ -99,12 +99,12 @@ if (IsMeleeing())
                 }
 
                 # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
-                hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-                normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-                ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i])));
-                hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true);
+                hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true); // get hit pos
+                normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true); // get normal
+                ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i]))); // convert normal to reflection
+                hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true); // raycast from hit pos to reflection vector
 
-                PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
+                PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45); // hit sound
 
                 if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // breaks the loop if the normal and up vector is within the specified angle
                     break;
