@@ -85,12 +85,12 @@ if (IsMeleeing())
         vel += proj_grav_vec * 0.016; // update vel with grav vector
         proj_pos += vel * 0.016; // update the projectile position with the vel vector
         airtime += 0.016; // 62.5 = ow tickrate, 3750 ticks = 1 second
-        // PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1); // effect for the projectile
+        PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1); // effect for the projectile
         MinWait();
 
-        for (num i = 0; i < 4; i++) // i < amount of vectors to store, its usually never more than 3
+        for (num i = 0; i < 4; i++) // i < amount of vectors to store, usually never more than 3
         {
-            if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)) // hit surface
+            if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)) // hit surface? otherwise break
             {
                 if (i > 0)
                 {
@@ -101,7 +101,7 @@ if (IsMeleeing())
                 # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
                 hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true); // get hit pos
                 normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true); // get normal
-                ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * DotProduct(vel, normals[i]))); // convert normal to reflection
+                ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * Dot(vel, normals[i]))); // convert normal to reflection
                 hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true); // raycast from hit pos to reflection vector
 
                 PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45); // hit sound
@@ -109,6 +109,7 @@ if (IsMeleeing())
                 if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // breaks the loop if the normal and up vector is within the specified angle
                     break;
             }
+            else { break; } // break the loop if no surface is hit
         }
     }
 
