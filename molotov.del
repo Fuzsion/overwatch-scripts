@@ -28,8 +28,8 @@ rule: "init"
     S_DOT = WorkshopSettingReal("Damage", "Fire Damage (9)", 9, 0.1, 100, 3);
     S_DAMAGE = WorkshopSettingInteger("Damage", "Explosion Damage (40)", 40, 1, 600, 4);
 
-    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (30)", 30, 0.1, 70, 0);
-    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Weight/Gravity (20)", 20, 0, 100, 1);
+    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Gravity Strength (20)", 20, 0, 100, 0);
+    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (High values are likely to go through surfaces!) (30)", 30, 0.1, 110, 1);
     S_BOUNCE_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same as the prior bounce | 1 = No bounce) (1.6)", 1.6, 1, 2, 2);
     S_GROUND_ANGLE = WorkshopSettingInteger("Projectile", "Maximum Ground Detection Angle for Projectile Explosion (40)", 40, 1, 180, 3);
     s_ignore_ground = WorkshopSettingToggle("Projectile", "Disable Ground Detection (Off)", false, 4);
@@ -88,30 +88,28 @@ if (IsMeleeing())
         PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1); // projectile effect
         MinWait();
 
-        for (num i = 0; i < 4; i++) // i < amount of vectors to store, usually never more than 3
+        // i < amount of vectors to store, usually never more than 3 on default settings
+        // dont start the loop unless surface is hit
+        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)); i++)
         {
-            if (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)) // hit surface? otherwise break
+            # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
+            if (i > 0)
             {
-                # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
-                if (i > 0)
-                {
-                    proj_pos = hp[i - 1];
-                    vel = ricochets[i - 1];
-                }
-    
-                // get hit pos and normal
-                hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-                normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-
-                ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * Dot(vel, normals[i]))); // convert normal to reflection
-                hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true); // raycast from hit pos to reflection vector
-
-                PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45); // hit sound
-
-                if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // break if the normal and up vector is within the specified angle
-                    break;
+                proj_pos = hp[i - 1];
+                vel = ricochets[i - 1];
             }
-            else break;
+
+            // get hit pos and normal
+            hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
+            normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
+
+            ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * Dot(vel, normals[i]))); // convert normal to reflection
+            hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true); // raycast from hit pos to reflection vector
+
+            PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45); // hit sound
+
+            if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // break if the normal and up vector is within the specified angle
+                break;
         }
     }
 
