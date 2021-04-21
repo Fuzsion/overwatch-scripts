@@ -6,12 +6,14 @@ globalvar num S_DURATION;
 globalvar num S_DAMAGE;
 globalvar num S_DOT;
 globalvar num S_SPEED;
+globalvar num S_DELTA;
 globalvar num S_GRAV;
 globalvar num S_BOUNCE_STRENGTH;
 globalvar num S_GROUND_ANGLE;
 globalvar bool s_fire;
 globalvar bool s_ignore_ground;
 globalvar bool s_show_dbg;
+globalvar num s_preset;
 globalvar vec proj_grav_vec;
 playervar vec vel;
 playervar vec proj_pos;
@@ -28,13 +30,149 @@ rule: "init"
     S_DOT = WorkshopSettingReal("Damage", "Fire Damage (9)", 9, 0.1, 100, 3);
     S_DAMAGE = WorkshopSettingInteger("Damage", "Explosion Damage (40)", 40, 1, 600, 4);
 
-    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Gravity Strength (20)", 20, 0, 100, 0);
-    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (High values are likely to go through surfaces!) (30)", 30, 0.1, 110, 1);
-    S_BOUNCE_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same as the prior bounce | 1 = No bounce) (1.6)", 1.6, 1, 2, 2);
-    S_GROUND_ANGLE = WorkshopSettingInteger("Projectile", "Maximum Ground Detection Angle for Projectile Explosion (40)", 40, 1, 180, 3);
-    s_ignore_ground = WorkshopSettingToggle("Projectile", "Disable Ground Detection (Off)", false, 4);
+    s_preset = WorkshopSettingCombo("Projectile", "Projectile Presets (Ignores Existing Settings)", 0, 
+    ["None", 
+    "Ana Biotic Grenade", 
+    "Junkrat Frag Launcher", 
+    "Junkrat Concussion Mine", 
+    "Junkrat Steel Trap", 
+    "Baptiste Biotic Launcher/Immortality Field", 
+    "Orisa Protective Barrier", 
+    "Zarya Particle Cannon/Graviton Surge", 
+    "Sombra Translocator", 
+    "Ashe Dynamite",
+    "Tracer Pulse Bomb",
+    "McCree Flashbang", 
+    "McCree Tumbleweed",
+    "Mei Blizzard",
+    "Torbjorn Rivet Gun", 
+    "Torbjorn Molten Core", 
+    "Torbjorn Deploy Turret",
+    "Hanzo Storm Bow Max Charge/Storm Arrow",
+    "Sigma Hyperspheres", 
+    "Sigma Accretion",
+    "Widowmaker Venom Mine"], 0);
+
+    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Gravity Strength (20)", 20, 0, 100, 1);
+    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (High values are likely to go through surfaces!) (30)", 30, 0.1, 110, 2);
+    S_DELTA = WorkshopSettingReal("Projectile", "Projectile Vertical Offset (Delta) (0)", 0, -1, 1, 3);
+    S_BOUNCE_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same as the prior bounce | 1 = No bounce) (1.2)", 1.2, 1, 2, 4);
+    S_GROUND_ANGLE = WorkshopSettingInteger("Projectile", "Maximum Ground Detection Angle for Projectile Explosion (40)", 40, 1, 180, 5);
+    s_ignore_ground = WorkshopSettingToggle("Projectile", "Disable Ground Detection (Off)", false, 6);
 
     s_show_dbg = WorkshopSettingToggle("Debug", "Show Debug Info", false, 0);
+
+    if (s_preset > 0) // i dont understand why i cant just do 'switch (s_preset > 0)' but this works i guess
+    {
+        switch (true)
+        {
+            case (s_preset == 1):
+                S_GRAV = 9.84;
+                S_SPEED = 30;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 2):
+                S_GRAV = 12.35;
+                S_SPEED = 25;
+                S_DELTA = 0.075;
+                break;
+            case (s_preset == 3):
+                S_GRAV = 20.3;
+                S_SPEED = 25;
+                S_DELTA = 0.09;
+                break;
+            case (s_preset == 4):
+                S_GRAV = 20.2;
+                S_SPEED = 10;
+                S_DELTA = 0.095;
+                break;
+            case (s_preset == 5):
+                S_GRAV = 20.1;
+                S_SPEED = 60;
+                S_DELTA = 0.007;
+                break;
+            case (s_preset == 6):
+                S_GRAV = 9.84;
+                S_SPEED = 25;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 7):
+                S_GRAV = 9.84;
+                S_SPEED = 25;
+                S_DELTA = 0.1;
+                break;
+            case (s_preset == 8):
+                S_GRAV = 20.2;
+                S_SPEED = 25;
+                S_DELTA = 0.09;
+                break;
+            case (s_preset == 9):
+                S_GRAV = 8.03;
+                S_SPEED = 25;
+                S_DELTA = 0.07;
+                break;
+            case (s_preset == 10):
+                S_GRAV = 30.8;
+                S_SPEED = 15;
+                S_DELTA = 0.07;
+                break;
+            case (s_preset == 11):
+                S_GRAV = 9.84;
+                S_SPEED = 30;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 12):
+                S_GRAV = 10;
+                S_SPEED = 4.2;
+                S_DELTA = 0.577;
+                break;
+            case (s_preset == 13):
+                S_GRAV = 9.9;
+                S_SPEED = 20;
+                S_DELTA = 0.09;
+                break;
+            case (s_preset == 14):
+                S_GRAV = 9.81;
+                S_SPEED = 70;
+                S_DELTA = 0.015;
+                break;
+            case (s_preset == 15):
+                S_GRAV = 30.05;
+                S_SPEED = 40;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 16):
+                S_GRAV = 20;
+                S_SPEED = 17;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 17):
+                S_GRAV = 9.9;
+                S_SPEED = 20;
+                S_DELTA = 0.09;
+                break;
+            case (s_preset == 18):
+                S_GRAV = 9.82;
+                S_SPEED = 110;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 19):
+                S_GRAV = 5.95;
+                S_SPEED = 49.7;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 20):
+                S_GRAV = 18.35;
+                S_SPEED = 37.4;
+                S_DELTA = 0.1;
+                break;
+            case (s_preset == 21):
+                S_GRAV = 9.84;
+                S_SPEED = 20;
+                S_DELTA = 0;
+                break;
+        }
+    }
 
     proj_grav_vec = Vector(0, -S_GRAV, 0);
 }
@@ -70,7 +208,7 @@ if (IsMeleeing())
     }
 
     proj_pos = EyePosition();
-    vel = Facing() * S_SPEED;
+    vel = Normalize(Facing() + Vector(0, S_DELTA, 0)) * S_SPEED;
     airtime = 0;
     landed = false;
 
