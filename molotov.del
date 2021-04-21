@@ -62,7 +62,7 @@ rule: "init"
 
     s_show_dbg = WorkshopSettingToggle("Debug", "Show Debug Info", false, 0);
 
-    if (s_preset > 0) // i dont understand why i cant just do 'switch (s_preset > 0)' but this works i guess
+    if (s_preset > 0)
     {
         switch (true)
         {
