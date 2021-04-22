@@ -213,7 +213,7 @@ if (IsMeleeing())
     vec[] hp_ricochets = [];
     vec[] ricochets = [];
 
-    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 50) // did not hit surface
+    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) // did not hit surface
            && airtime < 5) 
     {
         vel += proj_grav_vec * 0.016; // update vel with grav vector each tick
@@ -227,7 +227,7 @@ if (IsMeleeing())
 
         // i < amount of vectors to store, usually never more than 3 on default settings
         // dont start the loop unless surface is hit
-        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 50)); i++)
+        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)); i++)
         {
             # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
             if (i > 0)
