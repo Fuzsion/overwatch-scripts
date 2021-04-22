@@ -30,28 +30,28 @@ rule: "init"
     S_DOT = WorkshopSettingReal("Damage", "Fire Damage (9)", 9, 0.1, 100, 3);
     S_DAMAGE = WorkshopSettingInteger("Damage", "Explosion Damage (40)", 40, 1, 600, 4);
 
-    s_preset = WorkshopSettingCombo("Projectile", "Projectile Presets (Ignores Existing Settings)", 0, 
+    s_preset = WorkshopSettingCombo("Projectile", "Projectile Preset (Ignores Existing Settings for Gravity, Speed, and Delta)", 0, 
     ["None", // 0
     "Ana Biotic Grenade", // 1
-    "Junkrat Frag Launcher", // 2
-    "Junkrat Concussion Mine", // 3
-    "Junkrat Steel Trap", // 4
-    "Baptiste Biotic Launcher/Immortality Field", // 5
-    "Orisa Protective Barrier", // 6
-    "Zarya Particle Cannon/Graviton Surge", // 7
-    "Sombra Translocator", // 8
-    "Ashe Dynamite", // 9
-    "Tracer Pulse Bomb", // 10
-    "McCree Flashbang", // 11
-    "McCree Tumbleweed", // 12
-    "Mei Blizzard", // 13
-    "Torbjorn Rivet Gun", // 14
-    "Torbjorn Molten Core", // 15
-    "Torbjorn Deploy Turret", // 16
-    "Hanzo Storm Bow Max Charge/Storm Arrow", // 17
-    "Sigma Hyperspheres", // 18
-    "Sigma Accretion", // 19
-    "Widowmaker Venom Mine"], // 20
+    "Ashe Dynamite", // 2
+    "Baptiste Biotic Launcher / Immortality Field", // 3
+    "Hanzo Storm Bow Max Charge / Storm Arrow", // 4
+    "Junkrat Frag Launcher", // 5
+    "Junkrat Concussion Mine", // 6
+    "Junkrat Steel Trap", // 7
+    "Orisa Protective Barrier", // 8
+    "Sigma Hyperspheres", // 9
+    "Sigma Accretion", // 10
+    "Sombra Translocator", // 11
+    "Torbjorn Rivet Gun", // 12
+    "Torbjorn Molten Core", // 13
+    "Torbjorn Deploy Turret", // 14
+    "Tracer Pulse Bomb", // 15
+    "McCree Flashbang", // 16
+    "McCree Tumbleweed", // 17
+    "Mei Blizzard", // 18
+    "Widowmaker Venom Mine", // 19
+    "Zarya Particle Cannon / Graviton Surge"], // 20
     0);
 
     S_GRAV = WorkshopSettingReal("Projectile", "Projectile Gravity Strength (20)", 20, 0, 100, 1);
@@ -73,99 +73,99 @@ rule: "init"
                 S_DELTA = 0;
                 break;
             case (s_preset == 2):
-                S_GRAV = 12.35;
-                S_SPEED = 25;
-                S_DELTA = 0.075;
-                break;
-            case (s_preset == 3):
-                S_GRAV = 20.3;
-                S_SPEED = 25;
-                S_DELTA = 0.09;
-                break;
-            case (s_preset == 4):
-                S_GRAV = 20.2;
-                S_SPEED = 10;
-                S_DELTA = 0.095;
-                break;
-            case (s_preset == 5):
-                S_GRAV = 20.1;
-                S_SPEED = 60;
-                S_DELTA = 0.007;
-                break;
-            case (s_preset == 6):
-                S_GRAV = 9.84;
-                S_SPEED = 25;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 7):
-                S_GRAV = 9.84;
-                S_SPEED = 25;
-                S_DELTA = 0.1;
-                break;
-            case (s_preset == 8):
-                S_GRAV = 20.2;
-                S_SPEED = 25;
-                S_DELTA = 0.09;
-                break;
-            case (s_preset == 9):
                 S_GRAV = 8.03;
                 S_SPEED = 25;
                 S_DELTA = 0.07;
                 break;
-            case (s_preset == 10):
-                S_GRAV = 30.8;
-                S_SPEED = 15;
-                S_DELTA = 0.07;
+            case (s_preset == 3):
+                S_GRAV = 20.1;
+                S_SPEED = 60;
+                S_DELTA = 0.007;
                 break;
-            case (s_preset == 11):
-                S_GRAV = 9.84;
-                S_SPEED = 30;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 12):
-                S_GRAV = 10;
-                S_SPEED = 4.2;
-                S_DELTA = 0.577;
-                break;
-            case (s_preset == 13):
-                S_GRAV = 9.9;
-                S_SPEED = 20;
-                S_DELTA = 0.09;
-                break;
-            case (s_preset == 14):
-                S_GRAV = 9.81;
-                S_SPEED = 70;
-                S_DELTA = 0.015;
-                break;
-            case (s_preset == 15):
-                S_GRAV = 30.05;
-                S_SPEED = 40;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 16):
-                S_GRAV = 20;
-                S_SPEED = 17;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 17):
+            case (s_preset == 4):
                 S_GRAV = 9.82;
                 S_SPEED = 110;
                 S_DELTA = 0;
                 break;
-            case (s_preset == 18):
-                S_GRAV = 5.95;
-                S_SPEED = 37.4;
+            case (s_preset == 5):
+                S_GRAV = 12.35;
+                S_SPEED = 25;
+                S_DELTA = 0.075;
+                break;
+            case (s_preset == 6):
+                S_GRAV = 20.3;
+                S_SPEED = 25;
+                S_DELTA = 0.09;
+                break;
+            case (s_preset == 7):
+                S_GRAV = 20.2;
+                S_SPEED = 10;
+                S_DELTA = 0.095;
+                break;
+            case (s_preset == 8):
+                S_GRAV = 9.84;
+                S_SPEED = 25;
                 S_DELTA = 0;
                 break;
-            case (s_preset == 19):
+            case (s_preset == 9):
+                S_GRAV = 5.95;
+                S_SPEED = 49.7;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 10):
                 S_GRAV = 18.35;
                 S_SPEED = 37.4;
                 S_DELTA = 0.1;
                 break;
-            case (s_preset == 20):
+            case (s_preset == 11):
+                S_GRAV = 20.2;
+                S_SPEED = 25;
+                S_DELTA = 0.09;
+                break;
+            case (s_preset == 12):
+                S_GRAV = 9.81;
+                S_SPEED = 70;
+                S_DELTA = 0.015;
+                break;
+            case (s_preset == 13):
+                S_GRAV = 30.05;
+                S_SPEED = 40;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 14):
+                S_GRAV = 20;
+                S_SPEED = 17;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 15):
+                S_GRAV = 30.8;
+                S_SPEED = 15;
+                S_DELTA = 0.19;
+                break;
+            case (s_preset == 16):
+                S_GRAV = 9.84;
+                S_SPEED = 30;
+                S_DELTA = 0;
+                break;
+            case (s_preset == 17):
+                S_GRAV = 10;
+                S_SPEED = 4.2;
+                S_DELTA = 0.577;
+                break;
+            case (s_preset == 18):
+                S_GRAV = 9.9;
+                S_SPEED = 20;
+                S_DELTA = 0.09;
+                break;
+            case (s_preset == 19):
                 S_GRAV = 9.84;
                 S_SPEED = 20;
                 S_DELTA = 0;
+                break;
+            case (s_preset == 20):
+                S_GRAV = 9.84;
+                S_SPEED = 25;
+                S_DELTA = 0.1;
                 break;
         }
     }
@@ -213,8 +213,8 @@ if (IsMeleeing())
     vec[] hp_ricochets = [];
     vec[] ricochets = [];
 
-    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) // did not hit surface
-           && airtime < 5) 
+    while (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) >= 0.25 + (S_SPEED / 100) // did not hit surface
+           /* && airtime < 5 */) 
     {
         vel += proj_grav_vec * 0.016; // update vel with grav vector each tick
         proj_pos += vel * 0.016; // update proj_pos with vel vector each tick
@@ -227,7 +227,7 @@ if (IsMeleeing())
 
         // i < amount of vectors to store, usually never more than 3 on default settings
         // dont start the loop unless surface is hit
-        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)); i++)
+        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= 0.25 + (S_SPEED / 100)); i++)
         {
             # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
             if (i > 0)
