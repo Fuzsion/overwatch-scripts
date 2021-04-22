@@ -31,27 +31,28 @@ rule: "init"
     S_DAMAGE = WorkshopSettingInteger("Damage", "Explosion Damage (40)", 40, 1, 600, 4);
 
     s_preset = WorkshopSettingCombo("Projectile", "Projectile Presets (Ignores Existing Settings)", 0, 
-    ["None", 
-    "Ana Biotic Grenade", 
-    "Junkrat Frag Launcher", 
-    "Junkrat Concussion Mine", 
-    "Junkrat Steel Trap", 
-    "Baptiste Biotic Launcher/Immortality Field", 
-    "Orisa Protective Barrier", 
-    "Zarya Particle Cannon/Graviton Surge", 
-    "Sombra Translocator", 
-    "Ashe Dynamite",
-    "Tracer Pulse Bomb",
-    "McCree Flashbang", 
-    "McCree Tumbleweed",
-    "Mei Blizzard",
-    "Torbjorn Rivet Gun", 
-    "Torbjorn Molten Core", 
-    "Torbjorn Deploy Turret",
-    "Hanzo Storm Bow Max Charge/Storm Arrow",
-    "Sigma Hyperspheres", 
-    "Sigma Accretion",
-    "Widowmaker Venom Mine"], 0);
+    ["None", // 0
+    "Ana Biotic Grenade", // 1
+    "Junkrat Frag Launcher", // 2
+    "Junkrat Concussion Mine", // 3
+    "Junkrat Steel Trap", // 4
+    "Baptiste Biotic Launcher/Immortality Field", // 5
+    "Orisa Protective Barrier", // 6
+    "Zarya Particle Cannon/Graviton Surge", // 7
+    "Sombra Translocator", // 8
+    "Ashe Dynamite", // 9
+    "Tracer Pulse Bomb", // 10
+    "McCree Flashbang", // 11
+    "McCree Tumbleweed", // 12
+    "Mei Blizzard", // 13
+    "Torbjorn Rivet Gun", // 14
+    "Torbjorn Molten Core", // 15
+    "Torbjorn Deploy Turret", // 16
+    "Hanzo Storm Bow Max Charge/Storm Arrow", // 17
+    "Sigma Hyperspheres", // 18
+    "Sigma Accretion", // 19
+    "Widowmaker Venom Mine"], // 20
+    0);
 
     S_GRAV = WorkshopSettingReal("Projectile", "Projectile Gravity Strength (20)", 20, 0, 100, 1);
     S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (High values are likely to go through surfaces!) (30)", 30, 0.1, 110, 2);
@@ -147,26 +148,21 @@ rule: "init"
                 S_DELTA = 0;
                 break;
             case (s_preset == 17):
-                S_GRAV = 9.9;
-                S_SPEED = 20;
-                S_DELTA = 0.09;
-                break;
-            case (s_preset == 18):
                 S_GRAV = 9.82;
                 S_SPEED = 110;
                 S_DELTA = 0;
                 break;
-            case (s_preset == 19):
+            case (s_preset == 18):
                 S_GRAV = 5.95;
-                S_SPEED = 49.7;
+                S_SPEED = 37.4;
                 S_DELTA = 0;
                 break;
-            case (s_preset == 20):
+            case (s_preset == 19):
                 S_GRAV = 18.35;
                 S_SPEED = 37.4;
                 S_DELTA = 0.1;
                 break;
-            case (s_preset == 21):
+            case (s_preset == 20):
                 S_GRAV = 9.84;
                 S_SPEED = 20;
                 S_DELTA = 0;
@@ -217,18 +213,21 @@ if (IsMeleeing())
     vec[] hp_ricochets = [];
     vec[] ricochets = [];
 
-    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 100) // did not hit surface
+    while (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) >= 0.25 + (S_SPEED / 50) // did not hit surface
            && airtime < 5) 
     {
         vel += proj_grav_vec * 0.016; // update vel with grav vector each tick
         proj_pos += vel * 0.016; // update proj_pos with vel vector each tick
         airtime += 0.016; // 62.5 = ow tickrate, 3750 ticks = 1 second
+
+        # change effect type here
         PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1); // projectile effect
-        MinWait();
+        # .
+        Wait(0.016);
 
         // i < amount of vectors to store, usually never more than 3 on default settings
         // dont start the loop unless surface is hit
-        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 100)); i++)
+        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true)) <= 0.25 + (S_SPEED / 50)); i++)
         {
             # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
             if (i > 0)
