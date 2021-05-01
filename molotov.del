@@ -225,9 +225,9 @@ if (IsMeleeing())
         # .
         Wait(0.016);
 
-        // i < amount of vectors to store, usually never more than 3 on default settings
-        // dont start the loop unless surface is hit
-        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= 0.25 + (S_SPEED / 100)); i++)
+        // i < amount of vectors to store, or the amount of "bounces". usually never more than 3 on default settings
+        // dont continue the loop unless surface is hit
+        for (num i = 0; (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= 0.25 + (S_SPEED / 100)) && (i < 6); i++)
         {
             # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
             if (i > 0)
@@ -285,16 +285,15 @@ rule: "damage"
 Event.OngoingPlayer
 if (landed)
 {
-    SetStatus(
-        PlayersWithinRadius(proj_pos, 
-                            S_RADIUS, 
-                            LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
-    Damage(
-        PlayersWithinRadius(proj_pos, 
-                            S_RADIUS, 
-                            LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
+    SetStatus(PlayersWithinRadius(proj_pos, 
+                                    S_RADIUS, 
+                                    LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
 
-    WaitIfTrue(0.25); // dumb solution for a 'tick' rate but w/e
+    Damage(PlayersWithinRadius(proj_pos, 
+                                S_RADIUS, 
+                                LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
+
+    WaitIfTrue(0.25);
     LoopIfConditionIsTrue();
 }
 
