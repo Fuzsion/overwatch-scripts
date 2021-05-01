@@ -1,6 +1,7 @@
 import "macros.del";
 import "aimbotlobby.json";
 /* Player Variables */
+
 playervar bool can_aim;         // (bool)   can the player aimbot
 playervar bool cancel_aim;      // (bool)   interact override for can_aim
 playervar bool is_stealth;      // (bool)   sombra stealth
@@ -8,7 +9,7 @@ playervar bool has_target;      // (bool)   does the player have a target?
 playervar bool aim_override;    // (bool)   primary/secondary fire hero specific override to prevent locking
 playervar bool aim_tgl;         // (bool)   manual aim lock toggle
 playervar player target;        // (player) the target player of the player's aimbot
-// playervar vec offset;           // (vector) offset for targeting
+playervar vec offset;           // (vector) offset for targeting
 playervar num speed_div;
 
 
@@ -19,43 +20,49 @@ playervar num speed_div;
 rule: "init"
 {
     CreateHudText(host, null, null, <"<0>%", ServerLoad()>, Location.Left, 0, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
-    CreateHudText(all, null, null, "ㅤESP Aimbot | Created by scort#11221", Location.Right, 0, Color.White, Color.White, Color.White, HudTextRev.VisibleTo);
+    CreateHudText(all, null, null, "ㅤHvH (ESP+Aimbot) | Created by scort#11221", Location.Right, 0, Color.White, Color.White, Color.White, HudTextRev.VisibleTo);
     CreateHudText(all, null, "ㅤv1.0.0 | Code: ? ? ?\n", null, Location.Right, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleTo);
 }
 
 rule: "player init"
 Event.OngoingPlayer
 {
+    CreateEffect(all, Effect.Sphere, Color.SkyBlue, (EyePosition(target) + target.offset) + WorldVectorOf(Vector(aim_x, aim_y, aim_z), player, LocalVector.Rotation), 0.1);
     DisableNameplates(player, all);
     StartForcingPlayerOutlines(player, all, true, Color.Red, OutlineType.Always);
-    CreateHudText(aim_tgl ? player : null, null, null, <"locking">, Location.Left, 1, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
+
+    CreateHudText(aim_tgl ? player : null, null, null, <"  \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nLocking">, Location.Top, 1, Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
 
     CreateProgressBarInWorldText(FilteredArray(EnemyPlayers(), !is_stealth && IsAlive()), NormalizedHealth() * 100, null, player, 0, Clipping.DoNotClip, Color.Red);
 
-    CreateInWorldText(FilteredArray(EnemyPlayers(), !is_stealth && IsAlive()), <"<0> <1> | <2><3>", HeroIconString(HeroOf()), player, RoundToInteger(Health()), IsUsingUltimate() ? "| Using Ultimate" : "">, player, 1, Clipping.DoNotClip);
+    CreateInWorldText(FilteredArray(EnemyPlayers(), !is_stealth && IsAlive()), <"<0> <1> | <2>HP <3>", HeroIconString(HeroOf()), player, RoundToInteger(Health()), IsUsingUltimate() 
+                                                                                                                                                                        ? "| Using Ultimate" 
+                                                                                                                                                                        : UltimateChargePercent() == 100 
+                                                                                                                                                                            ? <"| <0>", IconString(Icon.Checkmark)>
+                                                                                                                                                                            : <"| <0>%", UltimateChargePercent()>>, player, 0.85, Clipping.DoNotClip);
 
-    CreateHudText(has_target ? player : null, null, null, Max((VerticalAngleTowards(player, EyePosition(target)) * -1) / (120 - DistanceBetween(EyePosition(), EyePosition(target))), 0), Location.Left, 0,
+    CreateHudText(has_target ? player : null, null, null, aim_y, Location.Left, 0,
                     Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
 
-    CreateHudText(has_target ? player : null, null, null, <"<0>: <1> <2>", <"current_target">, HeroIconString(HeroOf(target)), target>, Location.Right, 1,
+    CreateHudText(has_target ? player : null, null, null, <"Current Target: <0> <1>", HeroIconString(HeroOf(target)), target>, Location.Right, 1,
                 Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
 
-    CreateHudText(has_target ? player : null, null, null, <"<0>: <1>", <"distance">, DistanceBetween(EyePosition(), EyePosition(target))>, Location.Right, 2,
+    CreateHudText(has_target ? player : null, null, null, <"Distance: <0>m", Round(DistanceBetween(EyePosition(), EyePosition(target)))>, Location.Right, 2,
                 Color.White, Color.White, Color.White, HudTextRev.VisibleToAndString);
 
 }
 
-rule: "Spawn Event"
+rule: "Spawned"
 Event.OngoingPlayer
 if (IsAlive())
 {
     is_stealth = false;
-    // offset = Vector(0, 0.05, 0);
+    offset = Vector(0, 0.1, 0);
     speed_div = 32;
     aim_tgl = false;
 }
 
-rule: "Death Event"
+rule: "Death"
 Event.OnDeath
 {
     is_stealth = false;
@@ -70,6 +77,11 @@ Event.OnDeath
 // -------- AIM LOGIC -------- //
 // --------------------------- //
 
+num aim_x: (SpeedOfInDirection(target, WorldVectorOf(Left(), player, LocalVector.Rotation)) / target.speed_div) - (SpeedOfInDirection(player, WorldVectorOf(Left(), player, LocalVector.Rotation)) / speed_div);
+// alternate y: Max((VerticalAngleTowards(player, EyePosition(target)) * -1) / (120 - DistanceBetween(EyePosition(), EyePosition(target))), 0),
+num aim_y: Max((YOf(EyePosition(target)) - YOf(EyePosition())) / (15 + DistanceBetween(EyePosition(), EyePosition(target))), 0);
+num aim_z: (SpeedOfInDirection(target, WorldVectorOf(Forward(), player, LocalVector.Rotation)) / target.speed_div);
+
 rule: "Aim Logic :: welcome to hell"
 Event.OngoingPlayer
 if (can_aim)
@@ -81,30 +93,11 @@ if (!aim_override)
         target = PlayerClosestToReticle(player, OppositeTeamOf(TeamOf()));
     }
 
-    // if (target == 0 || target == player)
-    // {
-    //     target = FirstOf(SortedArray(FilteredArray(EnemyPlayers(), IsInLineOfSight(player, Curr(), BarrierLOS.AllBarriersBlock)), DistanceBetween(Curr(), player)));
-    // }
-
-    // //Check again..
-    // if (target == 0)
-    // {
-    //     Wait(0.2, WaitBehavior.IgnoreCondition);
-    //     LoopIfConditionIsTrue();
-    // }
-
     if (!IsDead(target) || !target.is_stealth)
     {
         has_target = true;
 
-        // alternate y: Max((YOf(EyePosition(target)) - YOf(EyePosition())) / (15 + DistanceBetween(EyePosition(), EyePosition(target))), 0)
-        StartFacing(player,
-                    VectorTowards(EyePosition(player),
-                                    EyePosition(target) + (/* target.offset + */
-                                    WorldVectorOf(Vector(/* X */ (SpeedOfInDirection(target, WorldVectorOf(Left(), player, LocalVector.Rotation)) / target.speed_div) - (SpeedOfInDirection(player, WorldVectorOf(Left(), player, LocalVector.Rotation)) / speed_div),
-                                                        /* Y */ Max((VerticalAngleTowards(player, EyePosition(target)) * -1) / (120 - DistanceBetween(EyePosition(), EyePosition(target))), 0),
-                                                        /* Z */ (SpeedOfInDirection(target, WorldVectorOf(Forward(), player, LocalVector.Rotation)) / target.speed_div)), player, LocalVector.Rotation))),
-                    100000, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
+        StartFacing(player, VectorTowards(EyePosition(), (EyePosition(target) + target.offset) + WorldVectorOf(Vector(aim_x, aim_y, aim_z), player, LocalVector.Rotation)), 100000, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
     }
 
     if (target == player || target == 0 || IsDead(target) || cancel_aim || aim_override || is_stealth || target.is_stealth)
@@ -117,7 +110,7 @@ if (!aim_override)
     LoopIfConditionIsTrue();
 }
 
-rule: "Aim Logic :: Stop facing events (loop independent)"
+rule: "Aim Logic :: Stop facing events"
 Event.OngoingPlayer
 if (target == player || target == 0 || is_stealth || cancel_aim || aim_override || IsDead(target) || target.is_stealth)
 {
@@ -162,19 +155,19 @@ if (IsAlive())
 }
 
 
-// rule: "In air"
-// Event.OngoingPlayer
-// if (IsInAir())
-// {
-//     offset = Vector(0, 0.3, 0);
-// }
+rule: "In air"
+Event.OngoingPlayer
+if (IsInAir())
+{
+    offset = Vector(0, 0.3, 0);
+}
 
-// rule: "On ground"
-// Event.OngoingPlayer
-// if (IsOnGround())
-// {
-//     offset = Vector(0, 0.05, 0);
-// }
+rule: "On ground"
+Event.OngoingPlayer
+if (IsOnGround())
+{
+    offset = Vector(0, 0.1, 0);
+}
 
 // ---------------------------- //
 // ------ HERO SPECIFICS ------ //
@@ -188,7 +181,7 @@ if (IsUsingAbility1())
     cancel_aim = true;
     speed_div = 16;
     //offset = Vector(SpeedOfInDirection(player, WorldVectorOf(Left(), player, LocalVector.Rotation)) / 16, -0.15, 0);
-    // offset = Vector(0, -0.15, 0);
+    offset = Vector(0, -0.15, 0);
 }
 
 rule: "Soldier :: Stop sprinting"
@@ -198,7 +191,7 @@ if (!IsUsingAbility1())
 {
     cancel_aim = false;
     speed_div = 32;
-    // offset = Vector(0, 0.05, 0);
+    offset = Vector(0, 0.1, 0);
 }
 
 rule: "Sombra :: Stealth"
@@ -220,55 +213,55 @@ if (is_stealth)
     is_stealth = false;
 }
 
-// rule: "Widowmaker :: In air"
-// Event.OngoingPlayer
-// Player.Widowmaker
-// if (IsInAir())
-// {
-//     offset = Vector(0, 0.2, 0);
-// }
+rule: "Widowmaker :: In air"
+Event.OngoingPlayer
+Player.Widowmaker
+if (IsInAir())
+{
+    offset = Vector(0, 0.2, 0);
+}
 
-// rule: "Widowmaker :: On ground"
-// Event.OngoingPlayer
-// Player.Widowmaker
-// if (IsOnGround())
-// {
-//     offset = Vector(0, 0.05, 0);
-// }
+rule: "Widowmaker :: On ground"
+Event.OngoingPlayer
+Player.Widowmaker
+if (IsOnGround())
+{
+    offset = Vector(0, 0.1, 0);
+}
 
-// /* Pharah */
-// rule: "Pharah"
-// Event.OngoingPlayer
-// Player.Pharah
-// if (IsInAir())
-// {
-//     offset = Vector(0, 0.45, 0);
-// }
+/* Pharah */
+rule: "Pharah"
+Event.OngoingPlayer
+Player.Pharah
+if (IsInAir())
+{
+    offset = Vector(0, 0.45, 0);
+}
 
-// rule: "Pharah"
-// Event.OngoingPlayer
-// Player.Pharah
-// if (IsOnGround())
-// {
-//     offset = Vector(0, 0.05, 0);
-// }
+rule: "Pharah"
+Event.OngoingPlayer
+Player.Pharah
+if (IsOnGround())
+{
+    offset = Vector(0, 0.1, 0);
+}
 
-// /* Wrecking Ball */
-// rule: "Wrecking Ball"
-// Event.OngoingPlayer
-// Player.WreckingBall
-// if (IsUsingAbility1() && IsAlive())
-// {
-//     offset = Vector(0, -1, 0);
-// }
+/* Wrecking Ball */
+rule: "Wrecking Ball"
+Event.OngoingPlayer
+Player.WreckingBall
+if (IsUsingAbility1() && IsAlive())
+{
+    offset = Vector(0, -1, 0);
+}
 
-// rule: "Wrecking Ball"
-// Event.OngoingPlayer
-// Player.WreckingBall
-// if (!IsUsingAbility1())
-// {
-//     offset = Vector(0, 0.05, 0);
-// }
+rule: "Wrecking Ball"
+Event.OngoingPlayer
+Player.WreckingBall
+if (!IsUsingAbility1())
+{
+    offset = Vector(0, 0.1, 0);
+}
 
 /* Primary Override */
 rule: "Primary Override (start) :: Winston/Rein/Moira"
