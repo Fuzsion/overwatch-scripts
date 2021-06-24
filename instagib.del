@@ -2644,6 +2644,7 @@ if (IsReloadHeld())
     LoopIfConditionIsTrue();
 }
 
+// this entire rule needs improvement jesus christ what the fuck were you thinking scott
 rule: "[Buff] :: Buckshot : Fire Action"
 Event.OngoingPlayer
 if (buckshot_enabled)
