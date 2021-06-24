@@ -60,12 +60,12 @@ playervar vec sec_rc_end;
 // .##.....##..##..##....##.##....##
 // .##.....##.####..######...######.
 globalvar num S_MATCH_TIME_LIMIT;
-globalvar num S_PRI_DELAY;
+// globalvar num S_PRI_DELAY;
 globalvar num S_PICKUP_RAD;
 playervar vec pri_hit;
 playervar bool bhopping;
-globalvar bool s_use_cxhair;
-globalvar bool s_pri_delay;
+// globalvar bool s_use_cxhair;
+// globalvar bool s_pri_delay;
 
 
 // .##.....##....###....########..######..##.....##....########...#######...#######..##........######.
@@ -76,7 +76,6 @@ globalvar bool s_pri_delay;
 // .##.....##.##.....##....##....##....##.##.....##....##.....##.##.....##.##.....##.##.......##....##
 // .##.....##.##.....##....##.....######..##.....##....########...#######...#######..########..######.
 globalvar bool match_started;
-playervar bool has_spawned;
 globalvar bool s_grapple_enabled;
 globalvar bool s_dodge_enabled;
 globalvar bool s_sec_enabled;
@@ -120,7 +119,7 @@ globalvar color buff_color;
 globalvar any[] collected_buff_effect;
 globalvar bool[] can_pickup_buff;
 globalvar player[] buff_user;
-playervar num b_cnt;
+playervar bool has_buff;
 
 
 // .##....##.####.##.......##...........######..########..########..########.########
@@ -147,10 +146,10 @@ playervar str streak_str;
 // ..###..###..##.....##.########.########.########..##.....##.##....##..######..
 
 // setup
-globalvar num S_WALLBANG_DUR;
 globalvar num S_WALLBANG_CD;
+globalvar num S_WALLBANG_AMMO;
 globalvar num wallbang_cd;
-playervar num wallbang_dur;
+playervar num wallbang_ammo;
 globalvar num wallbang_pb;
 globalvar bool wallbang_timer;
 globalvar bool s_spawn_wallbang;
@@ -173,10 +172,10 @@ playervar any wallbang_effect;
 // .##.....##.####..######...#######...######..##.....##.########....##...
 
 // setup
-globalvar num S_RICOCHET_DUR;
+globalvar num S_RICOCHET_AMMO;
 globalvar num S_RICOCHET_CD;
 globalvar num ricochet_cd;
-playervar num ricochet_dur;
+playervar num ricochet_ammo;
 globalvar num ricochet_pb;
 globalvar bool ricochet_timer;
 globalvar bool s_spawn_ricochet;
@@ -199,10 +198,10 @@ playervar vec facing;
 // .########...#######...######..##....##..######..##.....##..#######.....##...
 
 // setup
-globalvar num S_BUCKSHOT_DUR;
+globalvar num S_BUCKSHOT_AMMO;
 globalvar num S_BUCKSHOT_CD;
 globalvar num buckshot_cd;
-playervar num buckshot_dur;
+playervar num buckshot_ammo;
 globalvar num buckshot_pb;
 globalvar bool buckshot_timer;
 globalvar bool s_spawn_buckshot;
@@ -212,6 +211,7 @@ globalvar str buckshot_txt;
 
 // logic
 globalvar num S_BUCKSHOT_SPREAD;
+playervar num charge_lvl;
 
 
 // ..######..##.....##....###....########..########....##........#######...######..##....##
@@ -223,10 +223,10 @@ globalvar num S_BUCKSHOT_SPREAD;
 // ..######..##.....##.##.....##.##.....##....##.......########..#######...######..##....##
 
 // setup
-globalvar num S_LOCK_DUR;
+globalvar num S_LOCK_AMMO;
 globalvar num S_LOCK_CD;
 globalvar num lock_cd;
-playervar num lock_dur;
+playervar num lock_ammo;
 globalvar num lock_pb;
 globalvar bool lock_timer;
 globalvar bool s_spawn_lock;
@@ -252,10 +252,10 @@ playervar any locking_id;
 // ..#####.##..#######..##.....##.########...######..##.....##..#######.....##...
 
 // setup
-globalvar num S_QUADSHOT_DUR;
+globalvar num S_QUADSHOT_AMMO;
 globalvar num S_QUADSHOT_CD;
 globalvar num quadshot_cd;
-playervar num quadshot_dur;
+playervar num quadshot_ammo;
 globalvar num quadshot_pb;
 globalvar bool quadshot_timer;
 globalvar bool s_spawn_quadshot;
@@ -276,10 +276,10 @@ globalvar num S_QUADSHOT_SPREAD;
 // ....###....##.....##.##.........#######..##.....##.####.########.########.##.....##
 
 // setup
-globalvar num S_VAP_DUR;
+globalvar num S_VAP_AMMO;
 globalvar num S_VAP_CD;
 globalvar num vap_cd;
-playervar num vap_dur;
+playervar num vap_ammo;
 globalvar num vap_pb;
 globalvar bool vap_timer;
 globalvar bool s_spawn_vap;
@@ -306,10 +306,10 @@ globalvar bool s_vap_user_affected;
 // .########.########.########..######.....##....##.....##..#######.
 
 // setup
-globalvar num S_ELECTRO_DUR;
+globalvar num S_ELECTRO_AMMO;
 globalvar num S_ELECTRO_CD;
 globalvar num electro_cd;
-playervar num electro_dur;
+playervar num electro_ammo;
 globalvar num electro_pb;
 globalvar bool electro_timer;
 globalvar bool s_spawn_electro;
@@ -341,10 +341,10 @@ playervar color mine_color;
 // ..######..##........##.....##.##.....##.##....##
 
 // setup
-globalvar num S_SPARK_DUR;
+globalvar num S_SPARK_AMMO;
 globalvar num S_SPARK_CD;
 globalvar num spark_cd;
-playervar num spark_dur;
+playervar num spark_ammo;
 globalvar num spark_pb;
 globalvar bool spark_timer;
 globalvar bool s_spawn_spark;
@@ -404,15 +404,15 @@ rule: "[Main] :: Initial Global"
     match_started = false;
 
     S_MATCH_TIME_LIMIT = WorkshopSettingInteger("General",              "​Match Time (Minutes) (20)", 20, 1, 60, 1) * 60;
-    S_PRI_DELAY = WorkshopSettingReal("General",                        "Primary Fire Delay (0.7)", 0.7, 0.51, 2, 2);
-    s_pri_delay = WorkshopSettingToggle("General",                      "Enable Primary Fire Delay (On)", true, 3);
+    // S_PRI_DELAY = WorkshopSettingReal("General",                        "Primary Fire Delay (0.7)", 0.7, 0.51, 2, 2);
+    // s_pri_delay = WorkshopSettingToggle("General",                      "Enable Primary Fire Delay (On)", true, 3);
     s_pri_fx_enabled = WorkshopSettingToggle("General",                 "Enable Primary Fire Effects (On)", true, 4);
 
     s_buffs_enabled = WorkshopSettingToggle("Buffs",                    "​​Enable Buffs (On)", true, 1);
     s_buffs_spawn_at_start = WorkshopSettingToggle("Buffs",             "​Buffs Spawn Immediately When Match Starts (Off)", false, 2);
     s_cd_ip_timer = WorkshopSettingToggle("Buffs",                      "Show buff cooldown timer (On)", true, 3);
     s_buff_hud_txt = WorkshopSettingToggle("Buffs",                     "Show Buff Cooldown HUD Text (On)", true, 4);
-    s_use_cxhair = WorkshopSettingToggle("Buffs",                       "Buffs Change Crosshair (On)", true, 5);
+    // s_use_cxhair = WorkshopSettingToggle("Buffs",                       "Buffs Change Crosshair (On)", true, 5);
     S_PICKUP_RAD = WorkshopSettingReal("Buffs",                         "Buff Collection Radius (1.25)", 1.25, 0.5, 3, 6);
     s_cd_type = WorkshopSettingCombo("Buffs",                           "Buff Timer Type (Progress Bar)", 0, ["Progress Bar", "Timer", "None"], 7);
 
@@ -435,17 +435,17 @@ rule: "[Main] :: Initial Global"
 
     s_spawn_wallbang = WorkshopSettingToggle("Wallbang",                "​​​​Spawn Wallbang (On)", true, 1);
     S_WALLBANG_CD = WorkshopSettingInteger("Wallbang",                  "​​Wallbang Spawn Time (75)", 75, 5, 600, 2);
-    S_WALLBANG_DUR = WorkshopSettingInteger("Wallbang",                 "Wallbang ​​​Duration (30)", 30, 1, 600, 3);
+    S_WALLBANG_AMMO = WorkshopSettingInteger("Wallbang",                "Wallbang Ammo (10)", 10, 1, 60, 3);
     S_NUM_WALLBANGS = WorkshopSettingInteger("Wallbang",                "​Wallbang Amount (8)", 8, 2, 100, 4);
 
     s_spawn_ricochet = WorkshopSettingToggle("Ricochet",                "Spawn Ricochet (On)", true, 1);
     S_RICOCHET_CD = WorkshopSettingInteger("Ricochet",                  "Ricochet ​Spawn Time (75)", 75, 5, 600, 2);
-    S_RICOCHET_DUR = WorkshopSettingInteger("Ricochet",                 "​​Ricochet Duration (30)", 30, 1, 600, 3);
+    S_RICOCHET_AMMO = WorkshopSettingInteger("Ricochet",                "Ricochet Ammo (10)", 10, 1, 60, 3);
     S_NUM_RICOCHETS = WorkshopSettingInteger("Ricochet",                "​​​Ricochet Amount (8)", 8, 1, 16, 4);
 
     s_spawn_electro = WorkshopSettingToggle("Electro",                  "​​​​​Spawn Electro (On)", true, 1);
     S_ELECTRO_CD = WorkshopSettingInteger("Electro",                    "Electro ​Spawn Time (100)", 100, 5, 600, 2);
-    S_ELECTRO_DUR = WorkshopSettingInteger("Electro",                   "Electro Duration (30)", 30, 1, 600, 3);
+    S_ELECTRO_AMMO = WorkshopSettingInteger("Electro",                  "Electro Ammo (15)", 15, 1, 60, 3);
     S_ELECTRO_ESIZE = WorkshopSettingReal("Electro",                    "Electro Primary Explosion Size (1.5)", 1.5, 1, 500, 4);
     S_ELECTRO_MESIZE = WorkshopSettingReal("Electro",                   "Electro Mine Explosion Size (5)", 5, 1, 500, 5);
     S_ELECTRO_DELAY = WorkshopSettingReal("Electro",                    "Electro Mine Explosion Time When Idle (3)", 3, 1, 500, 6);
@@ -453,39 +453,39 @@ rule: "[Main] :: Initial Global"
 
     s_spawn_spark = WorkshopSettingToggle("Spark",                      "​​​​​Spawn Spark (On)", true, 1);
     S_SPARK_CD = WorkshopSettingInteger("Spark",                        "Spark ​Spawn Time (125)", 125, 5, 600, 2);
-    S_SPARK_DUR = WorkshopSettingInteger("Spark",                       "Spark Duration (30)", 30, 1, 600, 3);
+    S_SPARK_AMMO = WorkshopSettingInteger("Spark",                      "Spark Ammo (10)", 10, 1, 60, 3);
     S_SPARK_PSPEED = WorkshopSettingReal("Spark",                       "Spark Projectile Speed (10)", 10, 1, 500, 4);
     S_SPARK_ESIZE = WorkshopSettingReal("Spark",                        "Spark Explosion Size (1.5)", 1.5, 1, 500, 5);
     S_SPARK_HITESIZE = WorkshopSettingReal("Spark",                     "Spark Hit Explosion Size (7)", 7, 1, 500, 6);
 
     s_spawn_quadshot = WorkshopSettingToggle("Quadshot",                "​​​​​Spawn Quadshot (On)", true, 1);
     S_QUADSHOT_CD = WorkshopSettingInteger("Quadshot",                  "Quadshot ​Spawn Time (125)", 125, 5, 600, 2);
-    S_QUADSHOT_DUR = WorkshopSettingInteger("Quadshot",                 "Quadshot Duration (30)", 25, 1, 600, 3);
+    S_QUADSHOT_AMMO = WorkshopSettingInteger("Quadshot",                "Quadshot Ammo (10)", 10, 1, 60, 3);
     S_QUADSHOT_SPREAD = WorkshopSettingReal("Quadshot",                 "Quadshot Spread (Lower is Tighter) (0.8)", 0.8, 0.1, 20, 4);
 
     // ------------------------------------------- supers ------------------------------------------- //
 
     s_spawn_vap = WorkshopSettingToggle("Vaporizer",                    "​​​​​Spawn Vaporizer (On)", true, 1);
     S_VAP_CD = WorkshopSettingInteger("Vaporizer",                      "Vaporizer Spawn Time (180)", 180, 5, 600, 2);
-    S_VAP_DUR = WorkshopSettingInteger("Vaporizer",                     "Vaporizer Duration (30)", 30, 1, 600, 3);
+    S_VAP_AMMO = WorkshopSettingInteger("Vaporizer",                    "Vaporizer Ammo (5)", 5, 1, 60, 3);
     S_VAP_ESIZE = WorkshopSettingReal("Vaporizer",                      "Vaporizer Explosion Size (19.75)", 19.75, 5, 50, 4);
     S_VAP_DELAY = WorkshopSettingReal("Vaporizer",                      "Vaporizer Explosion and Weapon Fire Delay (1)", 1, 0.5, 20, 5);
     s_vap_user_affected = WorkshopSettingToggle("Vaporizer",            "Vaporizer user affected by own explosion", true, 6);
 
     s_spawn_buckshot = WorkshopSettingToggle("Buckshot",                "​​​​​Spawn Buckshot (On)", true, 1);
     S_BUCKSHOT_CD = WorkshopSettingInteger("Buckshot",                  "Buckshot ​Spawn Time (200)", 200, 5, 600, 2);
-    S_BUCKSHOT_DUR = WorkshopSettingInteger("Buckshot",                 "​​Buckshot Duration (30)", 30, 1, 600, 3);
+    S_BUCKSHOT_AMMO = WorkshopSettingInteger("Buckshot",                "​​Buckshot Ammo (15)", 15, 1, 60, 3);
     S_BUCKSHOT_SPREAD = WorkshopSettingReal("Buckshot",                 "​​​Buckshot Spread (Lower is Tighter) (2.65)", 2.65, 0.1, 20, 4);
 
     s_spawn_lock = WorkshopSettingToggle("Smart Lock",                  "​​Spawn Smart Lock (On)", true, 1);
     S_LOCK_CD = WorkshopSettingInteger("Smart Lock",                    "​Smart Lock Spawn Time (230)", 230, 5, 600, 2);
-    S_LOCK_DUR = WorkshopSettingInteger("Smart Lock",                   "​​​Smart Lock Duration (35)", 35, 1, 600, 3);
+    S_LOCK_AMMO = WorkshopSettingInteger("Smart Lock",                  "​​​Smart Lock Ammo (15)", 15, 1, 60, 3);
     S_LOCK_RADIUS = WorkshopSettingReal("Smart Lock",                   "​​​Lock on radius (Degrees) (10)", 10, 1, 120, 4);
     S_LOCK_TIME = WorkshopSettingReal("Smart Lock",                     "Lock on time (0.65)", 0.65, 0.1, 10, 5);
 
     // ---------------------------------------------------------------------------------------------- //
 
-    s_debug = WorkshopSettingToggle("Debug",                            "Show Debug Info", false, 1);
+    s_debug = WorkshopSettingToggle("Debug",                            "Show Debug Info", true, 1);
     s_always_wallbang = WorkshopSettingToggle("Debug",                  "​​​​​Always Wallbang", false, 3);
     s_always_ricochet = WorkshopSettingToggle("Debug",                  "​​​​​​​​​​Always Ricochet", false, 4);
     s_always_electro = WorkshopSettingToggle("Debug",                   "​​​​​Always Electro", false, 5);
@@ -859,7 +859,7 @@ if (IsGameInProgress())
 
             if (s_spawn_quadshot)
             {
-                CreateHudText(all, AbilityIconString(Hero.Echo, Button.Ability1), null,
+                CreateHudText(all, AbilityIconString(Hero.Mccree, Button.Ability2), null,
                 quadshot_cd != 0 ? quadshot_txt : can_pickup_buff[7] ? IconString(Icon.Checkmark) : <"In-Use by <0>", buff_user[7]>,
                 Location.Left, 5, Color.Orange);
             }
@@ -893,14 +893,6 @@ if (IsGameInProgress())
 
     if (s_debug)
     {
-        CreateHudText(host, null, null, "Server Load", Location.Left, 110);
-        CreateHudText(host, null, "Current", <"<0>%", RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest)>, Location.Left, 120, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-        CreateHudText(host, null, "Average", <"<0>%", RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest)>, Location.Left, 130, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-        CreateHudText(host, null, "Peak", <"<0>%", RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, Location.Left, 140, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-        CreateHudText(host, null, null, "Entity/Text Count", Location.Left, 150);
-        CreateHudText(host, null, "Entity", EntityCount(), Location.Left, 160, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-        CreateHudText(host, null, "Text", TextCount() - 16, Location.Left, 170, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-
         CreateHudText(host, null, <"<0> <1>", buff_pos[0], DistanceBetween(host, buff_pos[0])>, null, Location.Left, 0.9);
         CreateHudText(host, null, <"<0> <1>", buff_pos[1], DistanceBetween(host, buff_pos[1])>, null, Location.Left, 1.9);
         CreateHudText(host, null, <"<0> <1>", buff_pos[5], DistanceBetween(host, buff_pos[5])>, null, Location.Left, 2.9);
@@ -910,51 +902,57 @@ if (IsGameInProgress())
         CreateHudText(host, null, <"<0> <1>", buff_pos[2], DistanceBetween(host, buff_pos[2])>, null, Location.Left, 5.9);
         CreateHudText(host, null, <"<0> <1>", buff_pos[3], DistanceBetween(host, buff_pos[3])>, null, Location.Left, 6.9);
 
-        CreateHudText(host, null, null, <" \n\nPos: <0>\nFacing: <1>\nHorizontal Facing Vector: <2>\nThrottle: <3>\nbhopping: <4>\nvalidMap: <5>", 
+        CreateHudText(host, null, null, <"Pos: <0>\nFacing: <1>\nHoriz Facing Vector: <2>\nThrottle: <3>\nbhopping: <4>\nvalid_map: <5>\nhas_buff: <6>", 
         PositionOf(host), 
         FacingDirectionOf(host), 
         DirectionFromAngles(HorizontalFacingAngleOf(host), 0), 
-        // horizontal_facing_vector,
         ThrottleOf(host), 
         host.bhopping, 
-        valid_map
+        valid_map,
+        host.has_buff
 
-        >, Location.Top, 20);
+        >, Location.Right, 0.3);
+
+        CreateHudText(host, null, "Cur", <"<0>%", RoundToInteger(ServerLoad() / 2.55, Rounding.Nearest)>, Location.Right, 0.32, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(host, null, "Avg", <"<0>%", RoundToInteger(ServerLoadAverage() / 2.55, Rounding.Nearest)>, Location.Right, 0.33, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(host, null, "Peak", <"<0>%", RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, Location.Right, 0.34, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(host, null, "Ent", EntityCount(), Location.Right, 0.36, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+        CreateHudText(host, null, "Txt", TextCount() - 14, Location.Right, 0.37, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
     }
 }
 
-rule: "[Main] :: Crosshair"
-Event.OngoingPlayer
-if (s_use_cxhair)
-{
-    # this is disgusting and needs improvement. for now this works fine as a proof of concept
-    CreateHudText(player, null, " \n\n", <"ㅤ\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0><1><2><3><4><5><6>               <7><8><9><10><11><12><13>", 
-    // left
-    wallbang_enabled ? "≫" : "",
-    ricochet_enabled ? "ᄾ" : "",
-    electro_enabled ? "ㅑ" : "",
-    quadshot_enabled ? "Ｘ" : "",
-    buckshot_enabled ? "〘" : "",
-    lock_enabled 
-        ? CountOf(locked_targets) >= 1 
-            ? "▣" 
-            : "□" 
-        : "",
-    vap_enabled ? " ∈" : "",
-    // right
-    vap_enabled ? "∋ " : "",
-    lock_enabled 
-        ? CountOf(locked_targets) >= 1 
-            ? "▣" 
-            : "□" 
-        : "",
-    buckshot_enabled ? "〙" : "",
-    quadshot_enabled ? "Ｘ" : "",
-    electro_enabled ? "ㅕ" : "",
-    ricochet_enabled ? "ᄼ" : "",
-    wallbang_enabled ? "≪" : "">, 
-    Location.Top, 2, Color.White, Color.White, Color.White);
-}
+// rule: "[Main] :: Crosshair"
+// Event.OngoingPlayer
+// if (s_use_cxhair)
+// {
+//     // this is disgusting and needs improvement. for now this works fine as a proof of concept
+//     CreateHudText(player, null, " \n\n", <"ㅤ\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0><1><2><3><4><5><6>               <7><8><9><10><11><12><13>", 
+//     // left
+//     wallbang_enabled ? "≫" : "",
+//     ricochet_enabled ? "ᄾ" : "",
+//     electro_enabled ? "ㅑ" : "",
+//     quadshot_enabled ? "Ｘ" : "",
+//     buckshot_enabled ? "〘" : "",
+//     lock_enabled 
+//         ? CountOf(locked_targets) >= 1 
+//             ? "▣" 
+//             : "□" 
+//         : "",
+//     vap_enabled ? " ∈" : "",
+//     // right
+//     vap_enabled ? "∋ " : "",
+//     lock_enabled 
+//         ? CountOf(locked_targets) >= 1 
+//             ? "▣" 
+//             : "□" 
+//         : "",
+//     buckshot_enabled ? "〙" : "",
+//     quadshot_enabled ? "Ｘ" : "",
+//     electro_enabled ? "ㅕ" : "",
+//     ricochet_enabled ? "ᄼ" : "",
+//     wallbang_enabled ? "≪" : "">, 
+//     Location.Top, 2, Color.White, Color.White, Color.White);
+// }
 
 rule: "[Main] :: Player Join"
 Event.OnPlayerJoin
@@ -962,123 +960,56 @@ Event.OnPlayerJoin
     if (IsDummyBot())
         SetRespawnMaxTime(player, 1);
 
-    b_cnt = 0;
-    has_spawned = false;
     DisableGameModeHud();
 
-    // DisallowButton(player, Button.PrimaryFire);
     DisallowButton(player, Button.Ability1);
     DisallowButton(player, Button.Ability2);
 
     if (s_always_wallbang)
     {
         wallbang_enabled = true;
-        wallbang_dur = 10000;
-        b_cnt++;
     }
     if (s_always_ricochet)
     {
         ricochet_enabled = true;
-        ricochet_dur = 10000;
-        b_cnt++;
     }
     if (s_always_buckshot)
     {
         buckshot_enabled = true;
-        buckshot_dur = 10000;
-        b_cnt++;
     }
     if (s_always_lock)
     {
         lock_enabled = true;
-        lock_dur = 10000;
-        b_cnt++;
     }
     if (s_always_vap)
     {
         vap_enabled = true;
-        vap_dur = 10000;
-        b_cnt++;
     }
     if (s_always_electro)
     {
         electro_enabled = true;
-        electro_dur = 10000;
-        b_cnt++;
     }
     if (s_always_spark)
     {
         spark_enabled = true;
-        spark_dur = 10000;
-        b_cnt++;
     }
     if (s_always_quadshot)
     {
         quadshot_enabled = true;
-        quadshot_dur = 10000;
-        b_cnt++;
     }
 
     hud_txt = [];
     spree_iwt = [];
-    sec_eyepos = Vector(-10000, -10000, -1000);
-    electro_eyepos1 = Vector(-10000, -10000, -1000);
-    electro_eyepos2 = Vector(-10000, -10000, -1000);
-    electro_eyepos3 = Vector(-10000, -10000, -1000);
+    sec_eyepos = Vector(-10000, -10000, -10000);
+    electro_eyepos1 = Vector(-10000, -10000, -10000);
+    electro_eyepos2 = Vector(-10000, -10000, -10000);
+    electro_eyepos3 = Vector(-10000, -10000, -10000);
     bhop_speed = 100;
 }
 
 rule: "[Main] :: Player Leave"
 Event.OnPlayerLeave
 {
-    if (player == buff_user[0])
-    {
-        LogToInspector("Wallbang user no longer exists");
-        WallbangCooldown();
-    }
-
-    if (player == buff_user[1])
-    {
-        LogToInspector("Riochet user no longer exists");
-        RicochetCooldown();
-    }
-
-    if (player == buff_user[2])
-    {
-        LogToInspector("Buckshot user no longer exists");
-        BuckshotCooldown();
-    }
-
-    if (player == buff_user[3])
-    {
-        LogToInspector("Smart Lock user no longer exists");
-        LockCooldown();
-    }
-
-    if (player == buff_user[4])
-    {
-        LogToInspector("Vaporizer user no longer exists");
-        VaporizerCooldown();
-    }
-
-    if (player == buff_user[5])
-    {
-        LogToInspector("Electro user no longer exists");
-        ElectroCooldown();
-    }
-
-    if (player == buff_user[6])
-    {
-        LogToInspector("Spark user no longer exists");
-        SparkCooldown();
-    }
-
-    if (player == buff_user[7])
-    {
-        LogToInspector("Quadshot user no longer exists");
-        QuadshotCooldown();
-    }
-
     // DestroyInWorldText(wh_txt);
     DestroyInWorldText(lock_id);
     DestroyInWorldText(locking_id);
@@ -1088,7 +1019,6 @@ rule: "[Main] :: Player Spawned"
 Event.OngoingPlayer
 if (HasSpawned())
 {
-    has_spawned = true;
     CreateEffect(bhopping ? all : null, Effect.Soldier76SprintingEffect, Color.White, player, 1);
     SmallMessage(player, "Welcome!");
     Wait(3);
@@ -1154,27 +1084,27 @@ if (MatchTime() == 0)
     EnableCompletion();
 }
 
-rule: "[Main] :: Primary Delay"
-Event.OngoingPlayer
-if (s_pri_delay)
-if (!s_always_vap)
-if (!vap_enabled) 
-if (IsButtonHeld(player, Button.PrimaryFire))
-{
-    // AllowButton(player, Button.PrimaryFire);
-    PressButton(player, Button.PrimaryFire);
-    MinWait();
-    DisallowButton(player, Button.PrimaryFire);
-    Wait(S_PRI_DELAY - 0.016);
-    AllowButton(player, Button.PrimaryFire);
-    LoopIfConditionIsTrue();
-}
+// rule: "[Main] :: Primary Delay"
+// Event.OngoingPlayer
+// if (s_pri_delay)
+// if (!s_always_vap)
+// if (!vap_enabled) 
+// if (IsButtonHeld(player, Button.PrimaryFire))
+// {
+//     // AllowButton(player, Button.PrimaryFire);
+//     PressButton(player, Button.PrimaryFire);
+//     MinWait();
+//     DisallowButton(player, Button.PrimaryFire);
+//     Wait(S_PRI_DELAY - 0.016);
+//     AllowButton(player, Button.PrimaryFire);
+//     LoopIfConditionIsTrue();
+// }
 
 rule: "[Main] :: Primary Effect"
 Event.OngoingPlayer
 if (IsFiringPrimary())
 if (s_pri_fx_enabled) 
-if (b_cnt == 0)
+if (!has_buff)
 {
     pri_hit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, AllLivingPlayers(), player);
     any start_pos = weapon_muzzle;
@@ -1218,7 +1148,7 @@ Event.OnDeath
                             ? <"<0>'s <1> player spree was ended<2>!", Victim(), life_kills, Victim() != Attacker() 
                                                                                                     ? <" by <0>", Attacker()>
                                                                                                     : " by themself!"> 
-                            : <"<0>'s <1> player spree was ended by the world!", Victim(), life_kills>);
+                            : <"<0> fell off the map! They had a <1> player spree", Victim(), life_kills>);
 
         SmallMessage(player, <"<0> player kill spree!", life_kills>);
 
@@ -1241,7 +1171,7 @@ if (life_kills == 6)
     CreateEffect(all, Effect.Sparkles, streak_color != null ? streak_color : RainbowColor(), player, 1, EffectRev.VisibleToPositionRadiusAndColor);
     spree_effect = LastCreatedEntity();
 
-    // if then else for colors here because var doesnt update when using RainbowColor()
+    // if then else for colors here because streak_color doesnt update when using RainbowColor()
     CreateHudText(player, null, <" \n<0> Kills", life_kills>, streak_str, Location.Left, 15, Color.White, Color.White, streak_color != null ? streak_color : RainbowColor(), HudTextRev.VisibleToSortOrderStringAndColor);
     spree_hud = LastTextID();
 
@@ -1719,6 +1649,7 @@ disabled rule: "---------------- Buff ----------------"{}
 
 void CollectBuff() playervar "[Sub] :: Collect Buff"
 {
+    has_buff = true;
     can_pickup_buff[b_index] = false;
     buff_user[b_index] = player;
 
@@ -1729,30 +1660,33 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
             can_pickup_buff[0] = false;
             wallbang_enabled = true;
 
-            // toasts
-            CreateProgressBarHudText(player, wallbang_dur, <"<0> Wallbang <0>", AbilityIconString(Hero.Baptiste, Button.Ultimate)>, Location.Right, 0.3, CustomColor(255, 255, 0, 255), CustomColor(255, 255, 0, 255));
+            BigMessage(player, "Wallbang");
+            CreateHudText(player, null, null, 
+            <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Wallbang Ammo: <1>/<2> <0>", 
+            AbilityIconString(Hero.Baptiste, Button.Ultimate), wallbang_ammo, S_WALLBANG_AMMO>, 
+            Location.Top, 1, Color.Yellow, Color.Yellow, Color.Yellow);
             hud_txt[0] = LastTextID();
 
-            BigMessage(player, "Wallbang");
-            
-            // start timer
-            wallbang_dur = 100;
-            ChaseVariableOverTime(wallbang_dur, 0, S_WALLBANG_DUR, TimeChaseReevaluation.None);
+            // give ammo
+            wallbang_ammo = S_WALLBANG_AMMO;
+
             break;
         case (b_index == 1):
             LogToInspector(<"Ricochet Enabled for <0>", buff_user[1]>);
             can_pickup_buff[1] = false;
             ricochet_enabled = true;
 
-            // toasts
-            CreateProgressBarHudText(player, ricochet_dur, <"<0> Ricochet <0>", AbilityIconString(Hero.Winston, Button.Ability1)>, Location.Right, 0.4, Color.Violet, Color.Violet);
+            BigMessage(player, "Ricochet");
+    
+            CreateHudText(player, null, null, 
+            <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Ricochet Ammo: <1>/<2> <0>", 
+            AbilityIconString(Hero.Winston, Button.Ability1), ricochet_ammo, S_RICOCHET_AMMO>, 
+            Location.Top, 1, Color.Violet, Color.Violet, Color.Violet);
             hud_txt[1] = LastTextID();
 
-            BigMessage(player, "Ricochet");
-            
-            // start timer
-            ricochet_dur = 100;
-            ChaseVariableOverTime(ricochet_dur, 0, S_RICOCHET_DUR, TimeChaseReevaluation.None);
+            // give ammo
+            ricochet_ammo = S_RICOCHET_AMMO;
+
             break;
         case (b_index == 2):
             LogToInspector(<"Buckshot Enabled for <0>", buff_user[2]>);
@@ -1760,14 +1694,17 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
             buckshot_enabled = true;
 
             // toasts
-            CreateProgressBarHudText(player, buckshot_dur, <"<0> Buckshot <0>", AbilityIconString(Hero.Ashe, Button.Ability1)>, Location.Right, 0.5, CustomColor(0, 255, 0, 255), CustomColor(0, 255, 0, 255));
+            CreateHudText(player, null, null, 
+            <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Buckshot Ammo: <1>/<2> <0>", 
+            AbilityIconString(Hero.Ashe, Button.Ability1), buckshot_ammo, S_BUCKSHOT_AMMO>, 
+            Location.Top, 1, Color.Green, Color.Green, Color.Green);
             hud_txt[2] = LastTextID();
 
             BigMessage(player, "Buckshot");
 
-            // start timer
-            buckshot_dur = 100;
-            ChaseVariableOverTime(buckshot_dur, 0, S_BUCKSHOT_DUR, TimeChaseReevaluation.None);
+            // give ammo
+            buckshot_ammo = S_BUCKSHOT_AMMO;
+
             break;
         case (b_index == 3):
             LogToInspector(<"Smart Lock Enabled for <0>", buff_user[3]>);
@@ -1775,14 +1712,17 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
             lock_enabled = true;
 
             // toasts
-            CreateProgressBarHudText(player, lock_dur, <"<0> Smart Lock <0>", AbilityIconString(Hero.Sombra, Button.SecondaryFire)>, Location.Right, 0.3, CustomColor(28, 81, 255, 255), CustomColor(28, 81, 255, 255));
+            CreateHudText(player, null, null,
+            <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Smart Lock Ammo: <1>/<2> <0>", 
+            AbilityIconString(Hero.Sombra, Button.SecondaryFire), lock_ammo, S_LOCK_AMMO>, 
+            Location.Top, 1, CustomColor(28, 81, 255, 255), CustomColor(28, 81, 255, 255), CustomColor(28, 81, 255, 255));
             hud_txt[3] = LastTextID();
 
             BigMessage(player, "Smart Lock");
 
-            // start timer
-            lock_dur = 100;
-            ChaseVariableOverTime(lock_dur, 0, S_LOCK_DUR, TimeChaseReevaluation.None);
+            // give ammo
+            lock_ammo = S_LOCK_AMMO;
+
             break;
         case (b_index == 4):
             LogToInspector(<"Vaporizer Enabled for <0>", buff_user[4]>);
@@ -1790,14 +1730,17 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
             vap_enabled = true;
 
             // toasts
-            CreateProgressBarHudText(player, vap_dur, <"<0> Vaporizer <0>", AbilityIconString(Hero.Symmetra, Button.Ultimate)>, Location.Right, 0.4, Color.Rose, Color.Rose);
+            CreateHudText(player, null, null,
+            <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Vaporizer Ammo: <1>/<2> <0>", 
+            AbilityIconString(Hero.Symmetra, Button.Ultimate), vap_ammo, S_VAP_AMMO>, 
+            Location.Top, 1, Color.Rose, Color.Rose, Color.Rose);
             hud_txt[4] = LastTextID();
 
             BigMessage(player, "Vaporizer");
 
-            // start timer
-            vap_dur = 100;
-            ChaseVariableOverTime(vap_dur, 0, S_VAP_DUR, TimeChaseReevaluation.None);
+            // give ammo
+            vap_ammo = S_VAP_AMMO;
+
             break;
         case (b_index == 5):
             LogToInspector(<"Electro Enabled for <0>", buff_user[6]>);
@@ -1805,14 +1748,17 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
             electro_enabled = true;
 
             // toasts
-            CreateProgressBarHudText(player, electro_dur, <"<0> Electro <0>  |  Press <1> to fire sticky mines", AbilityIconString(Hero.Echo, Button.SecondaryFire), InputBindingString(Button.Reload)>, Location.Right, 0.5, Color.Blue, Color.Blue);
+            CreateHudText(player, null, null, 
+            <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Electro Ammo: <2>/<3> <0>  |  Press <1> for alternate fire", 
+            AbilityIconString(Hero.Echo, Button.SecondaryFire), InputBindingString(Button.Reload), electro_ammo, S_ELECTRO_AMMO>,
+            Location.Top, 1, Color.Blue, Color.Blue, Color.Blue);
             hud_txt[5] = LastTextID();
 
             BigMessage(player, "Electro");
 
-            // start timer
-            electro_dur = 100;
-            ChaseVariableOverTime(electro_dur, 0, S_ELECTRO_DUR, TimeChaseReevaluation.None);
+            // give ammo
+            electro_ammo = S_ELECTRO_AMMO;
+
             break;
         case (b_index == 6):
             LogToInspector(<"Spark Enabled for <0>", buff_user[6]>);
@@ -1820,14 +1766,17 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
             spark_enabled = true;
 
             // toasts
-            CreateProgressBarHudText(player, spark_dur, <"<0> Spark <0>  |  Press <1> to fire projectile", AbilityIconString(Hero.Sigma, Button.Ability1), InputBindingString(Button.Reload)>, Location.Right, 0.6, Color.Purple, Color.Purple);
+            CreateHudText(player, null, null,
+            <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Spark Ammo: <2>/<3> <0>  |  Press <1> for alternate fire", 
+            AbilityIconString(Hero.Sigma, Button.Ability1), InputBindingString(Button.Reload), spark_ammo, S_SPARK_AMMO>,
+            Location.Top, 1, Color.Purple, Color.Purple, Color.Purple);
             hud_txt[6] = LastTextID();
 
             BigMessage(player, "Spark");
 
-            // start timer
-            spark_dur = 100;
-            ChaseVariableOverTime(spark_dur, 0, S_SPARK_DUR, TimeChaseReevaluation.None);
+            // give ammo
+            spark_ammo = S_SPARK_AMMO;
+
             break;
         case (b_index == 7):
             LogToInspector(<"Quadshot Enabled for <0>", buff_user[7]>);
@@ -1835,18 +1784,19 @@ void CollectBuff() playervar "[Sub] :: Collect Buff"
             quadshot_enabled = true;
 
             // toasts
-            CreateProgressBarHudText(player, quadshot_dur, <"<0> Quadshot <0>", AbilityIconString(Hero.Echo, Button.Ability1)>, Location.Right, 0.7, Color.Orange, Color.Orange);
+            CreateHudText(player, null, null, 
+            <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Quadshot Ammo: <1>/<2> <0>", 
+            AbilityIconString(Hero.Mccree, Button.Ability2), quadshot_ammo, S_QUADSHOT_AMMO>, 
+            Location.Top, 1, Color.Orange, Color.Orange, Color.Orange);
             hud_txt[7] = LastTextID();
 
             BigMessage(player, "Quadshot");
 
-            // start timer
-            quadshot_dur = 100;
-            ChaseVariableOverTime(quadshot_dur, 0, S_QUADSHOT_DUR, TimeChaseReevaluation.None);
+            // give ammo
+            quadshot_ammo = S_QUADSHOT_AMMO;
+
             break;
     }
-
-    b_cnt++; // adds one to the amount of buffs a player has
 
     // destroy inworld text / icon / orb
     DestroyProgressBarInWorldText(cd_txt[b_index]);
@@ -2382,7 +2332,6 @@ disabled rule: "---------------- Wallbang ----------------"{}
 rule: "[Buff] :: Wallbang : Create Orb"
 if (match_started)
 if (valid_map)
-// if (!s_always_wallbang)
 if (s_spawn_wallbang)
 if (wallbang_cd == 0)
 {
@@ -2408,7 +2357,8 @@ if (wallbang_cd == 0)
 
 rule: "[Buff] :: Wallbang : Collect"
 Event.OngoingPlayer
-if (has_spawned)
+if (HasSpawned())
+if (!has_buff)
 if (can_pickup_buff[0])
 if (DistanceBetween(buff_pos[0], PositionOf() + Up()) < S_PICKUP_RAD)
 if (IsAlive())
@@ -2417,35 +2367,24 @@ if (IsAlive())
     buff_color = Color.Yellow;
     CollectBuff();
 
-    Wait(S_WALLBANG_DUR - 4);
-    for (num i; 4; 1)
-    {
-        PlayEffect(IsAlive() ? all : player, PlayEffect.DebuffImpactSound, Color.White, player, 100);
-        Wait(1);
-    }
+    // start in world cooldown
+    wallbang_cd = S_WALLBANG_CD;
+    WallbangCooldown(); 
 }
 
 rule: "[Buff] :: Wallbang : Remove"
 Event.OngoingPlayer
 if (wallbang_enabled)
-if (wallbang_dur == 0)
+if (wallbang_ammo <= 0)
 {
     Wait(0.128);
     LogToInspector(<"Wallbang Disabled for <0>", buff_user[0]>);
 
-    // destroy hud timer and player effect
-    DestroyProgressBarHudText(hud_txt[0]);
+    DestroyHudText(hud_txt[0]);
     DestroyEffect(collected_buff_effect[0]);
-    StopChasingVariable(wallbang_dur);
 
-    all.wallbang_enabled = false;
     wallbang_enabled = false;
-    wallbang_cd = S_WALLBANG_CD;
-
-    // start in world cooldown
-    WallbangCooldown(); 
-
-    b_cnt--;
+    has_buff = false;
 }
 
 // rule: "[Buff] :: Wallbang : Wallhack"
@@ -2459,8 +2398,10 @@ if (wallbang_dur == 0)
 rule: "[Buff] :: Wallbang : Action"
 Event.OngoingPlayer
 if (wallbang_enabled)
+if (wallbang_ammo > 0)
 if (IsFiringPrimary())
 {
+    wallbang_ammo--;
     vec gun_pos = EyePosition() + Facing() + weapon_muzzle;
     vec wallbang_hitpos = EyePosition();
 
@@ -2498,7 +2439,6 @@ disabled rule: "---------------- Ricochet ----------------"{}
 rule: "[Buff] :: Ricochet : Create Orb"
 if (match_started)
 if (valid_map)
-// if (!s_always_ricochet)
 if (s_spawn_ricochet)
 if (ricochet_cd == 0)
 {
@@ -2524,7 +2464,8 @@ if (ricochet_cd == 0)
 
 rule: "[Buff] :: Ricochet : Collect"
 Event.OngoingPlayer
-if (has_spawned)
+if (HasSpawned())
+if (!has_buff)
 if (can_pickup_buff[1])
 if (DistanceBetween(buff_pos[1], PositionOf() + Up()) < S_PICKUP_RAD)
 if (IsAlive())
@@ -2533,43 +2474,35 @@ if (IsAlive())
     buff_color = Color.Violet;
     CollectBuff();
 
-    Wait(S_RICOCHET_DUR - 4);
-    for (num i; 4; 1)
-    {
-        PlayEffect(IsAlive() ? all : player, PlayEffect.DebuffImpactSound, Color.White, player, 100);
-        Wait(1);
-    }
+    // start in world cooldown
+    ricochet_cd = S_RICOCHET_CD;
+    RicochetCooldown(); 
 }
 
 rule: "[Buff] :: Ricochet : Remove"
 Event.OngoingPlayer
 if (ricochet_enabled)
-if (ricochet_dur == 0)
+if (ricochet_ammo <= 0)
 {
     Wait(0.128);
     LogToInspector(<"Riochet Disabled for <0>", buff_user[1]>);
-    // destroy hud timer and player effect
-    DestroyProgressBarHudText(hud_txt[1]);
+
+    DestroyHudText(hud_txt[1]);
     DestroyEffect(collected_buff_effect[1]);
 
-    StopChasingVariable(ricochet_dur);
-
-    all.ricochet_enabled = false;
     ricochet_enabled = false;
-    ricochet_cd = S_RICOCHET_CD;
-
-    // start in world cooldown
-    RicochetCooldown(); 
-
-    b_cnt--;
+    has_buff = false;
 }
 
 
 rule: "[Buff] :: Ricochet : Action"
 Event.OngoingPlayer
 if (ricochet_enabled)
+if (ricochet_ammo > 0)
 if (IsFiringPrimary())
 {
+    ricochet_ammo--;
+
     vec[] normals = [];
     vec[] hp = [];
     vec[] hp_ricochets = [];
@@ -2639,7 +2572,6 @@ disabled rule: "---------------- Buckshot ----------------"{}
 rule: "[Buff] :: Buckshot : Create Orb"
 if (match_started)
 if (valid_map)
-// if (!s_always_buckshot)
 if (s_spawn_buckshot)
 if (buckshot_cd == 0)
 {
@@ -2665,7 +2597,8 @@ if (buckshot_cd == 0)
 
 rule: "[Buff] :: Buckshot : Collect"
 Event.OngoingPlayer
-if (has_spawned)
+if (HasSpawned())
+if (!has_buff)
 if (can_pickup_buff[2])
 if (DistanceBetween(buff_pos[2], PositionOf() + Up()) < S_PICKUP_RAD)
 if (IsAlive())
@@ -2674,47 +2607,37 @@ if (IsAlive())
     buff_color = Color.Green;
     CollectBuff();
 
-    Wait(S_BUCKSHOT_DUR - 4);
-    for (num i; 4; 1)
-    {
-        PlayEffect(IsAlive() ? all : player, PlayEffect.DebuffImpactSound, Color.White, player, 100);
-        Wait(1);
-    }
+    // start in world cooldown
+    buckshot_cd = S_BUCKSHOT_CD;
+    BuckshotCooldown(); 
 }
 
 rule: "[Buff] :: Buckshot : Remove"
 Event.OngoingPlayer
 if (buckshot_enabled)
-if (buckshot_dur == 0)
+if (buckshot_ammo <= 0)
 {
     Wait(0.128);
-
     LogToInspector(<"Buckshot Disabled for <0>", buff_user[2]>);
 
-    // destroy hud timer and player effect
-    DestroyProgressBarHudText(hud_txt[2]);
+    DestroyHudText(hud_txt[2]);
     DestroyEffect(collected_buff_effect[2]);
 
-    StopChasingVariable(buckshot_dur);
-
-    all.buckshot_enabled = false;
     buckshot_enabled = false;
-    buckshot_cd = S_BUCKSHOT_CD;
-
-    // start in world cooldown
-    BuckshotCooldown(); 
-
-    b_cnt--;
+    has_buff = false;
 }
 
 rule: "[Buff] :: Buckshot : Action"
 Event.OngoingPlayer
 if (buckshot_enabled)
+if (buckshot_ammo > 0)
 if (IsFiringPrimary())
 {
+    buckshot_ammo--;
+
+    vec gun_pos = weapon_muzzle;
     vec[] buckshot_hp = [];
     player[] buckshot_hp_player = [];
-    vec gun_pos = weapon_muzzle;
     any[] buckshot_beam = [];
     any center_beam;
 
@@ -2724,160 +2647,89 @@ if (IsFiringPrimary())
     // center
     vec buckshot_center = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, AllLivingPlayers(), player);
 
-    // lower left
+    // lower left 1
     buckshot_hp[0] = RayCastHitPosition(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag) 
     * 100, AllLivingPlayers(), player, false);
 
-    // upper left
+    // upper left 1
     buckshot_hp[1] = RayCastHitPosition(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag) 
     * 100, AllLivingPlayers(), player, false);
 
-    // lower right
+    // lower right 1
     buckshot_hp[2] = RayCastHitPosition(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag) 
     * 100, AllLivingPlayers(), player, false);
 
-    // upper right
+    // upper right 1
     buckshot_hp[3] = RayCastHitPosition(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag) 
     * 100, AllLivingPlayers(), player, false);
 
-    // lower mid 
-    buckshot_hp[4] = RayCastHitPosition(EyePosition(), EyePosition() + 
-    WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
-    DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_hori) 
-    * 100, AllLivingPlayers(), player, false);
-
-    // upper mid 
-    buckshot_hp[5] = RayCastHitPosition(EyePosition(), EyePosition() + 
-    WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
-    DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_hori) 
-    * 100, AllLivingPlayers(), player, false);
-
     // mid left 1
-    buckshot_hp[6] = RayCastHitPosition(EyePosition(), EyePosition() + 
+    buckshot_hp[4] = RayCastHitPosition(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
     * 100, AllLivingPlayers(), player, false);
 
     // mid right 1
-    buckshot_hp[7] = RayCastHitPosition(EyePosition(), EyePosition() + 
+    buckshot_hp[5] = RayCastHitPosition(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
     * 100, AllLivingPlayers(), player, false);
-
-    // // mid left 2
-    // buckshot_hp[8] = RayCastHitPosition(EyePosition(), EyePosition() + 
-    // WorldVectorOf(Vector(TangentFromDegrees(2 * bs_spread_hori) * 100, 0, 0), player) + 
-    // DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
-    // * 100, AllLivingPlayers(), player, false);
-
-    // // mid left 3
-    // buckshot_hp[9] = RayCastHitPosition(EyePosition(), EyePosition() + 
-    // WorldVectorOf(Vector(TangentFromDegrees(3 * bs_spread_hori) * 100, 0, 0), player) + 
-    // DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
-    // * 100, AllLivingPlayers(), player, false);
-
-    // // mid right 2
-    // buckshot_hp[10] = RayCastHitPosition(EyePosition(), EyePosition() + 
-    // WorldVectorOf(Vector(TangentFromDegrees(2 * -bs_spread_hori) * 100, 0, 0), player) + 
-    // DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
-    // * 100, AllLivingPlayers(), player, false);
-
-    // // mid right 3
-    // buckshot_hp[11] = RayCastHitPosition(EyePosition(), EyePosition() + 
-    // WorldVectorOf(Vector(TangentFromDegrees(3 * -bs_spread_hori) * 100, 0, 0), player) + 
-    // DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
-    // * 100, AllLivingPlayers(), player, false);
 
     ////////////
     // player //
     ////////////
 
-    // lower left
+    // lower left 1
     buckshot_hp_player[0] = RayCastHitPlayer(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag) 
     * 100, AllLivingPlayers(), player, false);
 
-    // upper left
+    // upper left 1
     buckshot_hp_player[1] = RayCastHitPlayer(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag) 
     * 100, AllLivingPlayers(), player, false);
 
-    // lower right
+    // lower right 1
     buckshot_hp_player[2] = RayCastHitPlayer(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag) 
     * 100, AllLivingPlayers(), player, false);
 
-    // upper right
+    // upper right 1
     buckshot_hp_player[3] = RayCastHitPlayer(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag) 
     * 100, AllLivingPlayers(), player, false);
 
-    // lower mid 
-    buckshot_hp_player[4] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-    WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
-    DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_hori) 
-    * 100, AllLivingPlayers(), player, false);
-
-    // upper mid
-    buckshot_hp_player[5] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-    WorldVectorOf(Vector(TangentFromDegrees(0) * 100, 0, 0), player) + 
-    DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_hori) 
-    * 100, AllLivingPlayers(), player, false);
-
     // mid left 1
-    buckshot_hp_player[6] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+    buckshot_hp_player[4] = RayCastHitPlayer(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
     * 100, AllLivingPlayers(), player, false);
 
     // mid right 1
-    buckshot_hp_player[7] = RayCastHitPlayer(EyePosition(), EyePosition() + 
+    buckshot_hp_player[5] = RayCastHitPlayer(EyePosition(), EyePosition() + 
     WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori) * 100, 0, 0), player) + 
     DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
     * 100, AllLivingPlayers(), player, false);
 
-    // // mid left 2
-    // buckshot_hp_player[8] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-    // WorldVectorOf(Vector(TangentFromDegrees(2 * bs_spread_hori) * 100, 0, 0), player) + 
-    // DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
-    // * 100, AllLivingPlayers(), player, false);
-
-    // // mid left 3
-    // buckshot_hp_player[9] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-    // WorldVectorOf(Vector(TangentFromDegrees(3 * bs_spread_hori) * 100, 0, 0), player) + 
-    // DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
-    // * 100, AllLivingPlayers(), player, false);
-
-    // // mid right 2
-    // buckshot_hp_player[10] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-    // WorldVectorOf(Vector(TangentFromDegrees(2 * -bs_spread_hori) * 100, 0, 0), player) + 
-    // DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
-    // * 100, AllLivingPlayers(), player, false);
-
-    // // mid right 3
-    // buckshot_hp_player[11] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-    // WorldVectorOf(Vector(TangentFromDegrees(3 * -bs_spread_hori) * 100, 0, 0), player) + 
-    // DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
-    // * 100, AllLivingPlayers(), player, false);
     
     PlayEffect(all, PlayEffect.GoodExplosion, Color.Green, buckshot_center, 0.2);
 
     CreateBeamEffect(all, BeamType.BadBeam, EyePosition() + Facing() + gun_pos, buckshot_center, Color.Green, EffectRev.None);
     center_beam = LastCreatedEntity();
 
-    for (num p = 0; p < 8; p++)
+    for (num p = 0; p < 6; p++)
     {
         Damage(buckshot_hp_player[p], player, 10000);
 
@@ -2890,7 +2742,7 @@ if (IsFiringPrimary())
     Wait(0.25);
     DestroyEffect(center_beam);
 
-    for (num e = 0; e < 8; e++)
+    for (num e = 0; e < 6; e++)
     {
         DestroyEffect(buckshot_beam[e]);
     }
@@ -2908,7 +2760,6 @@ disabled rule: "---------------- Smart Lock ----------------"{}
 rule: "[Buff] :: Smart Lock : Create Orb"
 if (match_started)
 if (valid_map)
-// if (!s_always_lock)
 if (s_spawn_lock)
 if (lock_cd == 0)
 {
@@ -2933,7 +2784,8 @@ if (lock_cd == 0)
 
 rule: "[Buff] :: Smart Lock : Collect"
 Event.OngoingPlayer
-if (has_spawned)
+if (HasSpawned())
+if (!has_buff)
 if (can_pickup_buff[3])
 if (DistanceBetween(buff_pos[3], PositionOf() + Up()) < S_PICKUP_RAD)
 if (IsAlive())
@@ -2942,37 +2794,24 @@ if (IsAlive())
     buff_color = Color.Blue;
     CollectBuff();
 
-    Wait(S_LOCK_DUR - 4);
-    for (num i; 4; 1)
-    {
-        PlayEffect(IsAlive() ? all : player, PlayEffect.DebuffImpactSound, Color.White, player, 100);
-        Wait(1);
-    }
+    // start in world cooldown
+    lock_cd = S_LOCK_CD;
+    LockCooldown();
 }
 
 rule: "[Buff] :: Smart Lock : Remove"
 Event.OngoingPlayer
 if (lock_enabled)
-if (lock_dur == 0)
+if (lock_ammo <= 0)
 {
     Wait(0.128);
 
     LogToInspector(<"Smart Lock Disabled for <0>", buff_user[3]>);
-
-    // destroy hud timer and player effect
-    DestroyProgressBarHudText(hud_txt[3]);
+    DestroyHudText(hud_txt[3]);
     DestroyEffect(collected_buff_effect[3]);
 
-    StopChasingVariable(lock_dur);
-
-    all.lock_enabled = false;
     lock_enabled = false;
-    lock_cd = S_LOCK_CD;
-
-    // start in world cooldown
-    LockCooldown(); 
-
-    b_cnt--;
+    has_buff = false;
 }
 
 // symbols:
@@ -3029,6 +2868,8 @@ Event.OngoingPlayer
 if (lock_enabled)
 if (IsFiringPrimary())
 {
+    lock_ammo -= CountOf(locked_targets);
+
     vec lock_hit = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, AllLivingPlayers(), player);
     vec gun_pos = weapon_muzzle;
 
@@ -3066,7 +2907,6 @@ disabled rule: "---------------- Vaporizer ----------------" {}
 rule: "[Buff] :: Vaporizer : Create Orb"
 if (match_started)
 if (valid_map)
-// if (!s_always_vap)
 if (s_spawn_vap)
 if (vap_cd == 0)
 {
@@ -3092,7 +2932,8 @@ if (vap_cd == 0)
 
 rule: "[Buff] :: Vaporizer : Collect"
 Event.OngoingPlayer
-if (has_spawned)
+if (HasSpawned())
+if (!has_buff)
 if (can_pickup_buff[4])
 if (DistanceBetween(buff_pos[4], PositionOf() + Up()) < S_PICKUP_RAD)
 if (IsAlive())
@@ -3101,18 +2942,15 @@ if (IsAlive())
     buff_color = Color.Rose;
     CollectBuff();
 
-    Wait(S_VAP_DUR - 4);
-    for (num i; 4; 1)
-    {
-        PlayEffect(IsAlive() ? all : player, PlayEffect.DebuffImpactSound, Color.White, player, 100);
-        Wait(1);
-    }
+    // start in world cooldown
+    vap_cd = S_VAP_CD;
+    VaporizerCooldown();
 }
 
 rule: "[Buff] :: Vaporizer : Remove"
 Event.OngoingPlayer
 if (vap_enabled)
-if (vap_dur == 0)
+if (vap_ammo <= 0)
 {
     AllowButton(player, Button.PrimaryFire);
     Wait(0.128);
@@ -3120,18 +2958,11 @@ if (vap_dur == 0)
     LogToInspector(<"Vaporizer Disabled for <0>", buff_user[4]>);
 
     // destroy hud timer and player effect
-    DestroyProgressBarHudText(hud_txt[4]);
+    DestroyHudText(hud_txt[4]);
     DestroyEffect(collected_buff_effect[4]);
-    StopChasingVariable(vap_dur);
 
-    all.vap_enabled = false;
     vap_enabled = false;
-    vap_cd = S_VAP_CD;
-
-    // start in world cooldown
-    VaporizerCooldown(); 
-
-    b_cnt--;
+    has_buff = false;
 }
 
 player[] vap_check: FilteredArray(s_vap_user_affected ? AllLivingPlayers() : RemoveFromArray(AllLivingPlayers(), player), (DistanceBetween(Curr(), vap_hit_pos) <= S_VAP_ESIZE) && IsInLineOfSight(Curr(), vap_hit_pos));
@@ -3140,6 +2971,8 @@ Event.OngoingPlayer
 if (vap_enabled)
 if (IsFiringPrimary())
 {
+    vap_ammo--;
+
     vap_hit_pos = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, AllLivingPlayers(), player);
     vec start_pos = EyePosition() + Facing() + weapon_muzzle;
 
@@ -3198,7 +3031,6 @@ disabled rule: "---------------- Quadshot ----------------"{}
 rule: "[Buff] :: Quadshot : Create Orb"
 if (match_started)
 if (valid_map)
-// if (!s_always_quadshot)
 if (s_spawn_quadshot)
 if (quadshot_cd == 0)
 {
@@ -3212,7 +3044,7 @@ if (quadshot_cd == 0)
 
     PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Orange, buff_pos[7], 1);
 
-    CreateInWorldText(all, AbilityIconString(Hero.Echo, Button.Ability1), buff_pos[7] + Vector(0, 0.4, 0), 2, Clipping.ClipAgainstSurfaces, InworldTextRev.VisibleToAndPosition);
+    CreateInWorldText(all, AbilityIconString(Hero.Mccree, Button.Ability2), buff_pos[7] + Vector(0, 0.4, 0), 2, Clipping.ClipAgainstSurfaces, InworldTextRev.VisibleToAndPosition);
     buff_icon[7] = LastTextID();
 
     DestroyProgressBarInWorldText(cd_txt[7]);
@@ -3224,7 +3056,8 @@ if (quadshot_cd == 0)
 
 rule: "[Buff] :: Quadshot : Collect"
 Event.OngoingPlayer
-if (has_spawned)
+if (HasSpawned())
+if (!has_buff)
 if (can_pickup_buff[7])
 if (DistanceBetween(buff_pos[7], PositionOf() + Up()) < S_PICKUP_RAD)
 if (IsAlive())
@@ -3233,37 +3066,26 @@ if (IsAlive())
     buff_color = Color.Orange;
     CollectBuff();
 
-    Wait(S_QUADSHOT_DUR - 4);
-    for (num i; 4; 1)
-    {
-        PlayEffect(IsAlive() ? all : player, PlayEffect.DebuffImpactSound, Color.White, player, 100);
-        Wait(1);
-    }
+    // start in world cooldown
+    quadshot_cd = S_QUADSHOT_CD;
+    QuadshotCooldown();
 }
 
 rule: "[Buff] :: Quadshot : Remove"
 Event.OngoingPlayer
 if (quadshot_enabled)
-if (quadshot_dur == 0)
+if (quadshot_ammo <= 0)
 {
     Wait(0.128);
 
     LogToInspector(<"Quadshot Disabled for <0>", buff_user[7]>);
 
     // destroy hud timer and player effect
-    DestroyProgressBarHudText(hud_txt[7]);
+    DestroyHudText(hud_txt[7]);
     DestroyEffect(collected_buff_effect[7]);
 
-    StopChasingVariable(quadshot_dur);
-
-    all.quadshot_enabled = false;
     quadshot_enabled = false;
-    quadshot_cd = S_QUADSHOT_CD;
-
-    // start in world cooldown
-    QuadshotCooldown(); 
-
-    b_cnt--;
+    has_buff = false;
 }
 
 rule: "[Buff] :: Quadshot : Action"
@@ -3271,6 +3093,8 @@ Event.OngoingPlayer
 if (quadshot_enabled)
 if (IsFiringPrimary())
 {
+    quadshot_ammo--;
+
     vec[] quad_hp = [];
     player[] quad_hp_player = [];
     vec gun_pos = weapon_muzzle;
@@ -3368,7 +3192,6 @@ disabled rule: "---------------- Electro ----------------"{}
 rule: "[Buff] :: Electro : Create Orb"
 if (match_started)
 if (valid_map)
-// if (!s_always_electro)
 if (s_spawn_electro)
 if (electro_cd == 0)
 {
@@ -3394,7 +3217,8 @@ if (electro_cd == 0)
 
 rule: "[Buff] :: Electro : Collect"
 Event.OngoingPlayer
-if (has_spawned)
+if (HasSpawned())
+if (!has_buff)
 if (can_pickup_buff[5])
 if (DistanceBetween(buff_pos[5], PositionOf() + Up()) < S_PICKUP_RAD)
 if (IsAlive())
@@ -3403,37 +3227,26 @@ if (IsAlive())
     buff_color = Color.SkyBlue;
     CollectBuff();
 
-    Wait(S_ELECTRO_DUR - 4);
-    for (num i; 4; 1)
-    {
-        PlayEffect(IsAlive() ? all : player, PlayEffect.DebuffImpactSound, Color.White, player, 100);
-        Wait(1);
-    }
+    // start in world cooldown
+    electro_cd = S_ELECTRO_CD;
+    ElectroCooldown();
 }
 
 rule: "[Buff] :: Electro : Remove"
 Event.OngoingPlayer
 if (electro_enabled)
-if (electro_dur == 0)
+if (electro_ammo <= 0)
 {
     Wait(0.128);
 
     LogToInspector(<"Electro Disabled for <0>", buff_user[5]>);
 
     // destroy hud timer and player effect
-    DestroyProgressBarHudText(hud_txt[5]);
+    DestroyHudText(hud_txt[5]);
     DestroyEffect(collected_buff_effect[5]);
 
-    StopChasingVariable(electro_dur);
-
-    all.electro_enabled = false;
     electro_enabled = false;
-    electro_cd = S_ELECTRO_CD;
-
-    // start in world cooldown
-    ElectroCooldown(); 
-
-    b_cnt--;
+    has_buff = false;
 }
 
 rule: "[Buff] :: Electro : Action - Primary"
@@ -3441,6 +3254,7 @@ Event.OngoingPlayer
 if (electro_enabled)
 if (IsFiringPrimary())
 {
+    electro_ammo--;
     electro_hitpos = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, AllLivingPlayers(), player);
     vec start_pos = EyePosition() + Facing() + weapon_muzzle;
 
@@ -3456,10 +3270,11 @@ if (IsFiringPrimary())
         Damage(players[i], player, 10000);
     }
 
+    // set off all mines if one is shot
     if (mines_placed &&
         (DistanceBetween(electro_hitpos, electro_m_hitpos[0]) <= S_ELECTRO_ESIZE + 0.275 || 
-        DistanceBetween(electro_hitpos, electro_m_hitpos[1]) <= S_ELECTRO_ESIZE + 0.275 || 
-        DistanceBetween(electro_hitpos, electro_m_hitpos[2]) <= S_ELECTRO_ESIZE + 0.275))
+         DistanceBetween(electro_hitpos, electro_m_hitpos[1]) <= S_ELECTRO_ESIZE + 0.275 || 
+         DistanceBetween(electro_hitpos, electro_m_hitpos[2]) <= S_ELECTRO_ESIZE + 0.275))
     {
         ExplodeMine();
     }
@@ -3477,6 +3292,7 @@ if (IsButtonHeld(player, Button.Reload))
     mine_color = Color.Blue;
 
     // first mine //
+    electro_ammo--;
     electro_m_hitpos[0] = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, null);
     PlayEffect(all, PlayEffect.BuffImpactSound, Color.White, player, 50);
 
@@ -3496,6 +3312,7 @@ if (IsButtonHeld(player, Button.Reload))
     Wait(0.2);
 
     // second mine //
+    electro_ammo--;
     electro_m_hitpos[1] = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, null);
     PlayEffect(all, PlayEffect.BuffImpactSound, Color.White, player, 50);
 
@@ -3515,6 +3332,7 @@ if (IsButtonHeld(player, Button.Reload))
     Wait(0.2);
 
     // third mine //
+    electro_ammo--;
     electro_m_hitpos[2] = RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100, null);
     PlayEffect(all, PlayEffect.BuffImpactSound, Color.White, player, 50);
 
@@ -3539,6 +3357,7 @@ if (IsButtonHeld(player, Button.Reload))
 void ExplodeMine() playervar "[Sub] :: Electro : Action - Explode Mines"
 {
     mines_placed = false;
+
     player[] players = [];
     for (num i = 0; i < 3; i++)
     {
@@ -3581,7 +3400,6 @@ disabled rule: "---------------- Spark ----------------"{}
 rule: "[Buff] :: Spark : Create Orb"
 if (match_started)
 if (valid_map)
-// if (!s_always_spark)
 if (s_spawn_spark)
 if (spark_cd == 0)
 {
@@ -3607,7 +3425,8 @@ if (spark_cd == 0)
 
 rule: "[Buff] :: Spark : Collect"
 Event.OngoingPlayer
-if (has_spawned)
+if (HasSpawned())
+if (!has_buff)
 if (can_pickup_buff[6])
 if (DistanceBetween(buff_pos[6], PositionOf() + Up()) < S_PICKUP_RAD)
 if (IsAlive())
@@ -3616,37 +3435,34 @@ if (IsAlive())
     buff_color = Color.Purple;
     CollectBuff();
 
-    Wait(S_SPARK_DUR - 4);
-    for (num i; 4; 1)
-    {
-        PlayEffect(IsAlive() ? all : player, PlayEffect.DebuffImpactSound, Color.White, player, 100);
-        Wait(1);
-    }
+    // start in world cooldown
+    spark_cd = S_SPARK_CD;
+    SparkCooldown();
 }
 
 rule: "[Buff] :: Spark : Remove"
 Event.OngoingPlayer
 if (spark_enabled)
-if (spark_dur == 0)
+if (spark_ammo <= 0)
 {
     Wait(0.128);
 
     LogToInspector(<"Spark Disabled for <0>", buff_user[6]>);
 
     // destroy hud timer and player effect
-    DestroyProgressBarHudText(hud_txt[6]);
+    DestroyHudText(hud_txt[6]);
     DestroyEffect(collected_buff_effect[6]);
 
-    StopChasingVariable(spark_dur);
-
-    all.spark_enabled = false;
     spark_enabled = false;
-    spark_cd = S_SPARK_CD;
+    has_buff = false;
+}
 
-    // start in world cooldown
-    SparkCooldown(); 
-
-    b_cnt--;
+rule: "[Buff] :: Spark : Action"
+Event.OngoingPlayer
+if (spark_enabled)
+if (IsFiringPrimary())
+{
+    spark_ammo--;
 }
 
 // .########..########.########..##.....##..######..
