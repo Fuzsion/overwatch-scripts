@@ -183,6 +183,7 @@ if (s_show_dbg)
     CreateHudText(player, null, null, <"airtime: <0>", airtime>, Location.Left, 3);
     CreateEffect(all, Effect.Sphere, Color.Blue, proj_pos, 0.25 + (S_SPEED / 100));
     CreateBeamEffect(all, BeamType.BadBeam, proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true), Color.White);
+
 }
 
 
@@ -227,7 +228,7 @@ if (IsMeleeing())
 
         // i < amount of vectors to store, or the amount of "bounces". usually never more than 3 on default settings
         // dont continue the loop unless surface is hit
-        for (num i = 0; (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= 0.25 + (S_SPEED / 100)) && (i < 6); i++)
+        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= 0.25 + (S_SPEED / 100)); i++)
         {
             # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
             if (i > 0)

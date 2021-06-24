@@ -29,12 +29,13 @@ any             Update(any value):                                              
 
 num             Floor(num float):                                                           RoundToInteger(float, Rounding.Down);
 num             Ceiling(num float):                                                         RoundToInteger(float, Rounding.Up);
+num             Near(num float):                                                            RoundToInteger(float);
 num             Round(num float):                                                           RoundToInteger(float);
 num             Dot(vec n, vec d):                                                          DotProduct(n, d);
 num             Cross(vec n, vec d):                                                        CrossProduct(n, d);
 num             Abs(num v):                                                                 AbsoluteValue(v);
-bool            IsInRange(num n, num min, num max):                                         n >= min && n <= max;
-
+bool            IsInRange(num n, num min, num max):                                         (n >= min && n <= max);
+vec             Vector():                                                                   Vector(0, 0, 0);
 
 
 // buttons
