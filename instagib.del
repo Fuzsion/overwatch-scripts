@@ -119,7 +119,7 @@ globalvar color buff_color;
 globalvar any[] collected_buff_effect;
 globalvar bool[] can_pickup_buff;
 playervar bool has_buff;
-playervar player[] buff_user;
+globalvar player[] buff_user;
 
 
 // .##....##.####.##.......##...........######..########..########..########.########
@@ -130,7 +130,6 @@ playervar player[] buff_user;
 // .##...##...##..##.......##..........##....##.##........##....##..##.......##......
 // .##....##.####.########.########.....######..##........##.....##.########.########
 playervar num life_kills;
-playervar any spree_iwt;
 playervar any spree_effect;
 playervar any spree_hud;
 playervar color streak_color;
@@ -435,17 +434,17 @@ rule: "[Main] :: Initial Global"
 
     s_spawn_wallbang = WorkshopSettingToggle("Wallbang",                "​​​​Spawn Wallbang (On)", true, 1);
     S_WALLBANG_CD = WorkshopSettingInteger("Wallbang",                  "​​Wallbang Spawn Time (75)", 75, 5, 600, 2);
-    S_WALLBANG_AMMO = WorkshopSettingInteger("Wallbang",                "Wallbang Ammo (10)", 10, 1, 1000, 3);
+    S_WALLBANG_AMMO = WorkshopSettingInteger("Wallbang",                "Wallbang Ammo (15)", 15, 1, 1000, 3);
     S_NUM_WALLBANGS = WorkshopSettingInteger("Wallbang",                "​Wallbang Amount (8)", 8, 2, 100, 4);
 
     s_spawn_ricochet = WorkshopSettingToggle("Ricochet",                "Spawn Ricochet (On)", true, 1);
     S_RICOCHET_CD = WorkshopSettingInteger("Ricochet",                  "Ricochet ​Spawn Time (75)", 75, 5, 600, 2);
-    S_RICOCHET_AMMO = WorkshopSettingInteger("Ricochet",                "Ricochet Ammo (10)", 10, 1, 1000, 3);
+    S_RICOCHET_AMMO = WorkshopSettingInteger("Ricochet",                "Ricochet Ammo (15)", 15, 1, 1000, 3);
     S_NUM_RICOCHETS = WorkshopSettingInteger("Ricochet",                "​​​Ricochet Amount (8)", 8, 1, 16, 4);
 
     s_spawn_electro = WorkshopSettingToggle("Electro",                  "​​​​​Spawn Electro (On)", true, 1);
     S_ELECTRO_CD = WorkshopSettingInteger("Electro",                    "Electro ​Spawn Time (100)", 100, 5, 600, 2);
-    S_ELECTRO_AMMO = WorkshopSettingInteger("Electro",                  "Electro Ammo (15)", 15, 1, 1000, 3);
+    S_ELECTRO_AMMO = WorkshopSettingInteger("Electro",                  "Electro Ammo (20)", 20, 1, 1000, 3);
     S_ELECTRO_ESIZE = WorkshopSettingReal("Electro",                    "Electro Primary Explosion Size (1.5)", 1.5, 1, 500, 4);
     S_ELECTRO_MESIZE = WorkshopSettingReal("Electro",                   "Electro Mine Explosion Size (5)", 5, 1, 500, 5);
     S_ELECTRO_DELAY = WorkshopSettingReal("Electro",                    "Electro Mine Explosion Time When Idle (3)", 3, 1, 500, 6);
@@ -453,7 +452,7 @@ rule: "[Main] :: Initial Global"
 
     s_spawn_spark = WorkshopSettingToggle("Spark",                      "​​​​​Spawn Spark (On)", true, 1);
     S_SPARK_CD = WorkshopSettingInteger("Spark",                        "Spark ​Spawn Time (125)", 125, 5, 600, 2);
-    S_SPARK_AMMO = WorkshopSettingInteger("Spark",                      "Spark Ammo (10)", 10, 1, 1000, 3);
+    S_SPARK_AMMO = WorkshopSettingInteger("Spark",                      "Spark Ammo (20)", 20, 1, 1000, 3);
     S_SPARK_PSPEED = WorkshopSettingReal("Spark",                       "Spark Projectile Speed (10)", 10, 1, 500, 4);
     S_SPARK_ESIZE = WorkshopSettingReal("Spark",                        "Spark Explosion Size (1.5)", 1.5, 1, 500, 5);
     S_SPARK_HITESIZE = WorkshopSettingReal("Spark",                     "Spark Hit Explosion Size (7)", 7, 1, 500, 6);
@@ -474,9 +473,9 @@ rule: "[Main] :: Initial Global"
 
     s_spawn_buckshot = WorkshopSettingToggle("Buckshot",                "​​​​​Spawn Buckshot (On)", true, 1);
     S_BUCKSHOT_CD = WorkshopSettingInteger("Buckshot",                  "Buckshot ​Spawn Time (200)", 200, 5, 600, 2);
-    S_BUCKSHOT_AMMO = WorkshopSettingInteger("Buckshot",                "​​Buckshot Ammo (20)", 20, 1, 1000, 3);
+    S_BUCKSHOT_AMMO = WorkshopSettingInteger("Buckshot",                "​​Buckshot Ammo (30)", 30, 1, 1000, 3);
     S_BUCKSHOT_SPREAD = WorkshopSettingReal("Buckshot",                 "​​​Buckshot Spread (Lower is Tighter) (2.65)", 2.65, 0.1, 20, 4);
-    S_BUCKSHOT_CHARGE_SPD = WorkshopSettingReal("Buckshot",             "​​​Buckshot Charge Speed (0.75)", 0.75, 0.1, 5, 5);
+    S_BUCKSHOT_CHARGE_SPD = WorkshopSettingReal("Buckshot",             "​​​Buckshot Charge Speed (0.5)", 0.5, 0.1, 5, 5);
 
     s_spawn_flow = WorkshopSettingToggle("Flow",                        "​​Spawn Flow (On)", true, 1);
     S_FLOW_CD = WorkshopSettingInteger("Flow",                          "​Flow Spawn Time (180)", 180, 5, 600, 2);
@@ -485,15 +484,15 @@ rule: "[Main] :: Initial Global"
 
     // ---------------------------------------------------------------------------------------------- //
 
-    s_debug = WorkshopSettingToggle("Debug",                            "Show Debug Info", true, 1);
-    s_always_wallbang = WorkshopSettingToggle("Debug",                  "​​​​​Always Wallbang", false, 3);
-    s_always_ricochet = WorkshopSettingToggle("Debug",                  "​​​​​​​​​​Always Ricochet", false, 4);
-    s_always_electro = WorkshopSettingToggle("Debug",                   "​​​​​Always Electro", false, 5);
-    s_always_spark = WorkshopSettingToggle("Debug",                     "Always Spark", false, 6);
-    s_always_quadshot = WorkshopSettingToggle("Debug",                  "Always Quadshot", false, 7);
-    s_always_vap = WorkshopSettingToggle("Debug",                       "Always Vaporizer", false, 8);
-    s_always_buckshot = WorkshopSettingToggle("Debug",                  "​​​​​Always Buckshot", false, 9);
-    s_always_flow = WorkshopSettingToggle("Debug",                      "Always Flow", false, 10);
+    s_debug = WorkshopSettingToggle("Debug",                            "Debug Info", false, 1);
+    s_always_wallbang = WorkshopSettingToggle("Debug",                  "​​​​​Wallbang", false, 3);
+    s_always_ricochet = WorkshopSettingToggle("Debug",                  "​​​​​​​​​​Ricochet", false, 4);
+    s_always_electro = WorkshopSettingToggle("Debug",                   "​​​​​Electro", false, 5);
+    s_always_spark = WorkshopSettingToggle("Debug",                     "Spark", false, 6);
+    s_always_quadshot = WorkshopSettingToggle("Debug",                  "Quadshot", false, 7);
+    s_always_vap = WorkshopSettingToggle("Debug",                       "Vaporizer", false, 8);
+    s_always_buckshot = WorkshopSettingToggle("Debug",                  "​​​​​Buckshot", false, 9);
+    s_always_flow = WorkshopSettingToggle("Debug",                      "Flow", false, 10);
 
     if (!s_buffs_enabled)
     {
@@ -781,6 +780,7 @@ rule: "[Main] :: Initial Global"
 rule: "[Main] :: Start Match"
 if (!match_started)
 if (IsGameInProgress())
+if (CountOf(all_living) >= 1)
 {
     LogToInspector("Match Started");
     SetMatchTime(S_MATCH_TIME_LIMIT);
@@ -939,8 +939,8 @@ if (IsGameInProgress())
 rule: "[Main] :: Player Join"
 Event.OnPlayerJoin
 {
-    if (IsDummyBot())
-        SetRespawnMaxTime(player, 1);
+    // if (IsDummyBot())
+    //     SetRespawnMaxTime(player, 1);
 
     DisableGameModeHud();
 
@@ -997,7 +997,6 @@ Event.OnPlayerJoin
     }
 
     hud_txt = [];
-    spree_iwt = [];
     sec_eyepos = Vector(-10000, -10000, -10000);
     electro_eyepos1 = Vector(-10000, -10000, -10000);
     electro_eyepos2 = Vector(-10000, -10000, -10000);
@@ -1012,37 +1011,37 @@ Event.OnPlayerJoin
     CreateHudText(ricochet_enabled ? player : null, null, null, 
     <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Ricochet Ammo: <1>/<2>", 
     AbilityIconString(Hero.Winston, Button.Ability1), ricochet_ammo, S_RICOCHET_AMMO>, 
-    Location.Top, 1, Color.Violet, Color.Violet, Color.Violet);
+    Location.Top, 1.1, Color.Violet, Color.Violet, Color.Violet);
 
     CreateHudText(buckshot_enabled ? player : null, null, null, 
-    <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Buckshot Ammo: <2>/<3>  |  Hold <1> to charge shots\nCurrent Charge Level: <4>", 
+    <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Buckshot Ammo: <2>/<3>\nHold <1> to charge shots | Charge Level: <4>", 
     AbilityIconString(Hero.Ashe, Button.Ability1), InputBindingString(Button.Reload), buckshot_ammo, S_BUCKSHOT_AMMO, charge_lvl>, 
-    Location.Top, 1, Color.Green, Color.Green, Color.Green);
+    Location.Top, 1.2, Color.Green, Color.Green, Color.Green);
 
     CreateHudText(flow_enabled ? player : null, null, null,
     <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Flow Ammo: <1>/<2>", 
     AbilityIconString(Hero.Sombra, Button.SecondaryFire), flow_ammo, S_FLOW_AMMO>, 
-    Location.Top, 1, CustomColor(28, 81, 255, 255), CustomColor(28, 81, 255, 255), CustomColor(28, 81, 255, 255));
+    Location.Top, 1.3, CustomColor(28, 81, 255, 255), CustomColor(28, 81, 255, 255), CustomColor(28, 81, 255, 255));
 
     CreateHudText(vap_enabled ? player : null, null, null,
     <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Vaporizer Ammo: <1>/<2>", 
     AbilityIconString(Hero.Symmetra, Button.Ultimate), vap_ammo, S_VAP_AMMO>, 
-    Location.Top, 1, Color.Rose, Color.Rose, Color.Rose);
+    Location.Top, 1.4, Color.Rose, Color.Rose, Color.Rose);
 
     CreateHudText(electro_enabled ? player : null, null, null, 
     <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Electro Ammo: <2>/<3>  |  Press <1> for alternate fire", 
     AbilityIconString(Hero.Echo, Button.SecondaryFire), InputBindingString(Button.Reload), electro_ammo, S_ELECTRO_AMMO>,
-    Location.Top, 1, Color.Blue, Color.Blue, Color.Blue);
+    Location.Top, 1.5, Color.Blue, Color.Blue, Color.Blue);
 
     CreateHudText(spark_enabled ? player : null, null, null,
     <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Spark Ammo: <2>/<3>  |  Press <1> for alternate fire", 
     AbilityIconString(Hero.Sigma, Button.Ability1), InputBindingString(Button.Reload), spark_ammo, S_SPARK_AMMO>,
-    Location.Top, 1, Color.Purple, Color.Purple, Color.Purple);
+    Location.Top, 1.6, Color.Purple, Color.Purple, Color.Purple);
 
     CreateHudText(quadshot_enabled ? player : null, null, null, 
     <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0> Quadshot Ammo: <1>/<2>", 
     AbilityIconString(Hero.Mccree, Button.Ability2), quadshot_ammo, S_QUADSHOT_AMMO>, 
-    Location.Top, 1, Color.Orange, Color.Orange, Color.Orange);
+    Location.Top, 1.7, Color.Orange, Color.Orange, Color.Orange);
 }
 
 // rule: "[Main] :: Player Leave"
@@ -1069,6 +1068,15 @@ if (HasSpawned())
     SmallMessage(player, <"<0> to dodge in any direction", InputBindingString(Button.Ability1)>);
     Wait(3);
     SmallMessage(player, "Buffs are littered throughout the map that give you special changes to your weapon. Have fun!");
+}
+
+rule: "[Main] :: Automatically Force McCree"
+Event.OngoingPlayer
+if (!HasSpawned())
+{
+    ForcePlayerHero(player, Hero.Mccree);
+    Wait(1);
+    LoopIfConditionIsTrue();
 }
 
 rule: "[Main] :: Force Respawn"
@@ -1185,16 +1193,13 @@ Event.OnDeath
         BigMessage(all, !EventWasEnvironment() 
                             ? <"<0>'s <1> player spree was ended<2>!", Victim(), life_kills, Victim() != Attacker() 
                                                                                                     ? <" by <0>", Attacker()>
-                                                                                                    : " by themself!"> 
-                            : <"<0> fell off the map! They had a <1> player spree", Victim(), life_kills>);
+                                                                                                    : " by themself"> 
+                            : <"<0> fell off the map with a <1> player spree!", Victim(), life_kills>);
 
         SmallMessage(player, <"<0> player kill spree!", life_kills>);
 
         DestroyEffect(spree_effect);
         DestroyHudText(spree_hud);
-
-        Wait(0.1);
-        spree_iwt = [];
     }
 
     life_kills = 0;
@@ -1210,18 +1215,11 @@ if (life_kills == 6)
     spree_effect = LastCreatedEntity();
 
     // if then else for colors here because streak_color doesnt update when using RainbowColor()
-    CreateHudText(player, null, <" \n<0> Kills", life_kills>, streak_str, Location.Left, 15, Color.White, Color.White, streak_color != null ? streak_color : RainbowColor(), HudTextRev.VisibleToSortOrderStringAndColor);
+    CreateHudText(player, null, <" \n<0> Streak", life_kills>, streak_str, Location.Left, 15, Color.White, Color.White, streak_color != null ? streak_color : RainbowColor(), HudTextRev.VisibleToSortOrderStringAndColor);
     spree_hud = LastTextID();
-
-    CreateInWorldText(player, "Killing Spree!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.White);
-    spree_iwt[0] = LastTextID();
 
     streak_str = "Killing Spree";
     streak_color = Color.White;
-
-    Wait(2);
-
-    DestroyInWorldText(spree_iwt[0]);
 }
 
 rule: "[Killspree] :: Rampage"
@@ -1230,15 +1228,8 @@ if (life_kills == 8)
 {
     BigMessage(all, <"<0> is on a Rampage!", player>);
 
-    CreateInWorldText(player, "Rampage!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.LimeGreen);
-    spree_iwt[1] = LastTextID();
-
     streak_str = "Rampage";
     streak_color = Color.LimeGreen;
-
-    Wait(2);
-
-    DestroyInWorldText(spree_iwt[1]);
 }
 
 rule: "[Killspree] :: Dominating"
@@ -1247,15 +1238,8 @@ if (life_kills == 11)
 {
     BigMessage(all, <"<0> is Dominating!", player>);
 
-    CreateInWorldText(player, "Dominating!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.SkyBlue);
-    spree_iwt[2] = LastTextID();
-
     streak_str = "Dominating";
     streak_color = Color.SkyBlue;
-
-    Wait(2);
-
-    DestroyInWorldText(spree_iwt[2]);
 }
 
 rule: "[Killspree] :: Unstoppable"
@@ -1264,15 +1248,8 @@ if (life_kills == 14)
 {
     BigMessage(all, <"<0> is Unstoppable!", player>);
 
-    CreateInWorldText(player, "Unstoppable!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Purple);
-    spree_iwt[3] = LastTextID();
-
     streak_str = "Unstoppable";
     streak_color = Color.Purple;
-
-    Wait(2);
-
-    DestroyInWorldText(spree_iwt[3]);
 }
 
 rule: "[Killspree] :: Godlike"
@@ -1281,15 +1258,8 @@ if (life_kills == 17)
 {
     BigMessage(all, <"<0> is Godlike!", player>);
 
-    CreateInWorldText(player, "Godlike!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Yellow);
-    spree_iwt[4] = LastTextID();
-
     streak_str = "Godlike";
     streak_color = Color.Yellow;
-
-    Wait(2);
-
-    DestroyInWorldText(spree_iwt[4]);
 }
 
 rule: "[Killspree] :: Divine"
@@ -1298,15 +1268,8 @@ if (life_kills == 21)
 {
     BigMessage(all, <"<0> is Divine!", player>);
 
-    CreateInWorldText(player, "Divine!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.None, Color.Orange);
-    spree_iwt[5] = LastTextID();
-
     streak_str = "Divine";
     streak_color = Color.Orange;
-
-    Wait(2);
-
-    DestroyInWorldText(spree_iwt[5]);
 }
 
 rule: "[Killspree] :: Empyreal"
@@ -1315,15 +1278,8 @@ if (life_kills == 24)
 {
     BigMessage(all, <"<0> is Empyreal!", player>);
 
-    CreateInWorldText(player, "Empyreal!", PositionOf(Victim()) + Up(), 3, Clipping.DoNotClip, InworldTextRev.VisibleToStringAndColor, RainbowColor());
-    spree_iwt[6] = LastTextID();
-
     streak_str = "Empyreal";
     streak_color = null;
-
-    Wait(2);
-
-    DestroyInWorldText(spree_iwt[6]);
 }
 
 // ............########..##.....##..#######..########............
@@ -2611,10 +2567,11 @@ Event.OngoingPlayer
 if (buckshot_enabled)
 if (buckshot_ammo > 1)
 if (charge_lvl < 5)
+if (IsAlive())
 if (IsReloadHeld())
 {
     WaitIfTrue(S_BUCKSHOT_CHARGE_SPD);
-    PlayEffect(player, PlayEffect.GoodPickupEffect, Color.Green, PositionOf(), 1);
+    PlayEffect(all, PlayEffect.GoodPickupEffect, Color.Green, PositionOf(), 1);
     PlayEffect(player, PlayEffect.BuffImpactSound, Color.White, player, 50);
     charge_lvl++;
     buckshot_ammo--;
@@ -2722,37 +2679,37 @@ if (IsFiringPrimary())
     {
         // lower left 2
         buckshot_hp[6] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 3) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 3) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 2) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 2) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 2
         buckshot_hp[7] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 3) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 3) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 2) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 2) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 2
         buckshot_hp[8] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 3) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 3) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 2) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 2) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 2
         buckshot_hp[9] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 3) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 3) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 2) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 2) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 2
         buckshot_hp[10] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 3) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 2) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 2
         buckshot_hp[11] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 3) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 2) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
@@ -2762,37 +2719,37 @@ if (IsFiringPrimary())
 
         // lower left 2
         buckshot_hp_player[6] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 3) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 3) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 2) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 2) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 2
         buckshot_hp_player[7] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 3) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 3) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 2) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 2) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 2
         buckshot_hp_player[8] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 3) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 3) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 2) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 2) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 2
         buckshot_hp_player[9] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 3) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 3) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 2) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 2) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 2
         buckshot_hp_player[10] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 3) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 2) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 2
         buckshot_hp_player[11] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 3) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 2) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
     }
@@ -2801,37 +2758,37 @@ if (IsFiringPrimary())
     {
         // lower left 3
         buckshot_hp[12] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 5) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 5) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 3) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 3) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 3
         buckshot_hp[13] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 5) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 5) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 3) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 3) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 3
         buckshot_hp[14] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 5) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 5) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 3) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 3) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 3
         buckshot_hp[15] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 5) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 5) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 3) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 3) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 3
         buckshot_hp[16] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 5) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 3) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 3
         buckshot_hp[17] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 5) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 3) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
@@ -2841,37 +2798,37 @@ if (IsFiringPrimary())
 
         // lower left 3
         buckshot_hp_player[12] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 5) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 5) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 3) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 3) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 3
         buckshot_hp_player[13] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 5) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 5) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 3) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 3) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 3
         buckshot_hp_player[14] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 5) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 5) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 3) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 3) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 3
         buckshot_hp_player[15] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 5) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 5) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 3) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 3) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 3
         buckshot_hp_player[16] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 5) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 3) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 3
         buckshot_hp_player[17] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 5) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 3) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
     }
@@ -2880,37 +2837,37 @@ if (IsFiringPrimary())
     {
         // lower left 4
         buckshot_hp[18] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 7) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 7) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 4) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 4) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 4
         buckshot_hp[19] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 7) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 7) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 4) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 4) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 4
         buckshot_hp[20] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 7) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 7) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 4) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 4) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 4
         buckshot_hp[21] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 7) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 7) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 4) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 4) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 4
         buckshot_hp[22] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 7) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 4) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 4
         buckshot_hp[23] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 7) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 4) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
@@ -2920,37 +2877,37 @@ if (IsFiringPrimary())
 
         // lower left 4
         buckshot_hp_player[18] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 7) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 7) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 4) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 4) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 4
         buckshot_hp_player[19] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 7) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 7) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 4) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 4) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 4
         buckshot_hp_player[20] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 7) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 7) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 4) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 4) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 4
         buckshot_hp_player[21] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 7) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 7) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 4) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 4) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 4
         buckshot_hp_player[22] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 7) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 4) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 4
         buckshot_hp_player[23] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 7) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 4) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
     }
@@ -2959,37 +2916,37 @@ if (IsFiringPrimary())
     {
         // lower left 5
         buckshot_hp[24] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 9) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 9) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 5) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 5) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 5
         buckshot_hp[25] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 9) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 9) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 5) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 5) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 5
         buckshot_hp[26] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 9) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 9) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 5) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 5) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 5
         buckshot_hp[27] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 9) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 9) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 5) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 5) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 5
         buckshot_hp[28] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 9) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 5) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 5
         buckshot_hp[29] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 9) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 5) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
@@ -2999,37 +2956,37 @@ if (IsFiringPrimary())
 
         // lower left 5
         buckshot_hp_player[24] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 9) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 9) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 5) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 5) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 5
         buckshot_hp_player[25] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 9) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 9) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 5) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 5) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 5
         buckshot_hp_player[26] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 9) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 9) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 5) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 5) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 5
         buckshot_hp_player[27] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 9) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 9) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 5) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 5) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 5
         buckshot_hp_player[28] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 9) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 5) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 5
         buckshot_hp_player[29] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 9) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 5) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
     }
@@ -3038,37 +2995,37 @@ if (IsFiringPrimary())
     {
         // lower left 6
         buckshot_hp[30] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 11) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 11) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 6) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 6) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 6
         buckshot_hp[31] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 11) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 11) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 6) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 6) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 6
         buckshot_hp[32] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 11) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 11) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 6) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 6) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 6
         buckshot_hp[33] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 11) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 11) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 6) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 6) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 6
         buckshot_hp[34] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 11) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 6) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 6
         buckshot_hp[35] = RayCastHitPosition(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 11) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 6) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
@@ -3078,37 +3035,37 @@ if (IsFiringPrimary())
 
         // lower left 6
         buckshot_hp_player[30] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 11) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 11) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 6) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 6) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper left 6
         buckshot_hp_player[31] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 11) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 11) 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_diag * 6) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 6) 
         * 100, AllLivingPlayers(), player, false);
 
         // lower right 6
         buckshot_hp_player[32] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 11) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 11) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 6) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() + bs_spread_diag * 6) 
         * 100, AllLivingPlayers(), player, false);
 
         // upper right 6
         buckshot_hp_player[33] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 11) * 100, 0, 0), player) + 
-        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 11) 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_diag * 6) * 100, 0, 0), player) + 
+        DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf() - bs_spread_diag * 6) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid left 6
         buckshot_hp_player[34] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 11) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(bs_spread_hori * 6) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
 
         // mid right 6
         buckshot_hp_player[35] = RayCastHitPlayer(EyePosition(), EyePosition() + 
-        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 11) * 100, 0, 0), player) + 
+        WorldVectorOf(Vector(TangentFromDegrees(-bs_spread_hori * 6) * 100, 0, 0), player) + 
         DirectionFromAngles(HorizontalFacingAngleOf(), VerticalFacingAngleOf()) 
         * 100, AllLivingPlayers(), player, false);
     }
@@ -3202,29 +3159,47 @@ if (flow_ammo <= 0)
     has_buff = false;
 }
 
-player[] flow_check: FilteredArray(RemoveFromArray(AllLivingPlayers(), player), (DistanceBetween(Curr(), Victim()) <= S_FLOW_RADIUS) && IsInLineOfSight(Curr(), Victim()));
 rule: "[Buff] :: Flow : Hit Player - Get Players"
 Event.OnDamageDealt
 if (flow_enabled)
 {
     flow_ammo--;
-    player[] flow_players = flow_check;
+
+    // get players around the victim
     any[] flow_beams = [];
-    for (num i = 0; i < CountOf(flow_players); i++)
+
+    player[] first_players = FilteredArray(RemoveFromArray(AllLivingPlayers(), player), (DistanceBetween(Curr(), Victim()) <= S_FLOW_RADIUS) && IsInLineOfSight(Curr(), Victim()));
+    player[] players = [];
+
+    for (num i = 0; i < CountOf(first_players); i++)
+    {
+        if (players[i] != Vector() || players[i] != null)
+            players[i] = FilteredArray(RemoveFromArray(AllLivingPlayers(), Append(players[i - 1], player)), (DistanceBetween(players[i - 1], players[i]) <= S_FLOW_RADIUS) && IsInLineOfSight(players[i - 1], players[i]));
+    }
+
+    for (num i = 0; i < CountOf(players); i++)
     {
         flow_ammo--;
-        CreateBeamEffect(all, BeamType.BadBeam, Victim(), flow_players[i], Color.Blue, EffectRev.None);
+
+        // todo: fix beam effects not connecting to players correctly
+    
+        if (i == 0)
+            CreateBeamEffect(all, BeamType.BadBeam, Victim(), first_players[i], Color.Blue, EffectRev.None);
+        else
+            CreateBeamEffect(all, BeamType.BadBeam, players[i - 1], players[i], Color.Blue, EffectRev.None);
+
         flow_beams[i] = LastCreatedEntity();
-        PlayEffect(all, PlayEffect.GoodExplosion, Color.Blue, flow_players[i], 0.2);
-        Damage(flow_players[i], player, 10000);
+        PlayEffect(all, PlayEffect.GoodExplosion, Color.Blue, players[i], 0.2);
+
+        Damage(players[i], player, 10000);
     }
 
-    Wait(0.25);
+    // Wait(0.25);
 
-    for (num i = 0; i < CountOf(flow_beams); i++)
-    {
-        DestroyEffect(flow_beams[i]);
-    }
+    // for (num i = 0; i < CountOf(flow_beams); i++)
+    // {
+    //     DestroyEffect(flow_beams[i]);
+    // }
 }
 
 rule: "[Buff] :: Flow : Fire Action"
