@@ -1,45 +1,45 @@
 import "scortFFASettings.json";
 import "macros.del";
 
-globalvar String[] s_match_time;
-globalvar Number match_time;
-globalvar Bool s_player_stats;
-globalvar Bool s_killstreak_hud;
-globalvar Bool s_heal_on_kill;
-globalvar Bool s_lucio_heal;
-globalvar Bool s_scoreboard;
-globalvar Bool s_red_dot;
-globalvar Bool s_instant_respawn;
-globalvar Bool s_server_load;
-globalvar Bool s_mute_menu;
-globalvar Bool s_use_mute_arr;
-globalvar Number s_heal;
-globalvar Number heal;
-globalvar Number players_joined;
-globalvar Bool end_scoreboard;
-globalvar Bool t_running;
-globalvar Number t_left;
-globalvar String t_text;
-globalvar Color timer_color;
-globalvar Number bs_ser;
-globalvar Player bs_ser_usr;
-globalvar String bs_ser_hero;
-globalvar Number t_left_yellow;
-globalvar Player[] muted_players;
+globalvar str[] s_match_time;
+globalvar num match_time;
+globalvar bool s_player_stats;
+globalvar bool s_killstreak_hud;
+globalvar bool s_heal_on_kill;
+globalvar bool s_lucio_heal;
+globalvar bool s_scoreboard;
+globalvar bool s_red_dot;
+globalvar bool s_instant_respawn;
+globalvar bool s_server_load;
+globalvar bool s_mute_menu;
+globalvar bool s_use_mute_arr;
+globalvar num s_heal;
+globalvar num heal;
+globalvar num players_joined;
+globalvar bool end_scoreboard;
+globalvar bool t_running;
+globalvar num t_left;
+globalvar str t_text;
+globalvar color timer_color;
+globalvar num bs_ser;
+globalvar player bs_ser_usr;
+globalvar str bs_ser_hero;
+globalvar num t_left_yellow;
+globalvar player[] muted_players;
 
-playervar Bool hide_hud;
-playervar Bool muted;
-playervar Number kill_streak;
-playervar Number best_streak;
+playervar bool hide_hud;
+playervar bool muted;
+playervar num kill_streak;
+playervar num best_streak;
 
-Color rainbow_color: CustomColor(128 + 127 * CosineFromDegrees(Time() * 150),
+color rainbow_color: CustomColor(128 + 127 * CosineFromDegrees(Time() * 150),
                                 128 + 127 * CosineFromDegrees((Time() * 150) + 120),
                                 128 + 127 * CosineFromDegrees((Time() * 150) + 240), 
                                 250);
-Color health_color: CustomColor(r, g, 0, 250);
-Number percentage: (NormalizedHealth() * 100);
-Number r: (percentage <= 50) ? 255 : RoundToInteger(256 - (percentage - 50) * 5.12, Rounding.Down);
-Number g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Down);
+color health_color: CustomColor(r, g, 0, 250);
+num percentage: (NormalizedHealth() * 100);
+num r: (percentage <= 50) ? 255 : RoundToInteger(256 - (percentage - 50) * 5.12, Rounding.Down);
+num g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Down);
 
 rule: "v1.0.3 | Created by scort#12211" 
 { 
@@ -448,7 +448,7 @@ if (s_instant_respawn && IsButtonHeld(player, Button.Jump) && IsDead())
     Respawn();
 }
 
-globalvar Bool inspector;
+globalvar bool inspector;
 rule: "Inspector Toggle"
 if (IsButtonHeld(host, Button.Melee) && IsButtonHeld(host, Button.Interact))
 {
