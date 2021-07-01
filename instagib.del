@@ -903,39 +903,6 @@ if (CountOf(all_living) >= 1)
     }
 }
 
-// rule: "[Main] :: Crosshair"
-// Event.OngoingPlayer
-// if (s_use_cxhair)
-// {
-//     // this is disgusting and needs improvement. for now this works fine as a proof of concept
-//     CreateHudText(player, null, " \n\n", <"ㅤ\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n<0><1><2><3><4><5><6>               <7><8><9><10><11><12><13>", 
-//     // left
-//     wallbang_enabled ? "≫" : "",
-//     ricochet_enabled ? "ᄾ" : "",
-//     electro_enabled ? "ㅑ" : "",
-//     quadshot_enabled ? "Ｘ" : "",
-//     buckshot_enabled ? "〘" : "",
-//     lock_enabled 
-//         ? CountOf(locked_targets) >= 1 
-//             ? "▣" 
-//             : "□" 
-//         : "",
-//     vap_enabled ? " ∈" : "",
-//     // right
-//     vap_enabled ? "∋ " : "",
-//     lock_enabled 
-//         ? CountOf(locked_targets) >= 1 
-//             ? "▣" 
-//             : "□" 
-//         : "",
-//     buckshot_enabled ? "〙" : "",
-//     quadshot_enabled ? "Ｘ" : "",
-//     electro_enabled ? "ㅕ" : "",
-//     ricochet_enabled ? "ᄼ" : "",
-//     wallbang_enabled ? "≪" : "">, 
-//     Location.Top, 2, Color.White, Color.White, Color.White);
-// }
-
 rule: "[Main] :: Player Join"
 Event.OnPlayerJoin
 {
@@ -1088,33 +1055,6 @@ if (IsDead())
     Respawn();
 }
 
-// rule: "[Main] :: Player Respawn"
-//     Event.OngoingPlayer
-//     if (IsAlive())
-//     {
-//         if (wallbang_enabled)
-//             ChaseVariableAtRate(wallbang_dur, 0, 1, RateChaseReevaluation.None);
-//         if (ricochet_enabled)
-//             ChaseVariableAtRate(ricochet_dur, 0, 1, RateChaseReevaluation.None);
-//         if (buckshot_enabled)
-//             ChaseVariableAtRate(buckshot_dur, 0, 1, RateChaseReevaluation.None);
-//         if (lock_enabled)
-//             ChaseVariableAtRate(lock_dur, 0, 1, RateChaseReevaluation.None);
-//         if (vap_enabled)
-//             ChaseVariableAtRate(vap_dur, 0, 1, RateChaseReevaluation.None);
-//     }
-
-// rule: "[Main] :: Player Dead"
-//     Event.OngoingPlayer
-//     if (IsDead())
-//     {
-//         StopChasingVariable(wallbang_dur);
-//         StopChasingVariable(ricochet_dur);
-//         StopChasingVariable(buckshot_dur);
-//         StopChasingVariable(lock_dur);
-//         StopChasingVariable(vap_dur);
-//     }
-
 rule: "[Main] :: Speedometer & Accuracy HUD Text"
 Event.OngoingPlayer
 if (s_bhop_enabled)
@@ -1129,22 +1069,6 @@ if (MatchTime() == 0)
 {
     EnableCompletion();
 }
-
-// rule: "[Main] :: Primary Delay"
-// Event.OngoingPlayer
-// if (s_pri_delay)
-// if (!s_always_vap)
-// if (!vap_enabled) 
-// if (IsButtonHeld(player, Button.PrimaryFire))
-// {
-//     // AllowButton(player, Button.PrimaryFire);
-//     PressButton(player, Button.PrimaryFire);
-//     MinWait();
-//     DisallowButton(player, Button.PrimaryFire);
-//     Wait(S_PRI_DELAY - 0.016);
-//     AllowButton(player, Button.PrimaryFire);
-//     LoopIfConditionIsTrue();
-// }
 
 rule: "[Main] :: Primary Effect"
 Event.OngoingPlayer
@@ -3165,41 +3089,40 @@ if (flow_enabled)
 {
     flow_ammo--;
 
-    // get players around the victim
     any[] flow_beams = [];
 
-    player[] first_players = FilteredArray(RemoveFromArray(AllLivingPlayers(), player), (DistanceBetween(Curr(), Victim()) <= S_FLOW_RADIUS) && IsInLineOfSight(Curr(), Victim()));
+    player[] nearby_players = FilteredArray(RemoveFromArray(AllLivingPlayers(), player), (DistanceBetween(Curr(), Victim()) <= S_FLOW_RADIUS) && IsInLineOfSight(Curr(), Victim()));
     player[] players = [];
 
-    for (num i = 0; i < CountOf(first_players); i++)
+    // todo for future scort: fix inconcistencies
+    for (num i = 0; i < CountOf(nearby_players); i++)
     {
-        if (players[i] != Vector() || players[i] != null)
-            players[i] = FilteredArray(RemoveFromArray(AllLivingPlayers(), Append(players[i - 1], player)), (DistanceBetween(players[i - 1], players[i]) <= S_FLOW_RADIUS) && IsInLineOfSight(players[i - 1], players[i]));
-    }
+        // may need this condition not sure yet
+        // if (players[i] != Vector() || players[i] != null)
 
-    for (num i = 0; i < CountOf(players); i++)
-    {
+        // im gonna fucking vomit
+        players[i] = FilteredArray(RemoveFromArray(AllLivingPlayers(), Append(nearby_players[i - 1], player)), 
+                                  (DistanceBetween(nearby_players[i - 1], nearby_players[i]) <= S_FLOW_RADIUS) && 
+                                   IsInLineOfSight(nearby_players[i - 1], nearby_players[i]));
+
+        for (num j = 0; j < CountOf(players); j++)
+        {
+            CreateBeamEffect(all, BeamType.BadBeam, Victim(), nearby_players[j], Color.Blue, EffectRev.None);
+            flow_beams[i][j] = LastCreatedEntity();
+            PlayEffect(all, PlayEffect.GoodExplosion, Color.Blue, nearby_players[j], 0.2);
+
+            Damage(players[i][j], player, 10000);
+        }
+
         flow_ammo--;
-
-        // todo: fix beam effects not connecting to players correctly
-    
-        if (i == 0)
-            CreateBeamEffect(all, BeamType.BadBeam, Victim(), first_players[i], Color.Blue, EffectRev.None);
-        else
-            CreateBeamEffect(all, BeamType.BadBeam, players[i - 1], players[i], Color.Blue, EffectRev.None);
-
-        flow_beams[i] = LastCreatedEntity();
-        PlayEffect(all, PlayEffect.GoodExplosion, Color.Blue, players[i], 0.2);
-
-        Damage(players[i], player, 10000);
     }
 
-    // Wait(0.25);
+    Wait(0.25);
 
-    // for (num i = 0; i < CountOf(flow_beams); i++)
-    // {
-    //     DestroyEffect(flow_beams[i]);
-    // }
+    for (num i = 0; i < CountOf(flow_beams); i++)
+    {
+        DestroyEffect(flow_beams[i]);
+    }
 }
 
 rule: "[Buff] :: Flow : Fire Action"
