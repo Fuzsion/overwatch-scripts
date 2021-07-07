@@ -162,9 +162,8 @@ if (IsGameInProgress())
     t_running = true;
 }
 
-rule: "Complete Mode if s_score_win"
-if (s_score_win)
-if (IsTrueForAny(all, ScoreOf(Curr()) >= s_score))
+rule: "Declare win"
+if ((s_score_win && IsTrueForAny(all, ScoreOf(Curr()) >= s_score)) || t_left <= 0)
 {
     DeclarePlayerVictory(LastOf(SortedArray(all, ScoreOf(Curr()))));
 }

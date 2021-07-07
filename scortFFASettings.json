@@ -39,7 +39,8 @@
         "Zenyatta"
       ],
       "Mccree": {
-        "Secondary Fire": false
+        "Secondary Fire": false,
+        "Ultimate Ability (Deadeye)": false
       },
       "D.va": {
         "Boosters": false,
