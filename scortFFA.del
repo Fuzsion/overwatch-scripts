@@ -6,17 +6,16 @@ globalvar num match_time;
 globalvar bool s_player_stats;
 globalvar bool s_killstreak_hud;
 globalvar bool s_heal_on_kill;
-globalvar bool s_lucio_heal;
-globalvar bool s_scoreboard;
-globalvar bool s_red_dot;
+// globalvar bool s_heal_override; // 0 = lucio, 1 = soldier
+// globalvar bool s_scoreboard;
 globalvar bool s_instant_respawn;
 globalvar bool s_server_load;
-globalvar bool s_mute_menu;
-globalvar bool s_use_mute_arr;
+// globalvar bool s_mute_menu;
+// globalvar bool s_use_mute_arr;
+globalvar bool s_score_win;
+globalvar num s_score;
 globalvar num s_heal;
 globalvar num heal;
-globalvar num players_joined;
-globalvar bool end_scoreboard;
 globalvar bool t_running;
 globalvar num t_left;
 globalvar str t_text;
@@ -25,10 +24,10 @@ globalvar num bs_ser;
 globalvar player bs_ser_usr;
 globalvar str bs_ser_hero;
 globalvar num t_left_yellow;
-globalvar player[] muted_players;
+// globalvar player[] muted_players;
 
 playervar bool hide_hud;
-playervar bool muted;
+// playervar bool muted;
 playervar num kill_streak;
 playervar num best_streak;
 
@@ -44,18 +43,20 @@ num g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Dow
 rule: "v1.0.3 | Created by scort#12211" 
 { 
     // DisableInspectorRecording(); 
-    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, null, "ㅤTryhard FFA | Created by scort#11221", Location.Right, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
-    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, <"ㅤHold <0> to hide HUD | Code: BKRXY                \n", InputBindingString(Button.Interact)>, null, Location.Right, 0.2);
+    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, "ㅤTryhard FFA | Created by scort#11221", null, Location.Right, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, <"ㅤHold <0> to hide HUD | Code: BKRXY     \n", InputBindingString(Button.Interact)>, null, Location.Right, 0.2);
     CreateHudText(FilteredArray(all, Curr().hide_hud), null, <"ㅤHold <0> to show HUD\n", InputBindingString(Button.Interact)>, null, Location.Right, 0.3);
-    CreateHudText(FilteredArray(all, IsDead(Curr())), null, null, <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPress <0> to respawn instantly, Press H to change hero", InputBindingString(Button.Jump)>, Location.Top, 10, Color.White, Color.White, Color.Yellow);
+
+    if (s_instant_respawn)
+        CreateHudText(FilteredArray(all, IsDead(Curr())), null, null, <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPress <0> to respawn instantly, Use normal hero select to change hero", InputBindingString(Button.Jump)>, Location.Top, 10, Color.White, Color.White, Color.Yellow);
 }
 
-rule: "Preset Mute List"
-if (s_use_mute_arr)
-{
-    # Add or Remove players with this array. Keep in mind this is not unique to a user and can also mute players that happen to have the same name
-    muted_players = ["JasonBourne", "scort"];
-}
+// rule: "Preset Mute List"
+// if (s_use_mute_arr)
+// {
+//     # Add or Remove players with this array. Keep in mind this is not unique to a user and can also mute players that happen to have the same name
+//     muted_players = ["JasonBourne", "scort"];
+// }
 
 rule: "Initial Global"
 {
@@ -72,25 +73,23 @@ rule: "Initial Global"
     t_left = match_time * 60;
     t_left_yellow = t_left / 4;
 
-    s_scoreboard = WorkshopSettingToggle("Settings", "Show Scoreboard at end of match", true, 2);
-    s_red_dot = WorkshopSettingToggle("Settings", "Show Widow Red Dot on scope-in", false, 3);
-    s_instant_respawn = WorkshopSettingToggle("Settings", "Respawn instantly on Jump", true, 4);
+    // s_scoreboard = WorkshopSettingToggle("Settings", "Show Scoreboard at end of match", true, 2);
+    s_instant_respawn = WorkshopSettingToggle("Settings", "Respawn instantly on Jump", true, 2);
+    s_killstreak_hud = WorkshopSettingToggle("Settings", "Show Kill Streak Notifications", true, 1);
+    s_player_stats = WorkshopSettingToggle("Settings", "Show Player Stats", true, 2);
+    s_server_load = WorkshopSettingToggle("Settings", "Show Server Load for Host", false, 4);
+
+    s_score_win = WorkshopSettingToggle("Score Win", "Enable Score Win Condition", true, 5);
+    s_score = WorkshopSettingInteger("Score Win", "Score to win", 75, 10, 20000, 6);
 
     s_heal_on_kill = WorkshopSettingToggle("Heal On Kill", "Heal On Kill", true, 1);
-
     s_heal = WorkshopSettingCombo("Heal On Kill", "​Heal Percentage (Killing a 200HP hero would heal 50HP if set to 25%, 150HP if set to 75%, etc)", 1, ["25%", "50%", "75%", "100%"], 2);
     heal = ((s_heal + 1) * 25) / 100;
 
-    s_lucio_heal = WorkshopSettingToggle("Heal On Kill", "Disable Heal on Kill for Lucio", true, 3);
+    // s_mute_menu = WorkshopSettingToggle("Mute Menu", "Enable Mute Menu", true, 1);
+    // s_use_mute_arr = WorkshopSettingToggle("Mute Menu", "Use the preset muted player list (Import BKRXY instead of a preset for an updated list!)", true, 2);
 
-    s_killstreak_hud = WorkshopSettingToggle("Information", "Show Kill Streaks", true, 1);
-    s_player_stats = WorkshopSettingToggle("Information", "Show Player Stats", true, 2);
-    s_server_load = WorkshopSettingToggle("Information", "Show Server Load for Host", false, 4);
-
-    s_mute_menu = WorkshopSettingToggle("Mute Menu", "Enable Mute Menu", true, 1);
-    s_use_mute_arr = WorkshopSettingToggle("Mute Menu", "Use a preset muted player list (Import BKRXY instead of a preset for an updated list!)", true, 2);
-
-    Number credit = WorkshopSettingCombo("Credit", "Created by", 0, ["scort#11221", "BXRXY", "Please credit!"], 1000);
+    num credit = WorkshopSettingCombo("Credit", "Created by", 0, ["scort#11221", "BXRXY", "Please credit!"], 1000);
 
     if (s_server_load)
     {
@@ -106,19 +105,19 @@ rule: "Initial Global"
 rule: "Initial Player Join"
 Event.OnPlayerJoin
 {
-    players_joined++;
     kill_streak = 0;
     DisableGameModeHud();
-    muted = false;
 
-    if (s_use_mute_arr && ArrayContains(muted_players, <"<0>", player>))
-    {
-        LogToInspector(<"<0> is on the muted list", player>);
-        muted = true;
-        DisableTextChat(player);
-        DisableVoiceChat(player, true, true, false);
-        CreateHudText(!hide_hud ? player : null, null, "You are on the muted list.\nContact scort#11221 if you think this is a mistake.", null, Location.Left, 0.4, Color.Red, Color.Red, Color.Red, HudTextRev.VisibleTo);
-    }
+    // muted = false;
+
+    // if (s_use_mute_arr && ArrayContains(muted_players, <"<0>", player>))
+    // {
+    //     LogToInspector(<"<0> is on the muted list", player>);
+    //     muted = true;
+    //     DisableTextChat(player);
+    //     DisableVoiceChat(player, true, true, false);
+    //     CreateHudText(!hide_hud ? player : null, null, "You are on the muted list.\nContact scort#11221 if you think this is a mistake.", null, Location.Left, 0.4, Color.Red, Color.Red, Color.Red, HudTextRev.VisibleTo);
+    // }
 }
 
 rule: "Player Leave"
@@ -163,6 +162,13 @@ if (IsGameInProgress())
     t_running = true;
 }
 
+rule: "Complete Mode if s_score_win"
+if (s_score_win)
+if (IsTrueForAny(all, ScoreOf(Curr()) >= s_score))
+{
+    DeclarePlayerVictory(LastOf(SortedArray(all, ScoreOf(Curr()))));
+}
+
 rule: "Timer Tick"
 if (t_running)
 {
@@ -191,15 +197,6 @@ if (t_running && t_left % 60 >= 10)
         timer_color = Color.White;
     else
         timer_color = Color.Yellow;
-}
-
-rule: "Widow Red Dot"
-Player.Widowmaker
-if (s_red_dot)
-{
-    CreateEffect(IsButtonHeld(player, Button.SecondaryFire) && !IsFiringPrimary() ? RemoveFromArray(all, player) : null, Effect.GoodAura, Color.Red, 
-    RayCastHitPosition(EyePosition(), UpdateEveryFrame(EyePosition() + Facing() * 200), RemoveFromArray(AllLivingPlayers(), player), player),
-    0, EffectRev.VisibleToPositionRadiusAndColor);
 }
 
 rule: "Reset Cooldowns on respawn"
@@ -346,100 +343,99 @@ rule: "Heal On Kill"
 Event.OnFinalBlow
 if (s_heal_on_kill && !IsDuplicating(Attacker()) && Health(Attacker()) < MaxHealth(Attacker()))
 {
-    AbortIf(IsHero(Hero.Lucio) && s_lucio_heal);
     StartHealOverTime(Attacker(), null, 1, heal * MaxHealth(Victim()));
 }
 
-rule: "End Game Scoreboard"
-Event.OngoingPlayer
-if (end_scoreboard)
-{
-    StartFacing(player, Facing(), 10000);
+// rule: "End Game Scoreboard"
+// Event.OngoingPlayer
+// if (end_scoreboard)
+// {
+//     StartFacing(player, Facing(), 10000);
 
-    StartForcingPlayerOutlines(player, player, true, Color.SkyBlue, OutlineType.Always);
-    StartForcingPlayerOutlines(player, RemoveFromArray(all, player), true, Color.Red, OutlineType.Always);
-    CreateHudText(player, null, null, <" \n<0> players joined the lobby in total\n\n\n", players_joined>, Location.Top, 0.2);
+//     StartForcingPlayerOutlines(player, player, true, Color.SkyBlue, OutlineType.Always);
+//     StartForcingPlayerOutlines(player, RemoveFromArray(all, player), true, Color.Red, OutlineType.Always);
+//     CreateHudText(player, null, null, <" \n<0> players joined the lobby in total\n\n\n", players_joined>, Location.Top, 0.2);
 
-    CreateHudText(player, HeroIconString(HeroOf()), <"<0> | <1> HP", player, RoundToInteger(Health(), Rounding.Nearest)>,
-    <"Best Streak: <7>  |  <0> Kills  |  <1> Deaths  |  <2> Ults  |  DMG Out: <3>  |  DMG In: <4>  |  Acc: <5>%  |  Crit Acc: <6>%", 
-    Kills(player), 
-    Deaths(player), 
-    UltsUsed(player), 
-    DamageDealt(player), 
-    DamageTaken(player), 
-    Accuracy(player),
-    CritAccuracy(player), 
-    best_streak>,
-    Location.Top, SlotOf() + 1, 
-    Color.SkyBlue, Color.SkyBlue);
+//     CreateHudText(player, HeroIconString(HeroOf()), <"<0> | <1> HP", player, RoundToInteger(Health(), Rounding.Nearest)>,
+//     <"Best Streak: <7>  |  <0> Kills  |  <1> Deaths  |  <2> Ults  |  DMG Out: <3>  |  DMG In: <4>  |  Acc: <5>%  |  Crit Acc: <6>%", 
+//     Kills(player), 
+//     Deaths(player), 
+//     UltsUsed(player), 
+//     DamageDealt(player), 
+//     DamageTaken(player), 
+//     Accuracy(player),
+//     CritAccuracy(player), 
+//     best_streak>,
+//     Location.Top, SlotOf() + 1, 
+//     Color.SkyBlue, Color.SkyBlue);
 
-    CreateHudText(RemoveFromArray(all, player), HeroIconString(HeroOf()), <"<0> | <1> HP", player, RoundToInteger(Health(), Rounding.Nearest)>,
-    <"Best Streak: <7>  |  <0> Kills  |  <1> Deaths  |  <2> Ults  |  DMG Out: <3>  |  DMG In: <4>  |  Acc: <5>%  |  Crit Acc: <6>%", 
-    Kills(player), 
-    Deaths(player), 
-    UltsUsed(player), 
-    DamageDealt(player), 
-    DamageTaken(player), 
-    Accuracy(player),
-    CritAccuracy(player), 
-    best_streak>,
-    Location.Top, SlotOf() + 1, 
-    health_color, health_color);
-}
+//     CreateHudText(RemoveFromArray(all, player), HeroIconString(HeroOf()), <"<0> | <1> HP", player, RoundToInteger(Health(), Rounding.Nearest)>,
+//     <"Best Streak: <7>  |  <0> Kills  |  <1> Deaths  |  <2> Ults  |  DMG Out: <3>  |  DMG In: <4>  |  Acc: <5>%  |  Crit Acc: <6>%", 
+//     Kills(player), 
+//     Deaths(player), 
+//     UltsUsed(player), 
+//     DamageDealt(player), 
+//     DamageTaken(player), 
+//     Accuracy(player),
+//     CritAccuracy(player), 
+//     best_streak>,
+//     Location.Top, SlotOf() + 1, 
+//     health_color, health_color);
+// }
 
-rule: "End Game"
-if (t_left <= 0)
-{
-    t_running = false;
-    if (s_scoreboard)
-    {
-        end_scoreboard = true;
+// rule: "End Game"
+// if (t_left <= 0)
+// {
+//     t_running = false;
+//     if (s_scoreboard)
+//     {
+//         end_scoreboard = true;
         
-        DestroyAllHudText();
+//         DestroyAllHudText();
         
-        CreateHudText(all, null, null, "Tryhard FFA | Created by scort#11221", Location.Top, 0.1, Color.White, Color.White, rainbow_color, HudTextRev.VisibleToSortOrderStringAndColor);
+//         CreateHudText(all, null, null, "Tryhard FFA | Created by scort#11221", Location.Top, 0.1, Color.White, Color.White, rainbow_color, HudTextRev.VisibleToSortOrderStringAndColor);
         
-        if (IsMap(Map.Chateau_Guillard) || IsMap(Map.Chateau_Guillard_Halloween))
-            StartCamera(all, Vector(214.63, 18.51, 48.69), Vector(203.25, 9.50, 68.08));
-        else if (IsMap(Map.Kanezaka))
-            StartCamera(all, Vector(-43.94, 14, -2.44), Vector(-33.33, 12.74, -7.33));
-        else if (IsMap(Map.Petra))
-            StartCamera(all, Vector(15.80, -11.59, 55.90), Vector(0.60, 2.92, 36.39));
+//         if (IsMap(Map.Chateau_Guillard) || IsMap(Map.Chateau_Guillard_Halloween))
+//             StartCamera(all, Vector(214.63, 18.51, 48.69), Vector(203.25, 9.50, 68.08));
+//         else if (IsMap(Map.Kanezaka))
+//             StartCamera(all, Vector(-43.94, 14, -2.44), Vector(-33.33, 12.74, -7.33));
+//         else if (IsMap(Map.Petra))
+//             StartCamera(all, Vector(15.80, -11.59, 55.90), Vector(0.60, 2.92, 36.39));
 
-        DisableGameModeHud(all);
-        DisableHeroHud(all);
-        DisableRespawning(all);
-        DisableKillFeed(all);
+//         DisableGameModeHud(all);
+//         DisableHeroHud(all);
+//         DisableRespawning(all);
+//         DisableKillFeed(all);
         
-        // disable movement and freeze players in air
-        ForceThrottle(all, 0,0,0,0,0,0);
-        SetGravity(all, 0);
-        ApplyImpulse(all, Up(), 0.001);
-        ApplyImpulse(all, Down(), 0.001);
-        ApplyImpulse(all, Forward(), 0.001);
-        ApplyImpulse(all, Backward(), 0.001);
-        ApplyImpulse(all, Left(), 0.001);
-        ApplyImpulse(all, Right(), 0.001);
+//         // disable movement and freeze players in air
+//         ForceThrottle(all, 0,0,0,0,0,0);
+//         SetGravity(all, 0);
+//         ApplyImpulse(all, Up(), 0.001);
+//         ApplyImpulse(all, Down(), 0.001);
+//         ApplyImpulse(all, Forward(), 0.001);
+//         ApplyImpulse(all, Backward(), 0.001);
+//         ApplyImpulse(all, Left(), 0.001);
+//         ApplyImpulse(all, Right(), 0.001);
 
-        DisallowButton(all, Button.PrimaryFire);
-        DisallowButton(all, Button.SecondaryFire);
-        DisallowButton(all, Button.Ability1);
-        DisallowButton(all, Button.Ability2);
-        DisallowButton(all, Button.Ultimate);
-        DisallowButton(all, Button.Melee);
-        DisallowButton(all, Button.Jump);
-        DisallowButton(all, Button.Crouch);
-        DisallowButton(all, Button.Interact);
-        DisableRespawning(all);
-        SetDamageDealt(all, 0);
-        SetDamageReceived(all, 0);
+//         DisallowButton(all, Button.PrimaryFire);
+//         DisallowButton(all, Button.SecondaryFire);
+//         DisallowButton(all, Button.Ability1);
+//         DisallowButton(all, Button.Ability2);
+//         DisallowButton(all, Button.Ultimate);
+//         DisallowButton(all, Button.Melee);
+//         DisallowButton(all, Button.Jump);
+//         DisallowButton(all, Button.Crouch);
+//         DisallowButton(all, Button.Interact);
+//         DisableRespawning(all);
+//         SetDamageDealt(all, 0);
+//         SetDamageReceived(all, 0);
         
-        Wait(15);
-    }
+//         Wait(15);
+//     }
 
-    EnableHeroHud(all);
-    EnableCompletion();
-}
+//     EnableHeroHud(all);
+//     UnpauseMatchTime();
+// }
 
 rule: "Force Respawn"
 Event.OngoingPlayer
@@ -533,11 +529,11 @@ if (IsButtonHeld(host, Button.Melee) && IsButtonHeld(host, Button.Interact))
 //         Resurrect();
 //     }
 
-rule: "[Debug] :: Hud"
-    Event.OngoingPlayer
-    if (player == host)
-    {
-        CreateHudText(player, null, null, <" \nPos: <0>", PositionOf()>, Location.Top, 10);
-        CreateHudText(player, null, null, <"Facing: <0>", FacingDirectionOf()>, Location.Top, 11);
-        CreateHudText(player, null, null, <"Raycast: <0>", RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100)>, Location.Top, 12);
-    }
+// rule: "[Debug] :: Hud"
+//     Event.OngoingPlayer
+//     if (player == host)
+//     {
+//         CreateHudText(player, null, null, <" \nPos: <0>", PositionOf()>, Location.Top, 10);
+//         CreateHudText(player, null, null, <"Facing: <0>", FacingDirectionOf()>, Location.Top, 11);
+//         CreateHudText(player, null, null, <"Raycast: <0>", RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100)>, Location.Top, 12);
+//     }

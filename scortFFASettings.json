@@ -12,9 +12,7 @@
         "Hero Limit": "Off"
       },
       "Deathmatch": {
-        "Enabled Maps": [
-          "Château Guillard"
-      ]
+        "Enabled Maps": ["Château Guillard"]
     }
   },
   "Heroes": {
@@ -25,6 +23,7 @@
         "Baptiste",
         "Bastion",
         "Doomfist",
+        "D.va",
         "Genji",
         "Hanzo",
         "Lúcio",
@@ -35,14 +34,29 @@
         "Pharah",
         "Soldier: 76",
         "Tracer",
+        "Torbjörn",
         "Widowmaker",
         "Zenyatta"
       ],
       "Mccree": {
         "Secondary Fire": false
       },
+      "D.va": {
+        "Boosters": false,
+        "Defense Matrix": false,
+        "Micro Missiles": false,
+        "Spawn Without Mech": true,
+        "Ultimate Ability (Self-Destruct)": false
+      },
       "Baptiste": {
         "Immortality Field": false
+      },
+      "Echo": {
+        "Ultimate Ability (Duplicate)": false
+      },
+      "Torbjörn": {
+        "Deploy Turret": false,
+        "Ultimate Ability (Molten Core)": false
       },
       "Mei": {
         "No Ammunition Requirement": true,
@@ -53,16 +67,22 @@
       },
       "Sombra": {
         "Hack": false,
+        "Stealth": false,
         "Ultimate Ability (EMP)": false
       },
       "Ashe": {
-        "Ultimate Duration": 50,
+        "Ultimate Ability (B.O.B.)": false,
         "Dynamite": false
       },
       "Bastion": {
-          "Reconfigure": false
+          "Reconfigure": false,
+          "Self-Repair": false,
+          "Ultimate Ability (Configuration: Tank)": false
+      },
+      "Pharah": {
+        "Ultimate Ability (Barrage)": false
       }
     }
   },
-  "Description": "Tryhard FFA | Code: BKRXY | Created by scort#11221 | 03/04/2021 | v1.0.3 | Immanust fan club"
+  "Description": "Tryhard FFA | Imman*st fan club                                                                                                   Code: BKRXY (Use this code instead of saving a preset!)                                              Created by scort#11221                                                                                                   07/06/2021                                                                                                    v1.0.3                                                                                                    "
 }
