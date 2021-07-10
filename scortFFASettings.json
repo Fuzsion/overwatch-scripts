@@ -71,6 +71,9 @@
         "Stealth": false,
         "Ultimate Ability (EMP)": false
       },
+      "Soldier: 76": {
+        "Healing Dealt": 75
+      },
       "Ashe": {
         "Ultimate Ability (B.O.B.)": false,
         "Dynamite": false

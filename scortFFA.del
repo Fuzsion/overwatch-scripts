@@ -3,6 +3,7 @@ import "macros.del";
 
 globalvar str[] s_match_time;
 globalvar num match_time;
+globalvar num[] strk_arr;
 globalvar bool s_player_stats;
 globalvar bool s_killstreak_hud;
 globalvar bool s_heal_on_kill;
@@ -30,6 +31,7 @@ playervar bool hide_hud;
 // playervar bool muted;
 playervar num kill_streak;
 playervar num best_streak;
+playervar str bs_hero;
 
 color rainbow_color: CustomColor(128 + 127 * CosineFromDegrees(Time() * 150),
                                 128 + 127 * CosineFromDegrees((Time() * 150) + 120),
@@ -43,12 +45,9 @@ num g: (percentage >= 50) ? 255 : RoundToInteger(percentage * 5.12, Rounding.Dow
 rule: "v1.0.3 | Created by scort#12211" 
 { 
     // DisableInspectorRecording(); 
-    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, "ㅤTryhard FFA | Created by scort#11221", null, Location.Right, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
+    CreateHudText(FilteredArray(all, !Curr().hide_hud), null, "ㅤTryhard FFA | Created by scort#11221", null, Location.Right, 0.1, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleAlways);
     CreateHudText(FilteredArray(all, !Curr().hide_hud), null, <"ㅤHold <0> to hide HUD | Code: BKRXY     \n", InputBindingString(Button.Interact)>, null, Location.Right, 0.2);
     CreateHudText(FilteredArray(all, Curr().hide_hud), null, <"ㅤHold <0> to show HUD\n", InputBindingString(Button.Interact)>, null, Location.Right, 0.3);
-
-    if (s_instant_respawn)
-        CreateHudText(FilteredArray(all, IsDead(Curr())), null, null, <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPress <0> to respawn instantly, Use normal hero select to change hero", InputBindingString(Button.Jump)>, Location.Top, 10, Color.White, Color.White, Color.Yellow);
 }
 
 // rule: "Preset Mute List"
@@ -99,6 +98,9 @@ rule: "Initial Global"
         CreateHudText(host, null, "Peak", <"<0>%", RoundToInteger(ServerLoadPeak() / 2.55, Rounding.Nearest)>, Location.Left, 13, Color.White, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor);
     }
 
+    if (s_instant_respawn)
+        CreateHudText(FilteredArray(all, IsDead(Curr())), null, null, <" \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nPress <0> to respawn instantly, Use normal hero select to change hero", InputBindingString(Button.Jump)>, Location.Top, 10, Color.White, Color.White, Color.Yellow);
+
     SetMatchTime(10);
 }
 
@@ -125,8 +127,9 @@ Event.OnPlayerLeave
 {
     if (player == bs_ser_usr)
     {
-        // bs_ser = LastOf(SortedArray(all, Curr().best_streak));
-        bs_ser = 0;
+        bs_ser = LastOf(SortedArray(strk_arr, Curr().best_streak));
+        bs_ser_usr = LastOf(SortedArray(all, Curr().best_streak));
+        bs_ser_hero = bs_ser_usr.bs_hero;
     }
 
     kill_streak = 0;
@@ -152,7 +155,7 @@ if (IsButtonHeld(player, Button.Interact))
     }
 }
 
-rule: "Set Match Time"
+rule: "Match Started"
 if (IsGameInProgress())
 {
     SetMatchTime(0);
@@ -252,7 +255,7 @@ Event.OngoingPlayer
         Location.Left, SlotOf() + 1, health_color, Color.White, Color.White, HudTextRev.VisibleToSortOrderStringAndColor, Spectators.VisibleNever);
 
         // streak best
-        CreateHudText(bs_ser >= 5 && !hide_hud 
+        CreateHudText(bs_ser >= 5 && (EntityExists(bs_ser_usr) && bs_ser_usr != 0) && !hide_hud 
                         ? player 
                         : null, null, 
         "", <"Best Streak: <0> by <2><1>", bs_ser, bs_ser_usr, bs_ser_hero>, Location.Right, 0.3, Color.White, Color.White, Color.Yellow);
@@ -323,10 +326,13 @@ Event.OnDeath
             SmallMessage(!hide_hud ? player : null, <"<0> player killstreak! The lobby's best!", kill_streak>);
             Wait(0.1);
             SmallMessage(FilteredArray(RemoveFromArray(all, player), !Curr().hide_hud), <"<2><0> got a <1> player killstreak! The lobby's best!", bs_ser_usr, kill_streak, bs_ser_hero>);
+            strk_arr = MappedArray(all, Curr().best_streak);
         }
         else 
         {
             SmallMessage(!hide_hud ? player : null, <"<0> player killstreak! Your personal best!", kill_streak>);
+            bs_hero = HeroIconString(HeroOf());
+            strk_arr = MappedArray(all, Curr().best_streak);
         }
     }
     else if (kill_streak >= 5)
@@ -469,26 +475,26 @@ if (IsButtonHeld(host, Button.Melee) && IsButtonHeld(host, Button.Interact))
 //     LoopIfConditionIsTrue();
 // }
 
-// rule: "[Debug] :: Bots"
-// Event.OngoingPlayer
-// if (player == host && IsButtonHeld(player, Button.Interact) && !IsButtonHeld(player, Button.Crouch))
-// {
-//     CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
-// }
+rule: "[Debug] :: Bots"
+Event.OngoingPlayer
+if (player == host && IsButtonHeld(player, Button.Interact) && !IsButtonHeld(player, Button.Crouch))
+{
+    CreateDummyBot(HeroOf(), OppositeTeamOf(TeamOf()), -1, RayCastHitPosition(EyePosition(), EyePosition() + Facing() * 100), Facing() * -1);
+}
 
-// rule: "[Debug] :: Destroy Bots"
-// Event.OngoingPlayer
-// if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player, Button.Interact))
-// {
-//     DestroyAllDummyBots();
-// }
+rule: "[Debug] :: Destroy Bots"
+Event.OngoingPlayer
+if (player == host && IsButtonHeld(player, Button.Crouch) && IsButtonHeld(player, Button.Interact))
+{
+    DestroyAllDummyBots();
+}
 
-// rule: "[Degug] :: Bots Hold Left Click"
-//     Event.OngoingPlayer
-//     if (IsDummyBot())
-//     {
-//         StartHoldingButton(player, Button.PrimaryFire);
-//     }
+rule: "[Degug] :: Bots Hold Left Click"
+    Event.OngoingPlayer
+    if (IsDummyBot())
+    {
+        StartHoldingButton(player, Button.PrimaryFire);
+    }
 
 // rule: "[Debug] :: Decrease Match Time"
 //     Event.OngoingPlayer
@@ -521,12 +527,12 @@ if (IsButtonHeld(host, Button.Melee) && IsButtonHeld(host, Button.Interact))
 //     SetPlayerHealth(player, 1);
 // }
 
-// rule: "[Debug] :: Rez"
-//     Event.OngoingPlayer
-//     if (player == host && IsInteractHeld())
-//     {
-//         Resurrect();
-//     }
+rule: "[Debug] :: Rez"
+Event.OngoingPlayer
+if (player == host && IsInteractHeld())
+{
+    Resurrect();
+}
 
 // rule: "[Debug] :: Hud"
 //     Event.OngoingPlayer
