@@ -72,7 +72,8 @@
         "Ultimate Ability (EMP)": false
       },
       "Soldier: 76": {
-        "Healing Dealt": 75
+        "Healing Dealt": 75,
+        "Ultimate Ability (Tactical Visor)": false
       },
       "Ashe": {
         "Ultimate Ability (B.O.B.)": false,
@@ -88,5 +89,5 @@
       }
     }
   },
-  "Description": "Tryhard FFA | Imman*st fan club                                                                                                   Code: BKRXY (Use this code instead of saving a preset!)                                              Created by scort#11221                                                                                                   07/06/2021                                                                                                    v1.0.3                                                                                                    "
+  "Description": "Tryhard FFA | Imman*st fan club                                                                                                   Code: BKRXY (Use this code instead of saving a preset!)                                              Created by scort#11221                                                                                                   07/11/2021                                                                                                    v1.0.3                                                                                                    "
 }
