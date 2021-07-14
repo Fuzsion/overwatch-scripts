@@ -31,8 +31,8 @@ num             Floor(num float):                                               
 num             Ceiling(num float):                                                         RoundToInteger(float, Rounding.Up);
 num             Near(num float):                                                            RoundToInteger(float);
 num             Round(num float):                                                           RoundToInteger(float);
-num             Dot(vec n, vec d):                                                          DotProduct(n, d);
-num             Cross(vec n, vec d):                                                        CrossProduct(n, d);
+num             Dot(any n, any d):                                                          DotProduct(n, d);
+num             Cross(any n, any d):                                                        CrossProduct(n, d);
 num             Abs(num v):                                                                 AbsoluteValue(v);
 bool            IsInRange(num n, num min, num max):                                         (n >= min && n <= max);
 vec             Vector():                                                                   Vector(0, 0, 0);
