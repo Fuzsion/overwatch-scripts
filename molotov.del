@@ -8,7 +8,7 @@ globalvar num S_DOT;
 globalvar num S_SPEED;
 globalvar num S_DELTA;
 globalvar num S_GRAV;
-globalvar num S_BOUNCE_STRENGTH;
+globalvar num S_REFLECT_STRENGTH;
 globalvar num S_GROUND_ANGLE;
 globalvar bool s_fire;
 globalvar bool s_ignore_ground;
@@ -19,16 +19,14 @@ playervar vec vel;
 playervar vec proj_pos;
 playervar num airtime;
 playervar num bounces;
-playervar any e_arr;
+globalvar num PROJ_SIZE;
+playervar any effect;
 playervar bool landed;
 
 rule: "init"
 {
-    s_fire = WorkshopSettingToggle("Damage", "Fire (On)", true, 0);
-    S_RADIUS = WorkshopSettingReal("Damage", "Fire Radius (7)", 7, 0.1, 100, 1);
-    S_DURATION = WorkshopSettingReal("Damage", "Fire Duration (7)", 7, 0.1, 100, 2);
-    S_DOT = WorkshopSettingReal("Damage", "Fire Damage (9)", 9, 0.1, 100, 3);
-    S_DAMAGE = WorkshopSettingInteger("Damage", "Explosion Damage (40)", 40, 1, 600, 4);
+    S_RADIUS = WorkshopSettingReal("Damage", "Damage Radius (7)", 7, 0.1, 100, 1);
+    S_DAMAGE = WorkshopSettingInteger("Damage", "Damage (40)", 40, 1, 600, 4);
 
     s_preset = WorkshopSettingCombo("Projectile", "Projectile Preset (Ignores Existing Settings for Gravity, Speed, and Delta)", 0, 
     ["None", // 0
@@ -54,245 +52,243 @@ rule: "init"
     "Zarya Particle Cannon / Graviton Surge"], // 20
     0);
 
-    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Gravity Strength (20)", 20, 0, 100, 1);
-    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (High values are likely to go through surfaces!) (30)", 30, 0.1, 110, 2);
-    S_DELTA = WorkshopSettingReal("Projectile", "Projectile Vertical Offset (Delta) (0)", 0, -1, 1, 3);
-    S_BOUNCE_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same as the prior bounce | 1 = No bounce) (1.2)", 1.2, 1, 2, 4);
-    S_GROUND_ANGLE = WorkshopSettingInteger("Projectile", "Maximum Ground Detection Angle for Projectile Explosion (40)", 40, 1, 180, 5);
+    S_GRAV = WorkshopSettingReal("Projectile", "Projectile Gravity (20)", 20, 0, 100, 1);
+    S_SPEED = WorkshopSettingReal("Projectile", "Projectile Speed (30)", 30, 0.2, 110, 2); // high values are likely to go through surfaces
+    S_DELTA = WorkshopSettingReal("Projectile", "Projectile Delta (Vertical Offset) (0)", 0, -1, 1, 3);
+    S_REFLECT_STRENGTH = WorkshopSettingReal("Projectile", "Projectile Bounce Strength (2 = Same as the prior bounce, 1 = No bounce) (1.2)", 1.2, 1, 2, 4);
+    S_GROUND_ANGLE = WorkshopSettingInteger("Projectile", "Ground Detection Angle (40)", 40, 1, 180, 5);
     s_ignore_ground = WorkshopSettingToggle("Projectile", "Disable Ground Detection (Off)", false, 6);
 
-    s_show_dbg = WorkshopSettingToggle("Debug", "Show Debug Info", false, 0);
+    s_show_dbg = WorkshopSettingToggle("Debug", "Show Debug Info", true, 0);
 
-    if (s_preset > 0)
+    switch (true)
     {
-        switch (true)
-        {
-            case (s_preset == 1):
-                S_GRAV = 9.84;
-                S_SPEED = 30;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 2):
-                S_GRAV = 8.03;
-                S_SPEED = 25;
-                S_DELTA = 0.07;
-                break;
-            case (s_preset == 3):
-                S_GRAV = 20.1;
-                S_SPEED = 60;
-                S_DELTA = 0.007;
-                break;
-            case (s_preset == 4):
-                S_GRAV = 9.82;
-                S_SPEED = 110;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 5):
-                S_GRAV = 12.35;
-                S_SPEED = 25;
-                S_DELTA = 0.075;
-                break;
-            case (s_preset == 6):
-                S_GRAV = 20.3;
-                S_SPEED = 25;
-                S_DELTA = 0.09;
-                break;
-            case (s_preset == 7):
-                S_GRAV = 20.2;
-                S_SPEED = 10;
-                S_DELTA = 0.095;
-                break;
-            case (s_preset == 8):
-                S_GRAV = 9.84;
-                S_SPEED = 25;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 9):
-                S_GRAV = 5.95;
-                S_SPEED = 49.7;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 10):
-                S_GRAV = 18.35;
-                S_SPEED = 37.4;
-                S_DELTA = 0.1;
-                break;
-            case (s_preset == 11):
-                S_GRAV = 20.2;
-                S_SPEED = 25;
-                S_DELTA = 0.09;
-                break;
-            case (s_preset == 12):
-                S_GRAV = 9.81;
-                S_SPEED = 70;
-                S_DELTA = 0.015;
-                break;
-            case (s_preset == 13):
-                S_GRAV = 30.05;
-                S_SPEED = 40;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 14):
-                S_GRAV = 20;
-                S_SPEED = 17;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 15):
-                S_GRAV = 30.8;
-                S_SPEED = 15;
-                S_DELTA = 0.19;
-                break;
-            case (s_preset == 16):
-                S_GRAV = 9.84;
-                S_SPEED = 30;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 17):
-                S_GRAV = 10;
-                S_SPEED = 4.2;
-                S_DELTA = 0.577;
-                break;
-            case (s_preset == 18):
-                S_GRAV = 9.9;
-                S_SPEED = 20;
-                S_DELTA = 0.09;
-                break;
-            case (s_preset == 19):
-                S_GRAV = 9.84;
-                S_SPEED = 20;
-                S_DELTA = 0;
-                break;
-            case (s_preset == 20):
-                S_GRAV = 9.84;
-                S_SPEED = 25;
-                S_DELTA = 0.1;
-                break;
-        }
+        case (s_preset == 0):
+            // DO NOTHING
+            // i could put the workshop settings here but i wont because it looks nicer :)
+            break;
+        case (s_preset == 1):
+            S_GRAV = 9.84;
+            S_SPEED = 30;
+            S_DELTA = 0;
+            break;
+        case (s_preset == 2):
+            S_GRAV = 8.03;
+            S_SPEED = 25;
+            S_DELTA = 0.07;
+            break;
+        case (s_preset == 3):
+            S_GRAV = 20.1;
+            S_SPEED = 60;
+            S_DELTA = 0.007;
+            break;
+        case (s_preset == 4):
+            S_GRAV = 9.82;
+            S_SPEED = 110;
+            S_DELTA = 0;
+            break;
+        case (s_preset == 5):
+            S_GRAV = 12.35;
+            S_SPEED = 25;
+            S_DELTA = 0.075;
+            break;
+        case (s_preset == 6):
+            S_GRAV = 20.3;
+            S_SPEED = 25;
+            S_DELTA = 0.09;
+            break;
+        case (s_preset == 7):
+            S_GRAV = 20.2;
+            S_SPEED = 10;
+            S_DELTA = 0.095;
+            break;
+        case (s_preset == 8):
+            S_GRAV = 9.84;
+            S_SPEED = 25;
+            S_DELTA = 0;
+            break;
+        case (s_preset == 9):
+            S_GRAV = 5.95;
+            S_SPEED = 49.7;
+            S_DELTA = 0;
+            break;
+        case (s_preset == 10):
+            S_GRAV = 18.35;
+            S_SPEED = 37.4;
+            S_DELTA = 0.1;
+            break;
+        case (s_preset == 11):
+            S_GRAV = 20.2;
+            S_SPEED = 25;
+            S_DELTA = 0.09;
+            break;
+        case (s_preset == 12):
+            S_GRAV = 9.81;
+            S_SPEED = 70;
+            S_DELTA = 0.015;
+            break;
+        case (s_preset == 13):
+            S_GRAV = 30.05;
+            S_SPEED = 40;
+            S_DELTA = 0;
+            break;
+        case (s_preset == 14):
+            S_GRAV = 20;
+            S_SPEED = 17;
+            S_DELTA = 0;
+            break;
+        case (s_preset == 15):
+            S_GRAV = 30.8;
+            S_SPEED = 15;
+            S_DELTA = 0.19;
+            break;
+        case (s_preset == 16):
+            S_GRAV = 9.84;
+            S_SPEED = 30;
+            S_DELTA = 0;
+            break;
+        case (s_preset == 17):
+            S_GRAV = 10;
+            S_SPEED = 4.2;
+            S_DELTA = 0.577;
+            break;
+        case (s_preset == 18):
+            S_GRAV = 9.9;
+            S_SPEED = 20;
+            S_DELTA = 0.09;
+            break;
+        case (s_preset == 19):
+            S_GRAV = 9.84;
+            S_SPEED = 20;
+            S_DELTA = 0;
+            break;
+        case (s_preset == 20):
+            S_GRAV = 9.84;
+            S_SPEED = 25;
+            S_DELTA = 0.1;
+            break;
     }
 
     proj_grav_vec = Vector(0, -S_GRAV, 0);
+    PROJ_SIZE = (0.25 + (S_SPEED / 100));
 }
 
 rule: "dbg"
 Event.OngoingPlayer
 if (s_show_dbg)
 {
-    CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left, 0);
-    CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left, 1);
-    CreateHudText(player, null, null, <"vel: <0>", vel>, Location.Left, 2);
-    CreateHudText(player, null, null, <"airtime: <0>", airtime>, Location.Left, 3);
-    CreateEffect(all, Effect.Sphere, Color.Blue, proj_pos, 0.25 + (S_SPEED / 100));
-    CreateBeamEffect(all, BeamType.BadBeam, proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true), Color.White);
-
+    CreateHudText(player, null, null, <"vel: <0>", vel>, Location.Left, 1);
+    CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left, 2);
+    CreateHudText(player, null, null, <"Normal: <0>", FirstOf(normals)>, Location.Left, 3);
+    CreateHudText(player, null, null, <"PROJ_SIZE: <0>", PROJ_SIZE>, Location.Left, 4);
+    CreateHudText(player, null, null, <"airtime: <0>", airtime>, Location.Left, 5);
+    CreateHudText(player, null, null, <"bounces: <0>", bounces>, Location.Left, 6);
+    CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left, 7);
+    
+    CreateInWorldText(all, ".", proj_pos, 10, Clipping.DoNotClip);
+    CreateEffect(all, Effect.Sphere, Color.Blue, proj_pos, PROJ_SIZE);
+    CreateEffect(all, Effect.Sphere, Color.SkyBlue, proj_pos, 0.05);
+    // CreateBeamEffect(all, BeamType.GrappleBeam, proj_pos, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 3, null, player, true), Color.White);
+    CreateEffect(all, Effect.Sphere, Color.SkyBlue, RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 3, null, player, true), 0.05);
 }
 
 
-void DestroyEffects() playervar "destroy now please"
-{
-    for (num i = 0; i < 4; i++)
-    {
-        DestroyEffect(e_arr[i]);
-    }
-}
+playervar vec[] normals;
+playervar vec[] hp;
+playervar vec[] hp_reflection;
+playervar vec[] reflection;
+// playervar vec angular_vel;
+// playervar vec temp_vec;
+// playervar any impulse;
 
 rule: "proj"
 Event.OngoingPlayer
 if (IsMeleeing())
 {
-    if (EntityExists(e_arr))
-    {
-        DestroyEffects();
-    }
+    DestroyEffect(effect);
 
     proj_pos = EyePosition();
     vel = Normalize(Facing() + Vector(0, S_DELTA, 0)) * S_SPEED;
     airtime = 0;
+    bounces = 0;
     landed = false;
 
-    vec[] normals = [];
-    vec[] hp = [];
-    vec[] hp_ricochets = [];
-    vec[] ricochets = [];
+    CreateEffect(all, Effect.WinstonTeslaCannonTargetSound, Color.White, proj_pos, 45);
+    effect = LastCreatedEntity();
 
-    while (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) >= 0.25 + (S_SPEED / 100) // did not hit surface
-           && airtime < 5) 
+    normals = [];
+    hp = [];
+    hp_reflection = [];
+    reflection = [];
+
+    // projectile loop
+    // loop while the projectile has not hit a surface and if the airtime < 5 seconds
+    while (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) >= PROJ_SIZE && airtime < 5) 
     {
         vel += proj_grav_vec * 0.016; // update vel with grav vector each tick
         proj_pos += vel * 0.016; // update proj_pos with vel vector each tick
         airtime += 0.016; // 62.5 = ow tickrate, 3750 ticks = 1 second
 
-        # change effect type here
-        PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1); // projectile effect
-        # .
-        Wait(0.016);
+        // PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1); // projectile effect
+        PlayEffect(all, PlayEffect.GoodExplosion, Color.SkyBlue, proj_pos, PROJ_SIZE);
 
-        // i < amount of vectors to store, or the amount of "bounces". usually never more than 3 on default settings
-        // dont continue the loop unless surface is hit
-        for (num i = 0; (i < 6) && (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= 0.25 + (S_SPEED / 100)); i++)
+        // reflection loop
+        if (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= PROJ_SIZE) // surface hit
         {
-            # https://math.stackexchange.com/questions/13261/how-to-get-a-reflection-vector/3340378#3340378
-            if (i > 0)
+            // i < maximum amount of vectors to store, usually doesnt store more than 4 vectors in normal situations
+            for (num i = 0; i < 6 && DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= PROJ_SIZE; i++)// another FUCKING check
             {
-                proj_pos = hp[i - 1];
-                vel = ricochets[i - 1];
+                # https://math.stackexchange.com/questions/13261/how-to-get-a-reflectionion-vector/3340378#3340378
+                if (i > 0)
+                {
+                    proj_pos = hp[i - 1];
+                    vel = reflection[i - 1];
+                }
+
+                // get hit pos and normal
+                hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
+                normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
+
+                // normal to reflection
+                reflection[i] = vel - (S_REFLECT_STRENGTH * (normals[i] * Dot(vel, normals[i])));
+                hp_reflection[i] = RayCastHitPosition(hp[i], hp[i] + reflection[i] * 100, EnemyPlayers(), player, true); // raycast from hit pos to reflection vector
+
+                // break the loop if the hit normal and up vector is within the specified angle (hacky ground detection)
+                if (/* !s_ignore_ground */ bounces >= 5 && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) 
+                    break;
             }
 
-            // get hit pos and normal
-            hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-            normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
-
-            ricochets[i] = vel - (S_BOUNCE_STRENGTH * (normals[i] * Dot(vel, normals[i]))); // convert normal to reflection
-            hp_ricochets[i] = RayCastHitPosition(hp[i], hp[i] + ricochets[i] * 100, EnemyPlayers(), player, true); // raycast from hit pos to reflection vector
-
-            PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45); // hit sound
-
-            if (!s_ignore_ground && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) // break if the normal and up vector is within the specified angle
-                break;
+            PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
+            PlayEffect(all, PlayEffect.EchoStickyBombExplosionSound, Color.White, proj_pos, 45);
+            bounces++;
+            airtime = 0;
         }
+
+        MinWait();
     }
+
+    // hacky floor fix that only sometimes works how i want it to
+    if (AngleBetweenVectors(FirstOf(normals), Up()) < S_GROUND_ANGLE)
+        proj_pos = RayCastHitPosition(proj_pos + Vector(0, 3, 0), proj_pos + Down() * 3, null, all, true);
 
     Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
 
     // effects n shit
-    PlayEffect(all, PlayEffect.AsheDynamiteExplosionEffect, Color.Team1, proj_pos, 0);
-    PlayEffect(all, PlayEffect.GoodExplosion, Color.Orange, proj_pos, S_RADIUS);
-    PlayEffect(all, PlayEffect.AsheDynamiteExplosionSound, Color.White, proj_pos, 100);
+    PlayEffect(all, PlayEffect.PharahConcussiveBlastEffect, Color.Team1, proj_pos, 0);
+    PlayEffect(all, PlayEffect.GoodExplosion, Color.SkyBlue, proj_pos, S_RADIUS);
+    PlayEffect(all, PlayEffect.WinstonJumpPackLandingSound, Color.White, proj_pos, 45);
     PlayEffect(all, PlayEffect.AnaBioticGrenadeExplosionSound, Color.White, proj_pos, 45);
-
-    if (s_fire)
-    {
-        landed = true;
-        DestroyEffects();
-
-        CreateEffect(all, Effect.Ring, Color.Orange, proj_pos, S_RADIUS);
-        e_arr[0] = LastCreatedEntity();
-        CreateEffect(all, Effect.Ring, Color.Red, proj_pos, S_RADIUS);
-        e_arr[1] = LastCreatedEntity();
-        CreateEffect(all, Effect.Sparkles, Color.Orange, proj_pos, S_RADIUS);
-        e_arr[2] = LastCreatedEntity();
-        CreateEffect(all, Effect.TorbjornOverloadingSound, Color.White, proj_pos, 60);
-        e_arr[3] = LastCreatedEntity();
-
-        Wait(S_DURATION, WaitBehavior.RestartWhenTrue);
-
-        landed = false;
-        DestroyEffects();
-    }
-
-    airtime = 0;
+    PlayEffect(all, PlayEffect.EchoStickyBombExplosionSound, Color.White, proj_pos, 100);
+    DestroyEffect(effect);
 }
 
 rule: "damage"
 Event.OngoingPlayer
 if (landed)
 {
-    SetStatus(PlayersWithinRadius(proj_pos, 
-                                    S_RADIUS, 
-                                    LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
+    SetStatus(PlayersWithinRadius(proj_pos, S_RADIUS,  LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, Status.Burning, 0.30);
 
-    Damage(PlayersWithinRadius(proj_pos, 
-                                S_RADIUS, 
-                                LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
+    Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DOT);
 
     WaitIfTrue(0.25);
     LoopIfConditionIsTrue();
@@ -303,6 +299,7 @@ if (landed)
 // {
 //     CreateDummyBot(HeroOf(host), OppositeTeamOf(TeamOf(host)), -1, RayCastHitPosition(EyePosition(host), EyePosition(host) + Facing(host) * 100, null, null, true), Facing(host) * -1);
 // }
+
 // rule: "[Debug] :: Destroy Bots"
 // if (IsButtonHeld(host, Button.Crouch) && IsButtonHeld(host, Button.Interact))
 // {
