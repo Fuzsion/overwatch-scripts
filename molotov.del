@@ -180,10 +180,11 @@ if (s_show_dbg)
     CreateHudText(player, null, null, <"vel: <0>", vel>, Location.Left, 1);
     CreateHudText(player, null, null, <"proj_pos: <0>", proj_pos>, Location.Left, 2);
     CreateHudText(player, null, null, <"Normal: <0>", FirstOf(normals)>, Location.Left, 3);
-    CreateHudText(player, null, null, <"PROJ_SIZE: <0>", PROJ_SIZE>, Location.Left, 4);
-    CreateHudText(player, null, null, <"airtime: <0>", airtime>, Location.Left, 5);
-    CreateHudText(player, null, null, <"bounces: <0>", bounces>, Location.Left, 6);
-    CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left, 7);
+    CreateHudText(player, null, null, <"Array Count: <0>", CountOf(normals)>, Location.Left, 4);
+    CreateHudText(player, null, null, <"PROJ_SIZE: <0>", PROJ_SIZE>, Location.Left, 5);
+    CreateHudText(player, null, null, <"airtime: <0>", airtime>, Location.Left, 6);
+    CreateHudText(player, null, null, <"bounces: <0>", bounces>, Location.Left, 7);
+    CreateHudText(player, null, null, <"landed: <0>", landed>, Location.Left, 8);
     
     CreateInWorldText(all, ".", proj_pos, 10, Clipping.DoNotClip);
     CreateEffect(all, Effect.Sphere, Color.Blue, proj_pos, PROJ_SIZE);
@@ -197,9 +198,10 @@ playervar vec[] normals;
 playervar vec[] hp;
 playervar vec[] hp_reflection;
 playervar vec[] reflection;
-// playervar vec angular_vel;
-// playervar vec temp_vec;
-// playervar any impulse;
+playervar vec[] cross;
+playervar vec angular_vel;
+playervar vec temp_vec;
+playervar any impulse;
 
 rule: "proj"
 Event.OngoingPlayer
@@ -225,18 +227,17 @@ if (IsMeleeing())
     // loop while the projectile has not hit a surface and if the airtime < 5 seconds
     while (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) >= PROJ_SIZE && airtime < 5) 
     {
-        vel += proj_grav_vec * 0.016; // update vel with grav vector each tick
-        proj_pos += vel * 0.016; // update proj_pos with vel vector each tick
+        vel += proj_grav_vec * 0.016; // update vel with grav vector each loop
+        proj_pos += vel * 0.016; // update proj_pos with vel vector each loop
         airtime += 0.016; // 62.5 = ow tickrate, 3750 ticks = 1 second
 
-        // PlayEffect(all, PlayEffect.EchoStickyBombExplosionEffect, Color.Team2, proj_pos, 0.1); // projectile effect
         PlayEffect(all, PlayEffect.GoodExplosion, Color.SkyBlue, proj_pos, PROJ_SIZE);
 
         // reflection loop
         if (DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= PROJ_SIZE) // surface hit
         {
-            // i < maximum amount of vectors to store, usually doesnt store more than 4 vectors in normal situations
-            for (num i = 0; i < 6 && DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= PROJ_SIZE; i++)// another FUCKING check
+            // i < maximum amount of vectors to store, usually doesnt store more than 6 vectors in normal situations
+            for (num i = 0; i < 12 && DistanceBetween(proj_pos, Update(RayCastHitPosition(proj_pos, proj_pos + (vel * 0.016) * 100, EnemyPlayers(), player, true))) <= PROJ_SIZE; i++)// another FUCKING check
             {
                 # https://math.stackexchange.com/questions/13261/how-to-get-a-reflectionion-vector/3340378#3340378
                 if (i > 0)
@@ -249,13 +250,19 @@ if (IsMeleeing())
                 hp[i] = RayCastHitPosition(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
                 normals[i] = RayCastHitNormal(proj_pos, proj_pos + vel * 100, EnemyPlayers(), player, true);
 
-                // normal to reflection
-                reflection[i] = vel - (S_REFLECT_STRENGTH * (normals[i] * Dot(vel, normals[i])));
+                // normal to reflection  r = v - 2 * (v . n / n . n) * n
+                // reflection[i] = vel - (S_REFLECT_STRENGTH * (normals[i] * Dot(vel, normals[i])));
+                reflection[i] = vel - S_REFLECT_STRENGTH * (Dot(vel, normals[i]) / Dot(normals[i], normals[i])) * normals[i];
                 hp_reflection[i] = RayCastHitPosition(hp[i], hp[i] + reflection[i] * 100, EnemyPlayers(), player, true); // raycast from hit pos to reflection vector
 
-                // break the loop if the hit normal and up vector is within the specified angle (hacky ground detection)
-                if (/* !s_ignore_ground */ bounces >= 5 && AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) 
-                    break;
+                // if hit normal and up vector is within the specified angle (ground detection)
+                if (AngleBetweenVectors(normals[i], Up()) < S_GROUND_ANGLE) 
+                {
+                    if (bounces >= 5)
+                        break;
+
+                    
+                }
             }
 
             PlayEffect(all, PlayEffect.BaptisteBioticLauncherExplosionSound, Color.White, proj_pos, 45);
@@ -268,8 +275,8 @@ if (IsMeleeing())
     }
 
     // hacky floor fix that only sometimes works how i want it to
-    if (AngleBetweenVectors(FirstOf(normals), Up()) < S_GROUND_ANGLE)
-        proj_pos = RayCastHitPosition(proj_pos + Vector(0, 3, 0), proj_pos + Down() * 3, null, all, true);
+    // if (AngleBetweenVectors(FirstOf(normals), Up()) < S_GROUND_ANGLE)
+    //     proj_pos = RayCastHitPosition(proj_pos + Vector(0, 3, 0), proj_pos + Down() * 3, null, all, true);
 
     Damage(PlayersWithinRadius(proj_pos, S_RADIUS, LOSCheck: RadiusLOS.SurfacesAndEnemyBarriers), player, S_DAMAGE);
 
@@ -280,6 +287,11 @@ if (IsMeleeing())
     PlayEffect(all, PlayEffect.AnaBioticGrenadeExplosionSound, Color.White, proj_pos, 45);
     PlayEffect(all, PlayEffect.EchoStickyBombExplosionSound, Color.White, proj_pos, 100);
     DestroyEffect(effect);
+}
+
+void FixedUpdate() playervar "Fixed Update"
+{
+    
 }
 
 rule: "damage"
