@@ -42,7 +42,7 @@ Event.OngoingPlayer
 
     // CreateProgressBarInWorldText(FilteredArray(EnemyPlayers(), !is_stealth && IsAlive()), NormalizedHealth() * 100, null, player, 0, Clipping.DoNotClip, Color.Red);
     // CreateInWorldText(FilteredArray(EnemyPlayers(), !is_stealth && IsAlive()));
-    CreateInWorldText(FilteredArray(RemoveFromArray(all, player), !is_stealth && IsAlive()), <"<0>\n", hp_str>, Update(EyePosition() + Vector(0, 0.275, 0)), 0.55, Clipping.DoNotClip, TextColor: Color.Red);
+    CreateInWorldText(FilteredArray(RemoveFromArray(all, player), !is_stealth && IsAlive()), <"<0>\n", hp_str>, Update(EyePosition() + Vector(0, 0.275, 0)), 0.6, Clipping.DoNotClip, TextColor: Color.Red);
     CreateInWorldText(FilteredArray(RemoveFromArray(all, player), !is_stealth && IsAlive()), <"<0> | <1>",
     player,
     IsUsingUltimate() 
